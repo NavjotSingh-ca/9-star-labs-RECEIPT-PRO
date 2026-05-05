@@ -5,11 +5,18 @@ import { supabase } from '@/lib/supabase';
 import { ShieldCheck, Loader2, KeyRound, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { AuroraBackground } from '@/components/aceternity/aurora-background';
 
+interface MFAFactor {
+  id: string;
+  status: 'verified' | 'unverified';
+  friendly_name?: string;
+  factor_type: 'totp';
+}
+
 export default function SecuritySettings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [factors, setFactors] = useState<any[]>([]);
+  const [factors, setFactors] = useState<MFAFactor[]>([]);
   const [qrCode, setQrCode] = useState('');
   const [factorId, setFactorId] = useState('');
   const [verifyCode, setVerifyCode] = useState('');
@@ -23,9 +30,9 @@ export default function SecuritySettings() {
     try {
       const { data, error } = await supabase.auth.mfa.listFactors();
       if (error) throw error;
-      setFactors(data.totp || []);
-    } catch (err: any) {
-      setError(err.message);
+      setFactors((data.totp || []) as MFAFactor[]);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -39,8 +46,8 @@ export default function SecuritySettings() {
       if (error) throw error;
       setQrCode(data.totp.qr_code);
       setFactorId(data.id);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
     }
   }
 
@@ -67,8 +74,8 @@ export default function SecuritySettings() {
       setQrCode('');
       setVerifyCode('');
       await loadFactors();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -82,8 +89,8 @@ export default function SecuritySettings() {
       if (error) throw error;
       setSuccess('MFA factor removed.');
       await loadFactors();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }

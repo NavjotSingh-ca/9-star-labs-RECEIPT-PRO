@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Camera, X, Zap, ZapOff, RefreshCcw, Circle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { RefreshCcw } from 'lucide-react';
 import type { CameraEngineProps } from './types';
 
 export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) {
@@ -30,7 +29,7 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
           },
           audio: false
         });
-        
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           // Force full resolution playback
@@ -42,7 +41,7 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
 
         // Check for flash support (torch)
         const track = stream.getVideoTracks()[0];
-        const capabilities = track.getCapabilities() as any;
+        const capabilities = track.getCapabilities() as { torch?: boolean };
         if (capabilities.torch) {
           setHasFlash(true);
         }
@@ -70,7 +69,7 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
       const track = stream.getVideoTracks()[0];
       const nextFlashState = !isFlashOn;
       await track.applyConstraints({
-        advanced: [{ torch: nextFlashState }] as any
+        advanced: [{ torch: nextFlashState } as any]
       });
       setIsFlashOn(nextFlashState);
     } catch (err) {
@@ -149,19 +148,31 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
 
       {/* Controls - at bottom */}
       <div className="bg-black text-white p-8 flex gap-4 justify-center flex-wrap border-t border-white/10">
-        <button
-          onClick={takePhoto}
-          disabled={isStarting || !!error}
-          className="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-full flex-1 min-w-max text-sm font-bold uppercase tracking-widest transition-all active:scale-95"
-        >
-          Capture
-        </button>
-        <button
-          onClick={onClose}
-          className="bg-gray-800 hover:bg-gray-700 px-8 py-3 rounded-full flex-1 min-w-max text-sm font-bold uppercase tracking-widest transition-all"
-        >
-          Cancel
-        </button>
+        <div className="flex gap-4 w-full max-w-md">
+          {hasFlash && (
+            <button
+              onClick={toggleFlash}
+              className={`px-6 py-3 rounded-full text-sm font-bold uppercase tracking-widest transition-all ${
+                isFlashOn ? 'bg-amber-500 text-black' : 'bg-gray-800 text-white hover:bg-gray-700'
+              }`}
+            >
+              {isFlashOn ? 'Flash On' : 'Flash Off'}
+            </button>
+          )}
+          <button
+            onClick={takePhoto}
+            disabled={isStarting || !!error}
+            className="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-full flex-1 text-sm font-bold uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50"
+          >
+            Capture
+          </button>
+          <button
+            onClick={onClose}
+            className="bg-gray-800 hover:bg-gray-700 px-8 py-3 rounded-full flex-1 text-sm font-bold uppercase tracking-widest transition-all"
+          >
+            Cancel
+          </button>
+        </div>
       </div>
       <canvas ref={canvasRef} className="hidden" />
     </div>

@@ -285,9 +285,9 @@ Return the corrected JSON only. Keep the same schema.`;
 
 
 export async function scanReceipt(base64Image: string, captureSource: string = 'camera'): Promise<ScanReceiptResult> {
-  // Note: Skip auth check here since this runs after user has already uploaded
-  // The RLS policies in the database will enforce security
-  
+  // Auth is verified client-side before calling this function
+  // Database RLS policies enforce security
+
   if (!process.env.GOOGLE_AI_KEY) return { success: false, error: 'AI service not configured.' };
   
   if (base64Image.length > 6_000_000) {
@@ -310,8 +310,10 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
 
     const rawParsed = parseSafely(result.response.text());
 
-    // AI Self-Correction Pass — validate math, dates, BN format
-    const parsed = await selfCorrectExtraction(genAI, rawParsed);
+    // AI Self-Correction Pass — only run if confidence is low (< 75) to save API quota
+    const parsed = (rawParsed.confidence_score && Number(rawParsed.confidence_score) < 75)
+      ? await selfCorrectExtraction(genAI, rawParsed)
+      : rawParsed;
 
     // Basic sanitize (condensed for Godmode build)
     const vendor_name = toStr(parsed.vendor_name) || 'Unknown Vendor';

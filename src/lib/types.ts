@@ -119,9 +119,10 @@ export interface AuditLogRow {
 export interface Project {
   id: string;
   name: string;
-  code?: string | null;
+  code: string | null;
+  budget_amount: number | null;
   user_id: string;
-  created_at?: string | null;
+  created_at: string;
 }
 
 /** Employee invite code */

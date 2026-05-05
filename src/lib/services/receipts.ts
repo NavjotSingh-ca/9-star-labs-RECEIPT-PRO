@@ -109,6 +109,7 @@ export async function getReceiptsPaginated(params: {
   toDate?: string;
   approvalStatus?: string;
   search?: string;
+  semanticIds?: string[];
 }): Promise<{ receipts: ReceiptRow[]; totalCount: number }> {
   if (!params.userId) return { receipts: [], totalCount: 0 };
 
@@ -127,6 +128,7 @@ export async function getReceiptsPaginated(params: {
     p_to_date: params.toDate || null,
     p_approval_status: params.approvalStatus || null,
     p_search: params.search || null,
+    p_semantic_ids: params.semanticIds || null,
   });
 
   if (error) {
@@ -135,7 +137,7 @@ export async function getReceiptsPaginated(params: {
   }
 
   // The RPC returns an array of rows: { receipt: JSON, total_count: bigint }
-  const rows = data as any[];
+  const rows = data as { receipt: unknown; total_count: number | string }[];
   if (!rows || rows.length === 0) return { receipts: [], totalCount: 0 };
 
   const totalCount = Number(rows[0].total_count);
@@ -171,6 +173,8 @@ export interface DashboardSummary {
   spendingByCategory: { name: string; amount: number }[];
   monthlyTrend: { month: string; amount: number }[];
   reimbursementQueue: ReceiptRow[];
+  highConfidenceCount: number;
+  duplicatesBlockedCount: number;
 }
 
 export const getDashboardSummary = async (role: UserRole, userId: string): Promise<DashboardSummary> => {
@@ -234,6 +238,8 @@ export const getDashboardSummary = async (role: UserRole, userId: string): Promi
     spendingByCategory,
     monthlyTrend: [], 
     reimbursementQueue: (reimbursements || []).map(r => receiptSchema.parse(r) as ReceiptRow),
+    highConfidenceCount: 0,
+    duplicatesBlockedCount: 0,
   };
 };
 
@@ -259,6 +265,19 @@ export const getBusinessUnits = async () => {
   return data || [];
 };
 
+export const createAuditLog = async (userId: string, action: string, details: string) => {
+  const { data: orgData } = await supabase.rpc('get_user_org');
+  const orgId = orgData as unknown as string;
+  
+  await supabase.from('audit_logs').insert({
+    user_id: userId,
+    org_id: orgId || null,
+    action,
+    details,
+    created_at: new Date().toISOString()
+  });
+};
+
 export const deleteReceipt = async (receiptId: string, userId: string): Promise<void> => {
   const { error } = await supabase
     .from('receipts')
@@ -267,11 +286,7 @@ export const deleteReceipt = async (receiptId: string, userId: string): Promise<
 
   if (error) throw error;
 
-  await supabase.from('audit_logs').insert({
-    user_id: userId,
-    action: 'receiptdeleted',
-    details: `Receipt marked as deleted by user ${userId}.`,
-  });
+  await createAuditLog(userId, 'receiptdeleted', `Receipt marked as deleted: ${receiptId}`);
 };
 
 export const getAuditLogs = async (limit = 50) => {
@@ -307,18 +322,26 @@ export const getProjects = async (): Promise<Project[]> => {
   return (data || []) as Project[];
 };
 
-export const createProject = async (name: string, code?: string): Promise<Project> => {
+export const createProject = async (name: string, code?: string, budgetAmount?: number): Promise<Project> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
   const { data, error } = await supabase
     .from('projects')
-    .insert({ name, code: code ?? null, user_id: user.id })
+    .insert({ name, code: code ?? null, user_id: user.id, budget_amount: budgetAmount ?? null })
     .select()
     .single();
 
   if (error) throw error;
   return data as Project;
+};
+
+export const updateProjectBudget = async (projectId: string, budgetAmount: number): Promise<void> => {
+  const { error } = await supabase
+    .from('projects')
+    .update({ budget_amount: budgetAmount })
+    .eq('id', projectId);
+  if (error) throw error;
 };
 
 export const deleteProject = async (projectId: string): Promise<void> => {

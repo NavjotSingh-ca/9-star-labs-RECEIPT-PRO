@@ -108,9 +108,9 @@ export default function AuditTrail() {
       if (error) throw error;
 
       setLogs((data ?? []) as AuditLogRow[]);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setLogs([]);
-      setError(err?.message || 'Failed to load audit trail.');
+      setError(err instanceof Error ? err.message : 'Failed to load audit trail.');
     } finally {
       setLoading(false);
     }

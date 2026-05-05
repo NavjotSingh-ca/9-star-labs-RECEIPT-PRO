@@ -131,7 +131,7 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
         integrityHash = await generateIntegrityHash(new TextEncoder().encode(JSON.stringify(localFormData)).buffer);
       }
 
-      let payload = {
+      const payload = {
         ...localFormData,
         user_id: user.id,
         duplicate_hash: computedHash,
@@ -189,7 +189,7 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
       if (!active) return;
 
       if (error) {
-        setNotice({ tone: 'error', message: 'Could not load business units.' });
+        showNotice('error', 'Could not load business units.');
       } else {
         setBusinessUnits((data ?? []) as { id: string; name: string }[]);
       }
@@ -317,7 +317,6 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
 
   async function onCapture(file: File) {
     try {
-      setNotice(null);
       setShowBlurWarning(false);
 
       const rawDataUrl = await readFileAsDataUrl(file);
@@ -371,7 +370,6 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
     }
 
     setProcessingAI(true);
-    setNotice(null);
 
     try {
       const result = await scanReceipt(srcToUse, source);
@@ -408,7 +406,6 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
     if (savingRef.current || (!imageSrc && batchQueue.length === 0)) return;
     savingRef.current = true;
     setSaving(true);
-    setNotice(null);
 
     const payload = finalFormData || formData;
     saveMutation.mutate({ bypassCheck, localFormData: payload });
@@ -749,17 +746,15 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
           </motion.div>
         )}
       </AnimatePresence>
-      <AnimatePresence>
-        {showCameraEngine && (
-          <CameraEngine 
-            onCapture={(file) => {
-              onCapture(file);
-              setShowCameraEngine(false);
-            }}
-            onClose={() => setShowCameraEngine(false)}
-          />
-        )}
-      </AnimatePresence>
+      {showCameraEngine && (
+        <CameraEngine
+          onCapture={(file) => {
+            onCapture(file);
+            setShowCameraEngine(false);
+          }}
+          onClose={() => setShowCameraEngine(false)}
+        />
+      )}
     </div>
   );
 }

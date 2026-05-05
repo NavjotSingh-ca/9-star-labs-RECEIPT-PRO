@@ -1,16 +1,19 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, Loader2, Plus, Trash2 } from 'lucide-react';
+import { AlertCircle, Loader2, Plus, Trash2, Briefcase } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getProjects, createProject, deleteProject } from '@/lib/services/receipts';
-import type { Project } from '@/lib/types';
+import { getProjects, createProject, deleteProject, getReceipts } from '@/lib/services/receipts';
+import type { Project, ReceiptRow } from '@/lib/types';
+import { formatCurrency, toNumber } from '@/lib/ui-utils';
+import { cn } from '@/lib/utils';
 
 export default function ProjectManager() {
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
+  const [budget, setBudget] = useState('');
   const [error, setError] = useState('');
 
   const { data: projects = [], isLoading } = useQuery({
@@ -18,11 +21,27 @@ export default function ProjectManager() {
     queryFn: getProjects,
   });
 
+  const { data: receipts = [] } = useQuery({
+    queryKey: ['receipts_all'], // Fetch all for budgeting (or could use summary rpc)
+    queryFn: () => getReceipts('Owner', undefined, 5000), // High limit for budget calc
+  });
+
+  const projectSpendMap = useMemo(() => {
+    const map = new Map<string, number>();
+    receipts.forEach((r: ReceiptRow) => {
+      if (r.project_id) {
+        map.set(r.project_id, (map.get(r.project_id) ?? 0) + toNumber(r.total_amount));
+      }
+    });
+    return map;
+  }, [receipts]);
+
   const createMutation = useMutation({
-    mutationFn: () => createProject(name.trim(), code.trim() || undefined),
+    mutationFn: () => createProject(name.trim(), code.trim() || undefined, parseFloat(budget) || undefined),
     onSuccess: () => {
       setName('');
       setCode('');
+      setBudget('');
       setError('');
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
@@ -40,91 +59,163 @@ export default function ProjectManager() {
   };
 
   return (
-    <section className="space-y-5">
+    <section className="space-y-6">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-champagne">Jobs & Sites</p>
-        <h2 className="mt-1 text-2xl font-bold tracking-tight text-text-primary">Project Manager</h2>
+        <h2 className="mt-1 text-2xl font-bold tracking-tight text-text-primary">Project Portfolio</h2>
         <p className="mt-1 text-sm text-text-secondary">
-          Create job codes that link receipts to specific construction projects or sites.
+          Track project-wise spend against allocated budgets for construction sites.
         </p>
       </div>
 
       {/* Create form */}
-      <div className="rounded-3xl border border-glass-border bg-surface p-5">
-        <p className="mb-4 text-sm font-bold text-text-primary">Add New Project</p>
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
-          <input
-            type="text"
-            placeholder="Project name (e.g. Westview Commercial Build)"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-            className="w-full rounded-2xl border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none placeholder:text-text-muted focus:border-champagne/40"
-          />
-          <input
-            type="text"
-            placeholder="Code (e.g. WCB-01)"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            className="w-full rounded-2xl border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none placeholder:text-text-muted focus:border-champagne/40 sm:w-40"
-          />
+      <div className="rounded-3xl border border-glass-border bg-surface p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <Briefcase className="h-4 w-4 text-champagne" />
+          <p className="text-sm font-bold text-text-primary">Add New Project</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-4 items-end">
+          <div className="sm:col-span-2">
+            <label className="block text-[10px] font-black uppercase tracking-widest text-text-muted mb-1.5 ml-1">Project Name</label>
+            <input
+              type="text"
+              placeholder="e.g. Westview Commercial Build"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-xl border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none focus:border-champagne/40"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-text-muted mb-1.5 ml-1">Code</label>
+            <input
+              type="text"
+              placeholder="WCB-01"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              className="w-full rounded-xl border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none focus:border-champagne/40"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-text-muted mb-1.5 ml-1">Budget ($)</label>
+            <input
+              type="number"
+              placeholder="0.00"
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+              className="w-full rounded-xl border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none focus:border-champagne/40"
+            />
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end border-t border-glass-border pt-4">
           <button
             type="button"
             onClick={handleCreate}
             disabled={createMutation.isPending || !name.trim()}
-            className="flex items-center gap-2 rounded-2xl bg-champagne px-4 py-3 text-sm font-bold text-obsidian transition hover:bg-champagne-dim disabled:opacity-50"
+            className="flex items-center gap-2 rounded-2xl bg-champagne px-8 py-3 text-sm font-bold text-obsidian transition hover:bg-champagne-dim disabled:opacity-50 shadow-lg shadow-champagne/10"
           >
             {createMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Plus className="h-4 w-4" />
             )}
-            Add
+            Initialize Project
           </button>
         </div>
         {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
       </div>
 
       {/* Project list */}
-      {isLoading ? (
-        <div className="flex justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-champagne" />
-        </div>
-      ) : projects.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-3xl border border-glass-border bg-surface py-12 text-center">
-          <AlertCircle className="h-8 w-8 text-text-muted" />
-          <p className="text-sm text-text-muted">No projects yet. Create your first job above.</p>
-        </div>
-      ) : (
-        <AnimatePresence mode="popLayout">
-          {projects.map((p: Project) => (
-            <motion.div
-              key={p.id}
-              layout
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="flex items-center gap-4 rounded-2xl border border-glass-border bg-surface px-4 py-3"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-text-primary">{p.name}</p>
-                {p.code && (
-                  <p className="mt-0.5 text-xs font-mono text-champagne">{p.code}</p>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => deleteMutation.mutate(p.id)}
-                disabled={deleteMutation.isPending}
-                className="rounded-xl p-2 text-text-muted transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
-                aria-label="Delete project"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      )}
+      <div className="grid gap-4">
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-champagne" />
+          </div>
+        ) : projects.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-glass-border bg-surface/30 py-16 text-center">
+            <AlertCircle className="h-10 w-10 text-text-muted opacity-30" />
+            <p className="text-sm text-text-muted">No active projects. Initialize your first job site above.</p>
+          </div>
+        ) : (
+          <AnimatePresence mode="popLayout">
+            {projects.map((p: Project) => {
+              const spend = projectSpendMap.get(p.id) || 0;
+              const budget = p.budget_amount || 0;
+              const percent = budget > 0 ? Math.min((spend / budget) * 100, 100) : 0;
+              const isOver = budget > 0 && spend > budget;
+
+              return (
+                <motion.div
+                  key={p.id}
+                  layout
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="group rounded-3xl border border-glass-border bg-surface p-5 hover:bg-surface-raised transition-all"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-lg font-bold text-text-primary">{p.name}</p>
+                        {p.code && (
+                          <span className="rounded-md bg-champagne/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-champagne">
+                            {p.code}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-6">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mb-1">Spent</p>
+                          <p className={cn("text-sm font-bold", isOver ? "text-red-400" : "text-text-primary")}>
+                            {formatCurrency(spend)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mb-1">Budget</p>
+                          <p className="text-sm font-bold text-text-secondary">
+                            {budget > 0 ? formatCurrency(budget) : '—'}
+                          </p>
+                        </div>
+                        {budget > 0 && (
+                          <div className="col-span-2">
+                            <div className="flex justify-between items-center mb-1.5">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Utilization</p>
+                              <p className={cn("text-[10px] font-black", isOver ? "text-red-400" : "text-champagne")}>
+                                {percent.toFixed(1)}%
+                              </p>
+                            </div>
+                            <div className="h-1.5 w-full rounded-full bg-glass-border overflow-hidden">
+                              <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${percent}%` }}
+                                className={cn("h-full rounded-full transition-all", isOver ? "bg-red-500" : "bg-champagne")}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm(`Delete project "${p.name}"? This cannot be undone.`)) {
+                          deleteMutation.mutate(p.id);
+                        }
+                      }}
+                      disabled={deleteMutation.isPending}
+                      className="rounded-xl p-2.5 text-text-muted transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                      aria-label="Delete project"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        )}
+      </div>
     </section>
   );
 }

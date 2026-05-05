@@ -58,8 +58,8 @@ export default function OrgSettings() {
           slack_webhook_url: data.slack_webhook_url || '',
         });
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -84,8 +84,8 @@ export default function OrgSettings() {
       if (error) throw error;
       setSuccess('Organization settings saved successfully.');
       setTimeout(() => setSuccess(''), 3000);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setSaving(false);
     }

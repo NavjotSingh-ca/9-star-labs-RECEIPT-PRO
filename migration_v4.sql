@@ -102,7 +102,8 @@ CREATE OR REPLACE FUNCTION get_receipts_paginated(
   p_from_date text DEFAULT NULL,
   p_to_date text DEFAULT NULL,
   p_approval_status text DEFAULT NULL,
-  p_search text DEFAULT NULL
+  p_search text DEFAULT NULL,
+  p_semantic_ids text[] DEFAULT NULL
 )
 RETURNS TABLE (
   receipt json,
@@ -136,6 +137,9 @@ BEGIN
       ' AND (to_tsvector(''english'', coalesce(r.vendor_name, '''')) @@ plainto_tsquery(''english'', %L) OR r.vendor_name ILIKE %L)',
       p_search, '%' || p_search || '%'
     );
+  END IF;
+  IF p_semantic_ids IS NOT NULL THEN
+    v_where := v_where || format(' AND r.id::text = ANY(%L)', p_semantic_ids);
   END IF;
 
   RETURN QUERY EXECUTE format(

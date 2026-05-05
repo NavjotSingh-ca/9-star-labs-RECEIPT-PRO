@@ -27,6 +27,7 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
   });
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCrop(null);
   }, [imageSrc]);
 

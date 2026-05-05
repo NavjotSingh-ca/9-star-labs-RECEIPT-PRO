@@ -40,6 +40,7 @@ export default function InviteModal({ onClose, businessUnits }: InviteModalProps
     setTimeout(() => setCopied(false), 2000);
   };
 
+  return (
     <div className="w-full flex flex-col">
       {/* Header */}
       <div className="flex items-start justify-between mb-8 pb-4 border-b border-glass-border">
@@ -153,4 +154,5 @@ export default function InviteModal({ onClose, businessUnits }: InviteModalProps
         </button>
       </div>
     </div>
+  );
 }

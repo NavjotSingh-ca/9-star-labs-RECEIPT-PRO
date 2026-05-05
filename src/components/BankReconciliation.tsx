@@ -116,7 +116,7 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
       const findIndex = (amt: number) => {
         let low = 0, high = sortedReceipts.length;
         while (low < high) {
-          let mid = (low + high) >>> 1;
+          const mid = (low + high) >>> 1;
           if (toNumber(sortedReceipts[mid].total_amount) < amt) low = mid + 1;
           else high = mid;
         }

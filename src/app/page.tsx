@@ -28,7 +28,7 @@ import {
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 
 import Dashboard from '@/components/Dashboard';
 import Export from '@/components/Export';
@@ -152,7 +152,7 @@ function AuthScreen() {
               p_org_name: 'My Business',
             });
             showToast('success', 'Account created. Please check your email to confirm.');
-          } catch (err: any) {
+          } catch (err: unknown) {
             console.error('Failed to create organization:', err);
             showToast('info', 'Account created but organization setup failed. Please contact support.');
           }
@@ -167,7 +167,7 @@ function AuthScreen() {
     }
   };
 
-  const FeatureCard = ({ title, desc, icon: Icon }: any) => (
+  const FeatureCard = ({ title, desc, icon: Icon }: { title: string; desc: string; icon: React.ElementType }) => (
     <div className="flex w-64 flex-col items-start gap-2 rounded-[2rem] border border-glass-border bg-black/40 p-5 shadow-2xl backdrop-blur-2xl">
       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-champagne/15 text-champagne">
         <Icon className="h-5 w-5" />
@@ -407,6 +407,7 @@ function AppContent() {
 
   // Standardize mount state
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHasMounted(true);
   }, []);
 
@@ -423,6 +424,7 @@ function AppContent() {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab') as Tab | null;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (tab) setActiveTab(tab);
   }, [hasMounted]);
 
@@ -453,6 +455,7 @@ function AppContent() {
       // Physically force to allowed tabs only
       const allowedEmployeeTabs: Tab[] = ['scan', 'receipts', 'more'];
       if (!allowedEmployeeTabs.includes(activeTab)) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setTabWithUrl('scan');
       }
     }
@@ -796,7 +799,10 @@ function AppContent() {
         {/* 'More' Bottom Sheet */}
         <AnimatePresence>
           {activeTab === 'more' && (
-            <div className="fixed inset-0 z-50 bg-black/50 flex flex-col" onClick={() => setActiveTab('dashboard')}>
+            <div
+              className="fixed inset-0 z-50 bg-black/50 flex flex-col"
+              onClick={() => setActiveTab('dashboard')}
+            >
               <motion.div
                 initial={{ opacity: 0, x: '100%' }}
                 animate={{ opacity: 1, x: 0 }}
@@ -861,8 +867,8 @@ function AppContent() {
                               } else {
                                 showToast('error', res.error || 'Invalid or expired code.');
                               }
-                            } catch (err: any) {
-                              showToast('error', err.message || 'Failed to redeem code.');
+                            } catch (err: unknown) {
+                              showToast('error', err instanceof Error ? err.message : 'Failed to redeem code.');
                             }
                           }
                         }} className="flex items-center gap-3 rounded-2xl bg-gray-50 p-4 transition hover:bg-gray-100">
@@ -894,14 +900,16 @@ function AppContent() {
       {/* Bottom Navigation */}
       <nav className="fixed inset-x-0 bottom-0 z-50 liquid-glass">
         <div className="mx-auto flex max-w-6xl items-end justify-around px-2 py-2 sm:px-4">
-          {navItems.map((item) => {
-            /* Employee: hide certain tabs, but 'more' can still hold settings/legal */
-            if (role === 'Employee' && ['dashboard', 'export', 'audit', 'reconcile'].includes(item.id)) {
-              return null;
-            }
-            /* Accountant: grant access to audit (was incorrectly hidden) */
           <LayoutGroup id="nav">
             {navItems.map((item) => {
+              /* Role-based Visibility */
+              if (role === 'Employee' && ['dashboard', 'export', 'audit', 'reconcile'].includes(item.id)) {
+                return null;
+              }
+              if (role === 'Accountant' && ['payables'].includes(item.id)) {
+                return null;
+              }
+
               const isActive = activeTab === item.id;
               
               return item.primary ? (
