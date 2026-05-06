@@ -1,31 +1,37 @@
 // 9 Star Labs — Service Worker (Offline-First PWA)
 // Caches app shell and provides offline scan queue capability
 
-const CACHE_NAME = '9sl-v1';
+// Cache version — increment this when deploying significant updates
+// Format: 9sl-vYYYY-MM-DD or 9sl-v{major}.{minor}
+const CACHE_NAME = '9sl-v2026-05';
+const STATIC_CACHE = '9sl-static-v2026-05';
+
 const APP_SHELL = [
   '/',
   '/privacy',
   '/terms',
+  '/manifest.json',
 ];
 
-// Install: cache app shell
+// Install: cache app shell with skip-waiting
 self.addEventListener('install', (event) => {
+  self.skipWaiting(); // Take over immediately on update
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
+    caches.open(STATIC_CACHE).then((cache) => cache.addAll(APP_SHELL))
   );
-  self.skipWaiting();
 });
 
-// Activate: clean old caches
+// Activate: clean old caches and claim clients
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-      )
-    )
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_NAME && name !== STATIC_CACHE)
+          .map((name) => caches.delete(name))
+      );
+    }).then(() => self.clients.claim()) // Take control of open tabs
   );
-  self.clients.claim();
 });
 
 // Fetch: network-first for API, cache-first for static assets
@@ -51,7 +57,7 @@ self.addEventListener('fetch', (event) => {
           cached ||
           fetch(event.request).then((response) => {
             const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            caches.open(STATIC_CACHE).then((cache) => cache.put(event.request, clone));
             return response;
           })
       )
