@@ -420,12 +420,6 @@ function AppContent() {
     window.history.pushState({ tab }, '', url);
   }, []);
 
-  const closeMoreMenu = useCallback(() => {
-    // Employees don't have a dashboard tab
-    const fallback: Tab = role === 'Employee' ? 'scan' : 'dashboard';
-    setTabWithUrl(fallback);
-  }, [role, setTabWithUrl]);
-
   // Sync tab with URL on mount (SSR Safe)
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -454,6 +448,35 @@ function AppContent() {
     if (type === 'success') toast.success(msg);
     else if (type === 'error') toast.error(msg);
     else toast.info(msg);
+  };
+
+  const closeMoreMenu = useCallback(() => {
+    // Employees don't have a dashboard tab
+    const fallback: Tab = role === 'Employee' ? 'scan' : 'dashboard';
+    setTabWithUrl(fallback);
+  }, [role, setTabWithUrl]);
+
+  const handleRedeemCode = async () => {
+    if (!redeemCodeValue || redeemCodeValue.trim().length !== 6) {
+      showToast('error', 'Please enter a valid 6-digit access code.');
+      return;
+    }
+    setRedeemLoading(true);
+    try {
+      const res = await redeemAccessCode(redeemCodeValue.trim(), user?.id || '');
+      if (res.success) {
+        showToast('success', `Success! Role assigned: ${res.role}. Reloading...`);
+        setShowRedeemInput(false);
+        setRedeemCodeValue('');
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        showToast('error', res.error || 'Invalid or expired code.');
+      }
+    } catch (err: unknown) {
+      showToast('error', err instanceof Error ? err.message : 'Failed to redeem code.');
+    } finally {
+      setRedeemLoading(false);
+    }
   };
 
 /* ─── Role-aware tab enforcement (DOM removal for Employee) ─── */
@@ -613,6 +636,9 @@ function AppContent() {
   };
 
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showRedeemInput, setShowRedeemInput] = useState(false);
+  const [redeemCodeValue, setRedeemCodeValue] = useState('');
+  const [redeemLoading, setRedeemLoading] = useState(false);
 
   if (authLoading || !hasMounted) return <FullPageLoader />;
   if (!user) return <AuthScreen />;
@@ -868,27 +894,48 @@ function AppContent() {
                             <div className="text-left"><p className="text-sm font-bold text-gray-900">Invite Team Member</p><p className="text-xs text-gray-500">Generate 6-digit access code</p></div>
                           </button>
                         )}
-                        <button onClick={async () => {
-                          const code = window.prompt('Enter 6-digit access code:');
-                          if (!code || code.trim().length !== 6) return;
-                          const confirm = window.confirm(`Are you sure you want to redeem access code ${code}?`);
-                          if (confirm) {
-                            try {
-                              const res = await redeemAccessCode(code.trim(), user?.id || '');
-                              if (res.success) {
-                                showToast('success', `Success! Assigned role: ${res.role}. Refreshing...`);
-                                setTimeout(() => window.location.reload(), 2000);
-                              } else {
-                                showToast('error', res.error || 'Invalid or expired code.');
-                              }
-                            } catch (err: unknown) {
-                              showToast('error', err instanceof Error ? err.message : 'Failed to redeem code.');
-                            }
-                          }
-                        }} className="flex items-center gap-3 rounded-[3rem] bg-gray-50 p-4 transition hover:bg-gray-100">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-[2rem] bg-blue-100 text-blue-600"><ShieldCheck className="h-5 w-5" /></div>
-                          <div className="text-left"><p className="text-sm font-bold text-gray-900">Redeem Access Code</p><p className="text-xs text-gray-500">Join a workspace</p></div>
-                        </button>
+                        {!showRedeemInput ? (
+                          <button
+                            onClick={() => setShowRedeemInput(true)}
+                            className="flex items-center gap-3 rounded-[3rem] bg-gray-50 p-4 transition hover:bg-gray-100 w-full"
+                          >
+                            <div className="flex h-10 w-10 items-center justify-center rounded-[2rem] bg-blue-100 text-blue-600">
+                              <ShieldCheck className="h-5 w-5" />
+                            </div>
+                            <div className="text-left">
+                              <p className="text-sm font-bold text-gray-900">Redeem Access Code</p>
+                              <p className="text-xs text-gray-500">Join a workspace</p>
+                            </div>
+                          </button>
+                        ) : (
+                          <div className="rounded-[2rem] border border-blue-200 bg-blue-50 p-4 space-y-3">
+                            <p className="text-sm font-bold text-gray-900">Enter 6-digit Access Code</p>
+                            <input
+                              type="text"
+                              value={redeemCodeValue}
+                              onChange={(e) => setRedeemCodeValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                              placeholder="000000"
+                              maxLength={6}
+                              className="w-full rounded-[2rem] border border-gray-200 bg-white px-4 py-2 text-center font-mono tracking-[0.3em] text-lg outline-none focus:border-blue-400"
+                              autoFocus
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => { setShowRedeemInput(false); setRedeemCodeValue(''); }}
+                                className="flex-1 rounded-[2rem] border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={handleRedeemCode}
+                                disabled={redeemCodeValue.length !== 6 || redeemLoading}
+                                className="flex-1 rounded-[2rem] bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+                              >
+                                {redeemLoading ? 'Redeeming...' : 'Redeem'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </>
                     )}
                     
