@@ -262,9 +262,15 @@ export const getDashboardSummary = async (role: UserRole, userId: string): Promi
 };
 
 export const getReimbursementsPending = async (userId: string): Promise<ReceiptRow[]> => {
+  // Get the user's organization for proper tenant isolation
+  const { data: orgData } = await supabase.rpc('get_user_org');
+  const orgId = orgData as unknown as string;
+  if (!orgId) return [];
+
   const { data, error } = await supabase
     .from('receipts')
     .select('*')
+    .eq('org_id', orgId)
     .eq('is_deleted', false)
     .eq('needs_reimbursement', true)
     .or('reimbursement_status.eq.pending,reimbursement_status.is.null')
