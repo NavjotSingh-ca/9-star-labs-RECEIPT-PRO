@@ -325,7 +325,9 @@ function AuthScreen() {
                           return;
                         }
                         try {
-                          const { error } = await supabase.auth.resetPasswordForEmail(email);
+                          const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                            redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback?type=recovery`,
+                          });
                           if (error) throw error;
                           showToast('success', 'Password reset email sent. Check your inbox.');
                         } catch (err: unknown) {
