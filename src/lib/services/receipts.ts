@@ -324,7 +324,8 @@ export const deleteReceipt = async (receiptId: string, userId: string): Promise<
   const { error } = await supabase
     .from('receipts')
     .update({ is_deleted: true, updated_at: new Date().toISOString() })
-    .eq('id', receiptId);
+    .eq('id', receiptId)
+    .eq('user_id', userId); // Defense in depth beyond RLS
 
   if (error) throw error;
 
