@@ -499,46 +499,18 @@ function AppContent() {
     let active = true;
     console.log('🔐 Setting up auth listener...');
 
-    // Direct getUser check
-    supabase.auth.getUser().then(({ data, error: userError }) => {
-      console.log('🔐 getUser result:', data.user ? 'USER FOUND' : 'NO USER', userError || '');
-      if (!active) return;
-      if (userError || !data.user) {
-        authLoadingRef.current = false;
-        setAuthLoading(false);
-        return;
-      }
-
-      setUser(data.user);
-      getUserRole(data.user.id)
-        .then(r => {
-          if (active) {
-            console.log('🔐 Role loaded:', r);
-            setRole(r);
-            authLoadingRef.current = false;
-            setAuthLoading(false);
-          }
-        })
-        .catch((err) => {
-          if (active) {
-            console.error('🔐 Role load failed:', err);
-            setRole('Employee');
-            authLoadingRef.current = false;
-            setAuthLoading(false);
-          }
-        });
-    });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔐 Auth event:', event, 'Session:', session?.user?.id || 'NO USER');
       if (!active) return;
+
       const currentUser = session?.user ?? null;
       setUser(currentUser);
+
       if (currentUser) {
         getUserRole(currentUser.id)
           .then(r => {
             if (active) {
-              console.log('🔐 Role updated via event:', r);
+              console.log('🔐 Role loaded:', r);
               setRole(r);
               authLoadingRef.current = false;
               setAuthLoading(false);
@@ -546,13 +518,14 @@ function AppContent() {
           })
           .catch((err) => {
             if (active) {
-              console.error('🔐 Role update failed:', err);
+              console.error('🔐 Role load failed:', err);
               setRole('Employee');
               authLoadingRef.current = false;
               setAuthLoading(false);
             }
           });
       } else {
+        // No user (INITIAL_SESSION with no session, or SIGNED_OUT)
         authLoadingRef.current = false;
         setAuthLoading(false);
       }
