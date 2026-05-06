@@ -18,7 +18,9 @@ const nextConfig: NextConfig = {
               style-src 'self' 'unsafe-inline';
               img-src 'self' blob: data: https:;
               font-src 'self' data:;
-              connect-src 'self' https://*.supabase.co https://*.googleapis.com;
+              connect-src 'self' https://*.supabase.co https://*.supabase.io https://*.googleapis.com https://generativelanguage.googleapis.com;
+              media-src 'self' blob:;
+              worker-src 'self' blob:;
               frame-ancestors 'none'
             `.replace(/\s+/g, ' ').trim()
           },
