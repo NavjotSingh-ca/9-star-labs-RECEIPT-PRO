@@ -315,7 +315,34 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
   // Database RLS policies enforce security
 
   if (!process.env.GOOGLE_AI_KEY) return { success: false, error: 'AI service not configured.' };
-  
+
+  // ─── Rate Limiting: max 10 scans per hour per user ───
+  try {
+    const cookieStore = await cookies();
+    const supabaseClient = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: () => {},
+      },
+    });
+    const { data: authData } = await supabaseClient.auth.getUser();
+    if (!authData?.user) {
+      return { success: false, error: 'Authentication required.' };
+    }
+    const userId = authData.user.id;
+    const oneHourAgo = new Date(Date.now() - 3_600_000).toISOString();
+    const { count } = await supabaseClient
+      .from('receipts')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', oneHourAgo);
+    if ((count ?? 0) >= 10) {
+      return { success: false, error: 'Rate limit reached: max 10 scans per hour. Please wait.' };
+    }
+  } catch {
+    // If rate limit check fails, allow the scan (don't block users on DB errors)
+  }
+
   if (base64Image.length > 6_000_000) {
     return { success: false, error: 'Image too large. Maximum 4MB after encoding.' };
   }
