@@ -953,6 +953,7 @@ function AppContent() {
                   <motion.button
                     type="button"
                     onClick={() => setActiveTab(item.id)}
+                    aria-label={item.label}
                     whileTap={{ scale: 0.88 }}
                     whileHover={{ scale: 1.06 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 15 }}
@@ -973,6 +974,7 @@ function AppContent() {
                   key={item.id}
                   type="button"
                   onClick={() => setActiveTab(item.id)}
+                  aria-label={item.label}
                   whileTap={{ scale: 0.9 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                   className={`relative flex min-w-[64px] flex-col items-center gap-1 rounded-[3rem] px-3 py-2 transition ${
