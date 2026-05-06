@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Drawer } from 'vaul';
@@ -401,6 +401,7 @@ function AppContent() {
   const router = useRouter();
   const [hasMounted, setHasMounted] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+  const authLoadingRef = useRef(true);
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [activeFilter, setActiveFilter] = useState<string>('all');
@@ -472,25 +473,28 @@ function AppContent() {
       console.log('🔐 getUser result:', data.user ? 'USER FOUND' : 'NO USER', userError || '');
       if (!active) return;
       if (userError || !data.user) {
+        authLoadingRef.current = false;
         setAuthLoading(false);
         return;
       }
-      
+
       setUser(data.user);
       getUserRole(data.user.id)
-        .then(r => { 
-          if (active) { 
+        .then(r => {
+          if (active) {
             console.log('🔐 Role loaded:', r);
-            setRole(r); 
-            setAuthLoading(false); 
-          } 
+            setRole(r);
+            authLoadingRef.current = false;
+            setAuthLoading(false);
+          }
         })
-        .catch((err) => { 
-          if (active) { 
+        .catch((err) => {
+          if (active) {
             console.error('🔐 Role load failed:', err);
-            setRole('Employee'); 
-            setAuthLoading(false); 
-          } 
+            setRole('Employee');
+            authLoadingRef.current = false;
+            setAuthLoading(false);
+          }
         });
     });
 
@@ -501,28 +505,32 @@ function AppContent() {
       setUser(currentUser);
       if (currentUser) {
         getUserRole(currentUser.id)
-          .then(r => { 
-            if (active) { 
+          .then(r => {
+            if (active) {
               console.log('🔐 Role updated via event:', r);
-              setRole(r); 
-              setAuthLoading(false); 
-            } 
+              setRole(r);
+              authLoadingRef.current = false;
+              setAuthLoading(false);
+            }
           })
-          .catch((err) => { 
-            if (active) { 
+          .catch((err) => {
+            if (active) {
               console.error('🔐 Role update failed:', err);
-              setRole('Employee'); 
-              setAuthLoading(false); 
-            } 
+              setRole('Employee');
+              authLoadingRef.current = false;
+              setAuthLoading(false);
+            }
           });
       } else {
+        authLoadingRef.current = false;
         setAuthLoading(false);
       }
     });
 
     const safetyTimeout = setTimeout(() => {
-      if (active && authLoading) {
+      if (active && authLoadingRef.current) {
         console.warn('⚠️ Auth safety timeout reached. Forcing loader exit.');
+        authLoadingRef.current = false;
         setAuthLoading(false);
       }
     }, 4500);
