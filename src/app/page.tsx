@@ -231,18 +231,23 @@ function AuthScreen() {
                 </p>
               </div>
 
-              <div className="space-y-4">
+              <form
+                onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}
+                className="space-y-4"
+                autoComplete="on"
+              >
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-champagne-dim">
                     Email
                   </label>
                   <input
                     type="email"
+                    name="email"
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full rounded-[2rem] border border-glass-border bg-black/40 px-4 py-3 text-sm text-white outline-none backdrop-blur-md transition placeholder:text-white/20 focus:border-champagne/40 focus:ring-1 focus:ring-champagne/15"
                     placeholder="you@company.ca"
-                    onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                   />
                 </div>
 
@@ -252,9 +257,10 @@ function AuthScreen() {
                   </label>
                   <input
                     type="password"
+                    name="password"
+                    autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                     className="w-full rounded-[2rem] border border-glass-border bg-black/40 px-4 py-3 text-sm text-white outline-none backdrop-blur-md transition placeholder:text-white/20 focus:border-champagne/40 focus:ring-1 focus:ring-champagne/15"
                     placeholder="••••••••"
                   />
@@ -306,8 +312,7 @@ function AuthScreen() {
 
                 <div className="grid gap-3 pt-2">
                   <motion.button
-                    type="button"
-                    onClick={handleSubmit}
+                    type="submit"
                     whileTap={{ scale: 0.96 }}
                     disabled={loading || (!accepted && mode === 'signup')}
                     className="flex w-full items-center justify-center gap-2 rounded-[3rem] bg-gradient-to-b from-[#dfcaaa] to-champagne px-4 py-3.5 text-sm font-bold text-black shadow-[0_0_15px_rgba(190,169,142,0.3)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
@@ -340,8 +345,9 @@ function AuthScreen() {
                     </button>
                   )}
                 </div>
+              </form>
 
-                <div className="mt-8 text-center border-t border-white/10 pt-6">
+              <div className="mt-8 text-center border-t border-white/10 pt-6">
                   <button
                     type="button"
                     onClick={() => setMode((m) => (m === 'signin' ? 'signup' : 'signin'))}
