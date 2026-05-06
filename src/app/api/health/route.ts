@@ -1,67 +1,33 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
-
-type HealthStatus = 'healthy' | 'degraded' | 'unhealthy';
+import { createClient } from '@supabase/supabase-js';
 
 export async function GET() {
-  const healthCheck = {
-    status: 'healthy' as HealthStatus,
-    timestamp: new Date().toISOString(),
-    checks: {
-      database: 'unknown' as HealthStatus,
-      storage: 'unknown' as HealthStatus,
-      auth: 'unknown' as HealthStatus
-    }
-  };
-
   try {
-    // Check database connection
-    const { error: dbError } = await supabase
-      .from('receipts')
+    // Ping Supabase to keep the free-tier database from pausing
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const start = Date.now();
+    const { error } = await supabase
+      .from('organizations')
       .select('id')
       .limit(1);
 
-    healthCheck.checks.database = dbError ? 'unhealthy' : 'healthy';
+    const latency = Date.now() - start;
 
-    if (dbError) {
-      healthCheck.status = 'degraded';
-    }
-  } catch (error) {
-    healthCheck.checks.database = 'unhealthy';
-    healthCheck.status = 'degraded';
+    return NextResponse.json({
+      status: error ? 'degraded' : 'ok',
+      timestamp: new Date().toISOString(),
+      db_latency_ms: latency,
+      error: error?.message ?? null,
+    });
+  } catch (err: unknown) {
+    return NextResponse.json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      error: err instanceof Error ? err.message : 'Unknown error',
+    }, { status: 500 });
   }
-
-  try {
-    // Check storage connection
-    const { error: storageError } = await supabase.storage
-      .from('receipt-images')
-      .list('', { limit: 1 });
-
-    healthCheck.checks.storage = storageError ? 'unhealthy' : 'healthy';
-
-    if (storageError) {
-      healthCheck.status = 'degraded';
-    }
-  } catch (error) {
-    healthCheck.checks.storage = 'unhealthy';
-    healthCheck.status = 'degraded';
-  }
-
-  try {
-    // Check auth connection
-    const { error: authError } = await supabase.auth.getSession();
-
-    healthCheck.checks.auth = authError ? 'unhealthy' : 'healthy';
-
-    if (authError) {
-      healthCheck.status = 'degraded';
-    }
-  } catch (error) {
-    healthCheck.checks.auth = 'unhealthy';
-    healthCheck.status = 'degraded';
-  }
-
-  const statusCode = healthCheck.status === 'healthy' ? 200 : 503;
-
-  return NextResponse.json(healthCheck, { status: statusCode });
 }
