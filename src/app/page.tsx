@@ -420,6 +420,12 @@ function AppContent() {
     window.history.pushState({ tab }, '', url);
   }, []);
 
+  const closeMoreMenu = useCallback(() => {
+    // Employees don't have a dashboard tab
+    const fallback: Tab = role === 'Employee' ? 'scan' : 'dashboard';
+    setTabWithUrl(fallback);
+  }, [role, setTabWithUrl]);
+
   // Sync tab with URL on mount (SSR Safe)
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -809,7 +815,7 @@ function AppContent() {
           {activeTab === 'more' && (
             <div
               className="fixed inset-0 z-50 bg-black/50 flex flex-col"
-              onClick={() => setActiveTab('dashboard')}
+              onClick={() => closeMoreMenu()}
             >
               <motion.div
                 initial={{ opacity: 0, x: '100%' }}
@@ -823,7 +829,7 @@ function AppContent() {
                 <div className="sticky top-0 bg-white border-b flex justify-between items-center p-6 z-10">
                   <h2 className="text-xl font-bold text-gray-900">More Options</h2>
                   <button
-                    onClick={() => setActiveTab('dashboard')}
+                    onClick={() => closeMoreMenu()}
                     className="text-3xl font-bold leading-none text-gray-400 hover:text-gray-600 transition"
                     aria-label="Close menu"
                   >
