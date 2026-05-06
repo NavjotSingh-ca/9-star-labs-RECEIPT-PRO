@@ -35,6 +35,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { getReceiptImageUrl } from '@/lib/supabase';
 
 import type { ReceiptRow } from '@/lib/types';
 import type { UserRole } from '@/lib/types';
@@ -470,22 +471,8 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
   React.useEffect(() => {
     async function getFreshUrl() {
       if (!receipt.image_url) return;
-      
-      let path = receipt.image_url;
-      if (path.includes('/storage/v1/object/')) {
-        const urlObj = new URL(path);
-        const pathParts = urlObj.pathname.split('/');
-        const bucketIndex = pathParts.indexOf('receipt-images');
-        if (bucketIndex !== -1) {
-          path = pathParts.slice(bucketIndex + 1).join('/');
-        }
-      }
-
-      const { data } = await supabase.storage
-        .from('receipt-images')
-        .createSignedUrl(path, 3600);
-      
-      if (data) setDisplayUrl(data.signedUrl);
+      const freshUrl = await getReceiptImageUrl(receipt.image_url);
+      setDisplayUrl(freshUrl);
     }
     getFreshUrl();
   }, [receipt.image_url]);

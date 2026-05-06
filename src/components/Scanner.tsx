@@ -119,20 +119,9 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
           );
 
           if (!uploadError) {
-            // Generate signed URL with retry logic
-            const { data, error: signError } = await withRetry(
-              () => supabase.storage
-                .from(STORAGE_BUCKET)
-                .createSignedUrl(filePath, 3600),
-              { maxRetries: 2, delayMs: 500 }
-            );
-
-            if (!signError && data) {
-              imageUrl = data.signedUrl;
-            } else if (signError) {
-              const error = handleSupabaseError(signError);
-              console.warn('Failed to generate signed URL:', error.userMessage);
-            }
+            // Store the STORAGE PATH, not a signed URL — signed URLs expire!
+            // We generate signed URLs on-demand when displaying
+            imageUrl = filePath; // e.g., "userId/timestamp-receipt.jpg"
           } else {
             const error = handleSupabaseError(uploadError);
             console.warn('Failed to upload image:', error.userMessage);

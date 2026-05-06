@@ -16,6 +16,7 @@ import type { ReceiptRow } from '@/lib/types';
 import { toNumber } from '@/lib/ui-utils';
 import { formatDineroIntl } from '@/lib/finance-utils';
 import { format } from 'date-fns';
+import { getReceiptImageUrl } from '@/lib/supabase';
 
 interface ExportProps {
   receipts: ReceiptRow[];
@@ -294,7 +295,12 @@ export default function Export({ receipts }: ExportProps) {
               if (!imageUrl) return;
 
               try {
-                const response = await fetch(imageUrl);
+                const freshImageUrl = await getReceiptImageUrl(imageUrl);
+                if (!freshImageUrl) {
+                  imageFolder.file(`${r.id}.txt`, 'Image unavailable for this record.');
+                  return;
+                }
+                const response = await fetch(freshImageUrl);
                 const blob = await response.blob();
                 const filename = imageUrl.split('/').pop()?.split('?')[0] || `${r.id}.jpg`;
                 imageFolder.file(filename, blob);
