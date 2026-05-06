@@ -44,6 +44,7 @@ import ProjectManager from '@/components/ProjectManager';
 import { AuroraBackground } from '@/components/aceternity/aurora-background';
 import { Marquee } from '@/components/magicui/marquee';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { supabase } from '@/lib/supabase';
 import type { ReceiptRow, UserRole } from '@/lib/types';
 import type { User } from '@supabase/supabase-js';
@@ -730,7 +731,7 @@ function AppContent() {
               <p className="text-sm font-medium text-text-secondary">Loading your workspace…</p>
             </motion.div>
           ) : activeTab === 'dashboard' ? (
-            <motion.div 
+            <motion.div
               key="dashboard"
               variants={tabVariants}
               initial="initial"
@@ -738,10 +739,12 @@ function AppContent() {
               exit="exit"
               transition={tabTransition}
             >
-              <Dashboard onFilterClick={handleFilterClick} role={role} userId={userId} />
+              <ErrorBoundary componentName="Dashboard">
+                <Dashboard onFilterClick={handleFilterClick} role={role} userId={userId} />
+              </ErrorBoundary>
             </motion.div>
           ) : activeTab === 'receipts' ? (
-            <motion.div 
+            <motion.div
               key="receipts"
               variants={tabVariants}
               initial="initial"
@@ -749,10 +752,12 @@ function AppContent() {
               exit="exit"
               transition={tabTransition}
             >
-              <History receipts={receipts} activeFilter={activeFilter} onUpdate={() => { fetchReceipts(); }} role={role} userId={userId} />
+              <ErrorBoundary componentName="History">
+                <History receipts={receipts} activeFilter={activeFilter} onUpdate={() => { fetchReceipts(); }} role={role} userId={userId} />
+              </ErrorBoundary>
             </motion.div>
           ) : activeTab === 'scan' ? (
-            <motion.div 
+            <motion.div
               key="scan"
               variants={tabVariants}
               initial="initial"
@@ -760,17 +765,19 @@ function AppContent() {
               exit="exit"
               transition={tabTransition}
             >
-              <Scanner
-                user={user}
-                onSaveSuccess={async () => {
-                  await fetchReceipts();
-                  setActiveTab('receipts');
-                  showToast('success', 'Receipt saved successfully.');
-                }}
-              />
+              <ErrorBoundary componentName="Scanner">
+                <Scanner
+                  user={user}
+                  onSaveSuccess={async () => {
+                    await fetchReceipts();
+                    setActiveTab('receipts');
+                    showToast('success', 'Receipt saved successfully.');
+                  }}
+                />
+              </ErrorBoundary>
             </motion.div>
           ) : activeTab === 'export' ? (
-            <motion.div 
+            <motion.div
               key="export"
               variants={tabVariants}
               initial="initial"
@@ -778,10 +785,12 @@ function AppContent() {
               exit="exit"
               transition={tabTransition}
             >
-              <Export receipts={receipts} />
+              <ErrorBoundary componentName="Export">
+                <Export receipts={receipts} />
+              </ErrorBoundary>
             </motion.div>
           ) : activeTab === 'reconcile' ? (
-            <motion.div 
+            <motion.div
               key="reconcile"
               variants={tabVariants}
               initial="initial"
@@ -789,22 +798,30 @@ function AppContent() {
               exit="exit"
               transition={tabTransition}
             >
-              <BankReconciliation receipts={receipts} />
+              <ErrorBoundary componentName="BankReconciliation">
+                <BankReconciliation receipts={receipts} />
+              </ErrorBoundary>
             </motion.div>
           ) : activeTab === 'approvals' ? (
             <motion.div key="approvals" variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={tabTransition}>
-              <ApprovalsQueue role={role} />
+              <ErrorBoundary componentName="ApprovalsQueue">
+                <ApprovalsQueue role={role} />
+              </ErrorBoundary>
             </motion.div>
           ) : activeTab === 'payables' ? (
             <motion.div key="payables" variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={tabTransition}>
-              <ReimbursementsPanel role={role} />
+              <ErrorBoundary componentName="ReimbursementsPanel">
+                <ReimbursementsPanel role={role} />
+              </ErrorBoundary>
             </motion.div>
           ) : activeTab === 'projects' ? (
             <motion.div key="projects" variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={tabTransition}>
-              <ProjectManager />
+              <ErrorBoundary componentName="ProjectManager">
+                <ProjectManager />
+              </ErrorBoundary>
             </motion.div>
           ) : (
-            <motion.div 
+            <motion.div
               key="audit"
               variants={tabVariants}
               initial="initial"
@@ -812,7 +829,9 @@ function AppContent() {
               exit="exit"
               transition={tabTransition}
             >
-              <AuditTrail />
+              <ErrorBoundary componentName="AuditTrail">
+                <AuditTrail />
+              </ErrorBoundary>
             </motion.div>
           )}
         </AnimatePresence>
