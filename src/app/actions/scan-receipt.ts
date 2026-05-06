@@ -206,7 +206,7 @@ function normalizeDate(raw: string): string {
   const s = raw.trim();
   if (!s) return todayISO();
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  
+
   // Try common Canadian formats (MM/DD/YYYY or DD/MM/YYYY)
   const mdy = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
   if (mdy) {
@@ -214,11 +214,29 @@ function normalizeDate(raw: string): string {
     const year = y.length === 2 ? `20${y}` : y;
     return `${year}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
   }
-  
+
   const longDate = new Date(s);
   if (!isNaN(longDate.getTime())) return longDate.toISOString().split('T')[0];
-  
+
   return todayISO();
+}
+
+function computeCRAScoreForSave(data: {
+  vendor_name: string;
+  vendor_tax_number: string;
+  transaction_date: string;
+  total_amount: number;
+  tax_amount: number;
+  category: string;
+}): number {
+  let score = 0;
+  if (data.vendor_name && data.vendor_name !== 'Unknown Vendor') score += 20;
+  if (data.vendor_tax_number && data.vendor_tax_number.length >= 9) score += 25;
+  if (data.transaction_date && /^\d{4}-\d{2}-\d{2}$/.test(data.transaction_date)) score += 20;
+  if (data.total_amount > 0) score += 15;
+  if (data.tax_amount > 0) score += 10;
+  if (data.category && data.category !== '') score += 10;
+  return Math.min(100, score);
 }
 
 /** Detect province from vendor address and validate tax rates */
@@ -359,7 +377,14 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
         notes: [SMART_PURPOSE[toStr(parsed.category) as ValidCategory] || '', tax_warning ? `⚠️ Tax Alert: ${tax_warning}` : ''].filter(Boolean).join(' — '),
         currency: toStr(parsed.currency) || 'CAD',
         confidence_score: toNum(parsed.confidence_score) || 85,
-        cra_readiness_score: 0, // Computed live on client
+        cra_readiness_score: computeCRAScoreForSave({
+          vendor_name,
+          vendor_tax_number: toStr(parsed.vendor_tax_number),
+          transaction_date: normalizeDate(toStr(parsed.transaction_date)),
+          total_amount,
+          tax_amount,
+          category: toStr(parsed.category),
+        }),
         thermal_warning: Boolean(parsed.thermal_warning),
         document_type: (toStr(parsed.document_type).toLowerCase() || 'receipt') as any,
         duplicate_warning: false,
