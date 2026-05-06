@@ -16,26 +16,6 @@ export function middleware(request: NextRequest) {
     'camera=(), microphone=(), geolocation=(), interest-cohort=()'
   );
 
-  // Content Security Policy (basic version)
-  const csp = [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://*.supabase.co",
-    "font-src 'self' data:",
-    "connect-src 'self' https://*.supabase.co https://*.quickbooks.com https://*.xero.com",
-    "frame-src 'self'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "frame-ancestors 'none'",
-    "block-all-mixed-content"
-  ].join('; ');
-
-  response.headers.set('Content-Security-Policy', csp);
-
-  // Remove server information
-  response.headers.set('Server', '');
-
   return response;
 }
 

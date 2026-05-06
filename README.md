@@ -1,6 +1,6 @@
-# 9 Star Labs - Receipt Pro (OMEGA-X)
+# Leduc Receipt Pro
 
-**Receipt Pro** is an enterprise-grade financial management platform designed for CRA-compliant receipt tracking, automated AI extraction, and seamless accounting integration.
+**Enterprise-grade receipt intelligence platform for Canadian businesses, built with CRA compliance and Alberta construction industry requirements in mind.**
 
 ## 🚀 Quick Start
 
@@ -17,49 +17,114 @@
    Fill in your Supabase credentials, Google Gemini API key, and integration secrets.
 
 3. **Database Setup**:
-   - Run `migration.sql`, `migration_v2.sql`, and `migration_v4.sql` in your Supabase SQL Editor.
-   - Enable **Realtime** for the `receipts` table.
-   - Configure **Storage** buckets: `receipt-images`.
+   - Run the SQL setup scripts in Supabase SQL Editor:
+     - `supabase/migrations/001_initial_schema.sql`
+     - `supabase/migrations/002_rls_policies.sql`
+     - `supabase/migrations/003_functions.sql`
+   - Configure **Storage** buckets: `receipt-images`
 
-4. **Edge Functions**:
-   Deploy the background embedding generator:
-   ```bash
-   supabase functions deploy generate-embedding
-   ```
-
-5. **Run Development Server**:
+4. **Run Development Server**:
    ```bash
    npm run dev
    ```
 
 ## 🛠 Features
 
-- **AI Extraction**: Uses Google Gemini 2.5 Flash for high-accuracy receipt parsing and fraud detection.
-- **Background Embeddings**: Vector embeddings are generated via Supabase Edge Functions for fast, semantic search.
-- **MFA Security**: TOTP-based Multi-Factor Authentication for account hardening.
-- **Enterprise Pagination**: High-performance server-side pagination with TanStack Infinite Query.
-- **Accounting Sync**: Foundational support for QuickBooks Online and Xero.
-- **CRA Compliance**: Built-in audit logs, data integrity hashing, and 7-year retention logic.
+- **AI Receipt Scanning**: Google Gemini 2.5 Flash for high-accuracy receipt parsing with fraud detection
+- **CRA Compliance**: Built-in audit logs, data integrity hashing, and 7-year retention logic
+- **Multi-Currency Support**: Automatic CAD conversion for international receipts
+- **Accounting Integration**: QuickBooks Online and Xero sync with circuit breaker patterns
+- **Batch Processing**: Handle 50+ receipts in one session with robust error handling
+- **Duplicate Detection**: SHA-256 hash-based duplicate prevention
+- **Approval Workflows**: Owner approval for high-value expenses
+- **Enterprise Security**: Row Level Security, comprehensive error handling, and retry logic
+- **PIPEDA Compliant**: Privacy policy aligned with Canadian data protection laws
 
 ## 📂 Architecture
 
-- **Frontend**: Next.js 15 (App Router), Tailwind CSS v4, Framer Motion.
-- **Backend**: Supabase (Auth, Postgres, Storage, Edge Functions).
-- **Data Fetching**: TanStack Query v5.
-- **State Management**: React Server Actions & React Hooks.
+- **Framework**: Next.js 15 (App Router)
+- **Database**: Supabase (PostgreSQL with RLS)
+- **Storage**: Supabase Storage
+- **AI**: Google Gemini 2.5 Flash
+- **Styling**: Tailwind CSS v4 + Framer Motion
+- **State**: React Query (TanStack Query v5)
+- **Forms**: React Hook Form + Zod validation
 
 ## 🔐 Environment Variables
 
-| Variable | Description |
-|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase Project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anon Key |
-| `GOOGLE_AI_KEY` | Google Gemini API Key (Client-side) |
-| `GEMINI_API_KEY` | Google Gemini API Key (Edge Functions) |
-| `NEXT_PUBLIC_SITE_URL` | Application URL (Redirects) |
-| `QBO_CLIENT_ID` / `QBO_CLIENT_SECRET` | Intuit Developer Credentials |
-| `XERO_CLIENT_ID` / `XERO_CLIENT_SECRET` | Xero Developer Credentials |
+| Variable | Description | Required |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase Project URL | ✅ |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anon Key | ✅ |
+| `GOOGLE_AI_KEY` | Google Gemini API Key | ✅ |
+| `NEXT_PUBLIC_SITE_URL` | Application URL (OAuth redirects) | ✅ |
+| `QBO_CLIENT_ID` / `QBO_CLIENT_SECRET` | QuickBooks Online credentials | ✅ |
+| `XERO_CLIENT_ID` / `XERO_CLIENT_SECRET` | Xero credentials | ✅ |
+
+## 🚢 Deployment
+
+### Vercel (Recommended)
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel
+```
+
+**Important**: Add all environment variables from `.env.local` to your Vercel project settings.
+
+### Health Check
+
+After deployment, verify system status:
+```
+GET /api/health
+```
+
+Returns health status for database, storage, and auth connections.
+
+## 🛡️ Security Features
+
+- **Row Level Security**: Database-level access control
+- **Integrity Hashing**: SHA-256 verification for all receipts
+- **Audit Trail**: Complete change history for compliance
+- **Error Handling**: Comprehensive Supabase error handling with retry logic
+- **Security Headers**: X-Frame-Options, CSP, and other security headers
+- **Input Validation**: Zod schema validation on all server actions
+
+## 📱 Browser Support
+
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
+
+## 📄 Legal Pages
+
+- **Privacy Policy**: `/privacy` - PIPEDA compliant
+- **Terms of Service**: `/terms` - Service terms and conditions
+
+## 🆘 Troubleshooting
+
+### Build Issues
+
+If you encounter build errors, ensure:
+1. All environment variables are set
+2. Node.js version is 18+
+3. Dependencies are up to date: `npm install`
+
+### Database Connection
+
+If database connection fails:
+1. Verify Supabase credentials
+2. Check RLS policies are properly configured
+3. Test connection via `/api/health` endpoint
+
+## 📝 License
+
+Proprietary - All rights reserved.
 
 ---
 
-*Note: This project was evolved from the OMEGA-X Infrastructure Remediation Plan.*
+*Built with enterprise-grade security and CRA compliance for Canadian businesses.*
