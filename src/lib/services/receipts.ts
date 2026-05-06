@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { isMathMismatch } from '@/lib/finance-utils';
+import { handleSupabaseError, withRetry } from '@/lib/supabase-error-handler';
 import type { ReceiptRow, Project, AccessCode, UserRole } from '@/lib/types';
 
 // ─── Zod Schemas ───
@@ -78,25 +79,35 @@ export const receiptSchema = z.object({
 export async function getReceipts(role: UserRole, userId?: string, limit = 1000, offset = 0): Promise<ReceiptRow[]> {
   if (!userId) return [];
 
-  let query = supabase
-    .from('receipts')
-    .select('*')
-    .eq('is_deleted', false)
-    .range(offset, offset + limit - 1)
-    .order('transaction_date', { ascending: false })
-    .order('created_at', { ascending: false });
+  try {
+    const result = await withRetry(
+      () => {
+        let query = supabase
+          .from('receipts')
+          .select('*')
+          .eq('is_deleted', false)
+          .range(offset, offset + limit - 1)
+          .order('transaction_date', { ascending: false })
+          .order('created_at', { ascending: false });
 
-  if (role === 'Employee') {
-    query = query.eq('user_id', userId);
+        if (role === 'Employee') {
+          query = query.eq('user_id', userId);
+        }
+
+        return query;
+      },
+      { maxRetries: 2, delayMs: 500 }
+    );
+
+    const { data, error } = result;
+    if (error) throw handleSupabaseError(error);
+
+    return (data || []).map((row) => receiptSchema.parse(row) as ReceiptRow);
+  } catch (error) {
+    const supabaseError = handleSupabaseError(error);
+    console.error('Error fetching receipts:', supabaseError);
+    throw supabaseError;
   }
-
-  const { data, error } = await query;
-  if (error) {
-    console.error('Error fetching receipts:', error);
-    throw error;
-  }
-
-  return (data || []).map((row) => receiptSchema.parse(row) as ReceiptRow);
 }
 
 export async function getReceiptsPaginated(params: {
@@ -147,18 +158,25 @@ export async function getReceiptsPaginated(params: {
 }
 
 export const getReceiptsPendingApproval = async (): Promise<ReceiptRow[]> => {
-  const { data, error } = await supabase
-    .from('receipts')
-    .select('*')
-    .eq('is_deleted', false)
-    .eq('approval_status', 'submitted')
-    .order('created_at', { ascending: false });
+  try {
+    const { data, error } = await withRetry(
+      () => supabase
+        .from('receipts')
+        .select('*')
+        .eq('is_deleted', false)
+        .eq('approval_status', 'submitted')
+        .order('created_at', { ascending: false }),
+      { maxRetries: 2, delayMs: 500 }
+    );
 
-  if (error) {
-    console.error('Error fetching pending receipts:', error);
-    throw error;
+    if (error) throw handleSupabaseError(error);
+
+    return (data || []).map((row) => receiptSchema.parse(row) as ReceiptRow);
+  } catch (error) {
+    const supabaseError = handleSupabaseError(error);
+    console.error('Error fetching pending receipts:', supabaseError);
+    throw supabaseError;
   }
-  return (data || []).map((row) => receiptSchema.parse(row) as ReceiptRow);
 };
 
 export interface DashboardSummary {
@@ -257,25 +275,43 @@ export const getReimbursementsPending = async (userId: string): Promise<ReceiptR
 };
 
 export const getBusinessUnits = async () => {
-  const { data, error } = await supabase.from('business_units').select('id, name');
-  if (error) {
-    console.error('Error fetching business units:', error);
-    throw error;
+  try {
+    const { data, error } = await withRetry(
+      () => supabase.from('business_units').select('id, name'),
+      { maxRetries: 2, delayMs: 500 }
+    );
+    if (error) throw handleSupabaseError(error);
+    return data || [];
+  } catch (error) {
+    const supabaseError = handleSupabaseError(error);
+    console.error('Error fetching business units:', supabaseError);
+    throw supabaseError;
   }
-  return data || [];
 };
 
 export const createAuditLog = async (userId: string, action: string, details: string) => {
-  const { data: orgData } = await supabase.rpc('get_user_org');
-  const orgId = orgData as unknown as string;
-  
-  await supabase.from('audit_logs').insert({
-    user_id: userId,
-    org_id: orgId || null,
-    action,
-    details,
-    created_at: new Date().toISOString()
-  });
+  try {
+    const { data: orgData } = await withRetry(
+      () => supabase.rpc('get_user_org'),
+      { maxRetries: 2, delayMs: 500 }
+    );
+    const orgId = orgData as unknown as string;
+
+    await withRetry(
+      () => supabase.from('audit_logs').insert({
+        user_id: userId,
+        org_id: orgId || null,
+        action,
+        details,
+        created_at: new Date().toISOString()
+      }),
+      { maxRetries: 2, delayMs: 500 }
+    );
+  } catch (error) {
+    const supabaseError = handleSupabaseError(error);
+    console.error('Error creating audit log:', supabaseError);
+    // Audit log failures should not block the main operation
+  }
 };
 
 export const deleteReceipt = async (receiptId: string, userId: string): Promise<void> => {
@@ -290,25 +326,34 @@ export const deleteReceipt = async (receiptId: string, userId: string): Promise<
 };
 
 export const getAuditLogs = async (limit = 50) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
 
-  // Get user's org
-  const { data: orgData } = await supabase.rpc('get_user_org');
-  const orgId = orgData as unknown as string;
-  if (!orgId) return [];
+    // Get user's org
+    const { data: orgData } = await withRetry(
+      () => supabase.rpc('get_user_org'),
+      { maxRetries: 2, delayMs: 500 }
+    );
+    const orgId = orgData as unknown as string;
+    if (!orgId) return [];
 
-  const { data, error } = await supabase
-    .from('audit_logs')
-    .select('*')
-    .eq('org_id', orgId)  // ← ADD THIS LINE
-    .order('created_at', { ascending: false })
-    .limit(limit);
-  if (error) {
-    console.error('Error fetching audit logs:', error);
-    throw error;
+    const { data, error } = await withRetry(
+      () => supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('org_id', orgId)
+        .order('created_at', { ascending: false })
+        .limit(limit),
+      { maxRetries: 2, delayMs: 500 }
+    );
+    if (error) throw handleSupabaseError(error);
+    return data || [];
+  } catch (error) {
+    const supabaseError = handleSupabaseError(error);
+    console.error('Error fetching audit logs:', supabaseError);
+    throw supabaseError;
   }
-  return data || [];
 };
 
 // ─── Project Services ───
@@ -323,17 +368,25 @@ export const getProjects = async (): Promise<Project[]> => {
 };
 
 export const createProject = async (name: string, code?: string, budgetAmount?: number): Promise<Project> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
-    .from('projects')
-    .insert({ name, code: code ?? null, user_id: user.id, budget_amount: budgetAmount ?? null })
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data as Project;
+    const { data, error } = await withRetry(
+      () => supabase
+        .from('projects')
+        .insert({ name, code: code ?? null, user_id: user.id, budget_amount: budgetAmount ?? null })
+        .select()
+        .single(),
+      { maxRetries: 2, delayMs: 500 }
+    );
+    if (error) throw handleSupabaseError(error);
+    return data as Project;
+  } catch (error) {
+    const supabaseError = handleSupabaseError(error);
+    console.error('Error creating project:', supabaseError);
+    throw supabaseError;
+  }
 };
 
 export const updateProjectBudget = async (projectId: string, budgetAmount: number): Promise<void> => {
@@ -345,8 +398,17 @@ export const updateProjectBudget = async (projectId: string, budgetAmount: numbe
 };
 
 export const deleteProject = async (projectId: string): Promise<void> => {
-  const { error } = await supabase.from('projects').delete().eq('id', projectId);
-  if (error) throw error;
+  try {
+    const { error } = await withRetry(
+      () => supabase.from('projects').delete().eq('id', projectId),
+      { maxRetries: 2, delayMs: 500 }
+    );
+    if (error) throw handleSupabaseError(error);
+  } catch (error) {
+    const supabaseError = handleSupabaseError(error);
+    console.error('Error deleting project:', supabaseError);
+    throw supabaseError;
+  }
 };
 
 // ─── Access Code Services ───
@@ -366,29 +428,45 @@ export const generateAccessCode = async (role: UserRole = 'Employee', businessUn
 };
 
 export const redeemAccessCode = async (code: string, userId: string): Promise<{ success: boolean; role?: string; error?: string }> => {
-  const { data, error } = await supabase.rpc('redeem_access_code', {
-    p_code: code,
-    p_user_id: userId,
-  });
-
-  if (error) return { success: false, error: error.message };
-  const result = data as { success: boolean; role?: string; error?: string };
-  return result;
+  try {
+    const { data, error } = await withRetry(
+      () => supabase.rpc('redeem_access_code', {
+        p_code: code,
+        p_user_id: userId,
+      }),
+      { maxRetries: 2, delayMs: 500 }
+    );
+    if (error) throw handleSupabaseError(error);
+    const result = data as { success: boolean; role?: string; error?: string };
+    return result;
+  } catch (error) {
+    const supabaseError = handleSupabaseError(error);
+    console.error('Error redeeming access code:', supabaseError);
+    return { success: false, error: supabaseError.userMessage };
+  }
 };
 
 export const getMyAccessCodes = async (): Promise<AccessCode[]> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
 
-  const { data, error } = await supabase
-    .from('access_codes')
-    .select('*')
-    .eq('created_by', user.id)
-    .order('created_at', { ascending: false })
-    .limit(10);
-
-  if (error) throw error;
-  return (data || []) as AccessCode[];
+    const { data, error } = await withRetry(
+      () => supabase
+        .from('access_codes')
+        .select('*')
+        .eq('created_by', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10),
+      { maxRetries: 2, delayMs: 500 }
+    );
+    if (error) throw handleSupabaseError(error);
+    return (data || []) as AccessCode[];
+  } catch (error) {
+    const supabaseError = handleSupabaseError(error);
+    console.error('Error fetching access codes:', supabaseError);
+    throw supabaseError;
+  }
 };
 
 // ─── Approval Services ───
@@ -430,18 +508,26 @@ export const bulkUpdateApproval = async (
   status: 'approved' | 'rejected',
   userId: string
 ) => {
-  const { error } = await supabase
-    .from('receipts')
-    .update({ approval_status: status, updated_at: new Date().toISOString() })
-    .in('id', receiptIds);
+  try {
+    const { error } = await withRetry(
+      () => supabase
+        .from('receipts')
+        .update({ approval_status: status, updated_at: new Date().toISOString() })
+        .in('id', receiptIds),
+      { maxRetries: 2, delayMs: 500 }
+    );
+    if (error) throw handleSupabaseError(error);
 
-  if (error) throw new Error(error.message);
-
-  await supabase.from('audit_logs').insert({
-    user_id: userId,
-    action: `bulk_${status}`,
-    details: `Bulk ${status}: ${receiptIds.length} receipts by ${userId}`,
-  });
+    await supabase.from('audit_logs').insert({
+      user_id: userId,
+      action: `bulk_${status}`,
+      details: `Bulk ${status}: ${receiptIds.length} receipts by ${userId}`,
+    });
+  } catch (error) {
+    const supabaseError = handleSupabaseError(error);
+    console.error('Error bulk updating approval:', supabaseError);
+    throw supabaseError;
+  }
 };
 
 // ─── Edit Services (Immutable Archive-Before-Update) ───

@@ -32,7 +32,7 @@ export default function Error({
           We encountered a critical error while loading the workspace. This is often due to a database synchronization issue or a temporary connection failure.
         </p>
 
-        <div className="mt-6 rounded-2xl bg-black/40 p-4 text-left font-mono text-[10px] text-red-400/80 border border-red-500/10 overflow-auto max-h-32">
+        <div className="mt-6 rounded-[3rem] bg-black/40 p-4 text-left font-mono text-[10px] text-red-400/80 border border-red-500/10 overflow-auto max-h-32">
           {error.message || 'Unknown runtime error'}
           {error.digest && <div className="mt-2 text-white/20">Digest: {error.digest}</div>}
         </div>
@@ -40,14 +40,14 @@ export default function Error({
         <div className="mt-10 grid grid-cols-2 gap-4">
           <button
             onClick={() => reset()}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-white/5 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+            className="flex items-center justify-center gap-2 rounded-[3rem] bg-white/5 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/10"
           >
             <RefreshCcw className="h-4 w-4" />
             Try again
           </button>
           <button
             onClick={() => window.location.href = '/'}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-champagne px-4 py-3 text-sm font-bold text-black transition hover:opacity-90"
+            className="flex items-center justify-center gap-2 rounded-[3rem] bg-champagne px-4 py-3 text-sm font-bold text-black transition hover:opacity-90"
           >
             <Home className="h-4 w-4" />
             Home

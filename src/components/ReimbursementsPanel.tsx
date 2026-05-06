@@ -32,7 +32,7 @@ function ReimburseCard({
       className="flex items-center gap-5 rounded-3xl border border-amber-500/15 bg-amber-500/[0.03] p-5"
     >
       {/* Icon */}
-      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-amber-500/10">
+      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[2rem] bg-amber-500/10">
         <DollarSign className="h-6 w-6 text-amber-400" />
       </div>
 
@@ -43,11 +43,11 @@ function ReimburseCard({
           {receipt.transaction_date ?? '—'} · {receipt.category ?? 'Uncategorized'}
         </p>
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
-          <span className="rounded-lg bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-400">
+          <span className="rounded-[2rem] bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-400">
             Employee Cash
           </span>
           <span className={[
-            'rounded-lg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
+            'rounded-[2rem] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
             receipt.reimbursement_status === 'pending' || !receipt.reimbursement_status
               ? 'bg-amber-500/15 text-amber-400'
               : receipt.reimbursement_status === 'approved'
@@ -68,7 +68,7 @@ function ReimburseCard({
           type="button"
           onClick={() => onMarkPaid(receipt.id)}
           disabled={loading || receipt.reimbursement_status === 'approved'}
-          className="flex items-center gap-1.5 rounded-xl bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-40"
+          className="flex items-center gap-1.5 rounded-[2rem] bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-40"
         >
           {loading ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -143,7 +143,7 @@ export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) 
           </h2>
         </div>
         {payables.length > 0 && (
-          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/[0.05] px-3 py-1.5 text-sm font-black text-amber-400">
+          <div className="rounded-[3rem] border border-amber-500/30 bg-amber-500/[0.05] px-3 py-1.5 text-sm font-black text-amber-400">
             {cad.format(totalPending)} outstanding
           </div>
         )}
@@ -161,7 +161,7 @@ export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) 
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="flex min-h-[40vh] flex-col items-center justify-center gap-4 rounded-3xl border border-glass-border bg-surface p-10 text-center"
+          className="flex min-h-[40vh] flex-col items-center justify-center gap-4 rounded-[3rem] border border-glass-border bg-surface p-10 text-center"
         >
           <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-500/10 text-emerald-400">
             <CheckCircle2 className="h-8 w-8" />
@@ -175,7 +175,7 @@ export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) 
 
       {/* Note */}
       {payables.length > 0 && (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-500/15 bg-amber-500/[0.04] px-4 py-3">
+        <div className="flex items-start gap-3 rounded-[3rem] border border-amber-500/15 bg-amber-500/[0.04] px-4 py-3">
           <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
           <p className="text-xs leading-relaxed text-text-secondary">
             These receipts were paid out-of-pocket by employees. Mark as <strong className="text-text-primary">&quot;Paid&quot;</strong> once the employee has been reimbursed.

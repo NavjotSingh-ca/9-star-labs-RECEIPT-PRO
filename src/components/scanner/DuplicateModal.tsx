@@ -40,7 +40,7 @@ export default function DuplicateModal({
       >
         <div className="border-b border-glass-border px-5 py-4">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-400">
+            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[2rem] bg-amber-500/15 text-amber-400">
               <AlertTriangle className="h-5 w-5" />
             </div>
 
@@ -54,7 +54,7 @@ export default function DuplicateModal({
         </div>
 
         <div className="space-y-4 px-5 py-5">
-          <div className="rounded-2xl border border-glass-border bg-surface-raised p-4">
+          <div className="rounded-[3rem] border border-glass-border bg-surface-raised p-4">
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Existing record</p>
 
             <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
@@ -80,14 +80,14 @@ export default function DuplicateModal({
             </div>
 
             {candidate.integrity_hash && (
-              <div className="mt-4 rounded-xl border border-glass-border bg-surface p-3">
+              <div className="mt-4 rounded-[2rem] border border-glass-border bg-surface p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">SHA-256 hash</p>
                 <p className="mt-1 break-all font-mono text-[11px] text-text-secondary">{candidate.integrity_hash}</p>
               </div>
             )}
           </div>
 
-          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+          <div className="rounded-[3rem] border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
             <div className="flex items-start gap-3">
               <CopyCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
               <p className="text-sm leading-relaxed text-amber-300">
@@ -102,7 +102,7 @@ export default function DuplicateModal({
           <button
             type="button"
             onClick={onCancel}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-glass-border bg-surface px-4 py-3 text-sm font-semibold text-text-secondary transition hover:bg-surface-raised"
+            className="inline-flex items-center justify-center gap-2 rounded-[2rem] border border-glass-border bg-surface px-4 py-3 text-sm font-semibold text-text-secondary transition hover:bg-surface-raised"
           >
             <Ban className="h-4 w-4" />
             Cancel
@@ -111,7 +111,7 @@ export default function DuplicateModal({
           <button
             type="button"
             onClick={onContinue}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-success px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-success/80"
+            className="inline-flex items-center justify-center gap-2 rounded-[2rem] bg-emerald-success px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-success/80"
           >
             <CopyCheck className="h-4 w-4" />
             Save anyway

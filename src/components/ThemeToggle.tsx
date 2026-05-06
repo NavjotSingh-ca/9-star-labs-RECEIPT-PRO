@@ -16,13 +16,13 @@ export function ThemeToggle() {
   }, []);
 
   if (!mounted) {
-    return <div className="h-10 w-10 rounded-xl bg-gray-100" />;
+    return <div className="h-10 w-10 rounded-[2rem] bg-gray-100" />;
   }
 
   return (
     <button
       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      className="relative h-10 w-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors hover:bg-gray-200 dark:hover:bg-gray-700"
+      className="relative h-10 w-10 flex items-center justify-center rounded-[2rem] bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors hover:bg-gray-200 dark:hover:bg-gray-700"
       aria-label="Toggle theme"
     >
       <motion.div

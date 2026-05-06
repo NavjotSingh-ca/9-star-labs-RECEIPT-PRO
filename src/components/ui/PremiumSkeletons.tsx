@@ -8,10 +8,10 @@ export function DashboardSkeleton() {
     <div className="space-y-8 p-4">
       <div className="flex items-end justify-between">
         <div className="space-y-2">
-          <Skeleton className="h-4 w-32 rounded-full" />
-          <Skeleton className="h-8 w-64 rounded-full" />
+          <Skeleton className="h-4 w-32 rounded-[2rem]" />
+          <Skeleton className="h-8 w-64 rounded-[2rem]" />
         </div>
-        <Skeleton className="h-10 w-40 rounded-2xl" />
+        <Skeleton className="h-10 w-40 rounded-[3rem]" />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -22,13 +22,13 @@ export function DashboardSkeleton() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
           >
-            <Skeleton className="h-40 w-full rounded-[2.5rem]" />
+            <Skeleton className="h-40 w-full rounded-[3rem]" />
           </motion.div>
         ))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Skeleton className="h-80 w-full lg:col-span-2 rounded-[2.5rem]" />
+        <Skeleton className="h-80 w-full lg:col-span-2 rounded-[3rem]" />
         <Skeleton className="h-80 w-full rounded-[2.5rem]" />
       </div>
     </div>
@@ -39,10 +39,10 @@ export function ReceiptTableSkeleton() {
   return (
     <div className="space-y-4 p-4">
       <div className="flex items-center justify-between">
-        <Skeleton className="h-10 w-64 rounded-2xl" />
+        <Skeleton className="h-10 w-64 rounded-[2rem]" />
         <div className="flex gap-2">
-          <Skeleton className="h-10 w-10 rounded-xl" />
-          <Skeleton className="h-10 w-10 rounded-xl" />
+          <Skeleton className="h-10 w-10 rounded-[2rem]" />
+          <Skeleton className="h-10 w-10 rounded-[2rem]" />
         </div>
       </div>
       <div className="space-y-3">
@@ -53,7 +53,7 @@ export function ReceiptTableSkeleton() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.05 }}
           >
-            <Skeleton className="h-20 w-full rounded-2xl" />
+            <Skeleton className="h-20 w-full rounded-[2rem]" />
           </motion.div>
         ))}
       </div>

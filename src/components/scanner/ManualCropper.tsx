@@ -214,7 +214,7 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
       >
         <div
           ref={overlayRef}
-          className="relative max-h-full max-w-full overflow-hidden rounded-2xl border border-glass-border/30 bg-black touch-none shadow-[0_0_100px_rgba(0,0,0,0.8)]"
+          className="relative max-h-full max-w-full overflow-hidden rounded-[3rem] border border-glass-border/30 bg-black touch-none shadow-[0_0_100px_rgba(0,0,0,0.8)]"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={stopDragging}
@@ -265,7 +265,7 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
           <button
             type="button"
             onClick={() => setCrop(null)}
-            className="flex h-[3.5rem] w-[3.5rem] items-center justify-center rounded-[1.25rem] border border-glass-border bg-surface text-text-secondary transition hover:bg-surface-hover hover:scale-105 active:scale-95"
+            className="flex h-[3.5rem] w-[3.5rem] items-center justify-center rounded-[2rem] border border-glass-border bg-surface text-text-secondary transition hover:bg-surface-hover hover:scale-105 active:scale-95"
             title="Reset Crop"
           >
             <RotateCcw className="h-6 w-6" />
@@ -275,7 +275,7 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
             <button
               type="button"
               onClick={onCancel}
-              className="flex h-[3.5rem] flex-1 items-center justify-center rounded-[1.25rem] border border-glass-border bg-surface text-xs font-bold uppercase tracking-widest text-text-muted transition hover:bg-surface-hover"
+              className="flex h-[3.5rem] flex-1 items-center justify-center rounded-[2rem] border border-glass-border bg-surface text-xs font-bold uppercase tracking-widest text-text-muted transition hover:bg-surface-hover"
             >
               Cancel
             </button>

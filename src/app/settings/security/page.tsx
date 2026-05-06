@@ -102,7 +102,7 @@ export default function SecuritySettings() {
         <div className="w-full rounded-3xl border border-glass-border bg-surface/80 p-8 shadow-2xl backdrop-blur-xl sm:p-12">
           
           <div className="mb-8 flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/15">
+            <div className="flex h-14 w-14 items-center justify-center rounded-[2rem] bg-emerald-500/15">
               <ShieldCheck className="h-7 w-7 text-emerald-400" />
             </div>
             <div>
@@ -112,14 +112,14 @@ export default function SecuritySettings() {
           </div>
 
           {error && (
-            <div className="mb-6 flex items-center gap-2 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20">
+            <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20">
               <AlertCircle className="h-4 w-4" />
               <span>{error}</span>
             </div>
           )}
 
           {success && (
-            <div className="mb-6 flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400 border border-emerald-500/20">
+            <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400 border border-emerald-500/20">
               <CheckCircle2 className="h-4 w-4" />
               <span>{success}</span>
             </div>
@@ -130,7 +130,7 @@ export default function SecuritySettings() {
           ) : (
             <div className="space-y-8">
               
-              <div className="rounded-2xl border border-glass-border bg-black/20 p-6">
+              <div className="rounded-[3rem] border border-glass-border bg-black/20 p-6">
                 <h2 className="text-lg font-semibold text-text-primary mb-4">Authenticator App (TOTP)</h2>
                 
                 {factors.length > 0 ? (
@@ -139,7 +139,7 @@ export default function SecuritySettings() {
                       <CheckCircle2 className="h-4 w-4" /> MFA is currently enabled.
                     </p>
                     {factors.map(f => (
-                      <div key={f.id} className="flex items-center justify-between rounded-xl bg-white/5 p-4 border border-white/10">
+                      <div key={f.id} className="flex items-center justify-between rounded-[2rem] bg-white/5 p-4 border border-white/10">
                         <div className="flex items-center gap-3">
                           <KeyRound className="h-5 w-5 text-text-muted" />
                           <div>
@@ -149,7 +149,7 @@ export default function SecuritySettings() {
                         </div>
                         <button
                           onClick={() => unenrollFactor(f.id)}
-                          className="rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/20"
+                          className="rounded-[2rem] bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/20"
                         >
                           Remove
                         </button>
@@ -163,7 +163,7 @@ export default function SecuritySettings() {
                         <p className="text-sm text-text-secondary mb-4">Add an additional layer of security to your account by requiring a code from an authenticator app (like Google Authenticator or 1Password).</p>
                         <button
                           onClick={startEnrollment}
-                          className="rounded-xl bg-champagne px-4 py-2 text-sm font-bold text-black transition hover:bg-champagne/90"
+                          className="rounded-[2rem] bg-champagne px-4 py-2 text-sm font-bold text-black transition hover:bg-champagne/90"
                         >
                           Enable Authenticator
                         </button>
@@ -172,7 +172,7 @@ export default function SecuritySettings() {
                       <div className="space-y-6">
                         <p className="text-sm text-text-secondary">Scan this QR code with your authenticator app.</p>
                         
-                        <div className="flex justify-center rounded-xl bg-white p-4 max-w-[200px] mx-auto">
+                        <div className="flex justify-center rounded-[2rem] bg-white p-4 max-w-[200px] mx-auto">
                           <img src={qrCode} alt="QR Code" className="w-full h-auto" />
                         </div>
 
@@ -182,7 +182,7 @@ export default function SecuritySettings() {
                             type="text"
                             value={verifyCode}
                             onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                            className="w-full rounded-xl border border-glass-border bg-black/40 px-4 py-3 text-center text-lg tracking-[0.5em] text-white outline-none focus:border-champagne/40"
+                            className="w-full rounded-[2rem] border border-glass-border bg-black/40 px-4 py-3 text-center text-lg tracking-[0.5em] text-white outline-none focus:border-champagne/40"
                             placeholder="000000"
                             maxLength={6}
                           />
@@ -192,14 +192,14 @@ export default function SecuritySettings() {
                           <button
                             onClick={verifyEnrollment}
                             disabled={loading || verifyCode.length !== 6}
-                            className="flex-1 flex justify-center items-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-600 disabled:opacity-50"
+                            className="flex-1 flex justify-center items-center gap-2 rounded-[2rem] bg-emerald-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-600 disabled:opacity-50"
                           >
                             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                             Verify and Enable
                           </button>
                           <button
                             onClick={() => { setIsEnrolling(false); setQrCode(''); }}
-                            className="rounded-xl border border-glass-border px-4 py-3 text-sm font-medium text-text-secondary hover:bg-white/5"
+                            className="rounded-[2rem] border border-glass-border px-4 py-3 text-sm font-medium text-text-secondary hover:bg-white/5"
                           >
                             Cancel
                           </button>

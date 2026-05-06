@@ -81,7 +81,7 @@ function FullPageLoader() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-obsidian">
       <div className="flex flex-col items-center gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-champagne/15 champagne-glow">
+        <div className="flex h-16 w-16 items-center justify-center rounded-[3rem] bg-champagne/15 champagne-glow">
           <ReceiptText className="h-8 w-8 text-champagne" />
         </div>
         <Loader2 className="h-6 w-6 animate-spin text-champagne" />
@@ -169,7 +169,7 @@ function AuthScreen() {
 
   const FeatureCard = ({ title, desc, icon: Icon }: { title: string; desc: string; icon: React.ElementType }) => (
     <div className="flex w-64 flex-col items-start gap-2 rounded-[2rem] border border-glass-border bg-black/40 p-5 shadow-2xl backdrop-blur-2xl">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-champagne/15 text-champagne">
+      <div className="flex h-10 w-10 items-center justify-center rounded-[2rem] bg-champagne/15 text-champagne">
         <Icon className="h-5 w-5" />
       </div>
       <h3 className="text-sm font-bold text-text-primary">{title}</h3>
@@ -189,7 +189,7 @@ function AuthScreen() {
           {/* Left Hero (Godmode visuals) */}
           <div className="hidden flex-col justify-between p-10 lg:flex relative overflow-hidden">
             <div className="relative z-10">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-champagne/15 champagne-glow">
+              <div className="flex h-14 w-14 items-center justify-center rounded-[2rem] bg-champagne/15 champagne-glow">
                 <ReceiptText className="h-7 w-7 text-champagne" />
               </div>
             <h1 className="mt-8 text-5xl font-bold tracking-tight text-white">9 Star Labs <br/> <span className="text-champagne">Elite Edition</span></h1>
@@ -240,7 +240,7 @@ function AuthScreen() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-2xl border border-glass-border bg-black/40 px-4 py-3 text-sm text-white outline-none backdrop-blur-md transition placeholder:text-white/20 focus:border-champagne/40 focus:ring-1 focus:ring-champagne/15"
+                    className="w-full rounded-[2rem] border border-glass-border bg-black/40 px-4 py-3 text-sm text-white outline-none backdrop-blur-md transition placeholder:text-white/20 focus:border-champagne/40 focus:ring-1 focus:ring-champagne/15"
                     placeholder="you@company.ca"
                     onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                   />
@@ -255,7 +255,7 @@ function AuthScreen() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                    className="w-full rounded-2xl border border-glass-border bg-black/40 px-4 py-3 text-sm text-white outline-none backdrop-blur-md transition placeholder:text-white/20 focus:border-champagne/40 focus:ring-1 focus:ring-champagne/15"
+                    className="w-full rounded-[2rem] border border-glass-border bg-black/40 px-4 py-3 text-sm text-white outline-none backdrop-blur-md transition placeholder:text-white/20 focus:border-champagne/40 focus:ring-1 focus:ring-champagne/15"
                     placeholder="••••••••"
                   />
                 </div>
@@ -271,7 +271,7 @@ function AuthScreen() {
                         type="text"
                         value={inviteCode}
                         onChange={(e) => setInviteCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        className="w-full rounded-2xl border border-glass-border bg-black/40 px-4 py-3 text-sm text-white outline-none backdrop-blur-md transition placeholder:text-white/20 focus:border-champagne/40 focus:ring-1 focus:ring-champagne/15 font-mono tracking-[0.3em] text-center"
+                        className="w-full rounded-[3rem] border border-glass-border bg-black/40 px-4 py-3 text-sm text-white outline-none backdrop-blur-md transition placeholder:text-white/20 focus:border-champagne/40 focus:ring-1 focus:ring-champagne/15 font-mono tracking-[0.3em] text-center"
                         placeholder="000000"
                         maxLength={6}
                       />
@@ -284,14 +284,14 @@ function AuthScreen() {
                     <button
                       type="button"
                       onClick={() => setAccepted((v) => !v)}
-                      className={`flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition ${
+                      className={`flex w-full items-start gap-3 rounded-[2rem] border p-4 text-left transition ${
                         accepted
                           ? 'border-champagne/40 bg-champagne/[0.08]'
                           : 'border-white/10 bg-black/40 hover:border-white/20'
                       }`}
                     >
                       <div
-                        className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border transition-colors ${
+                        className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-[1rem] border transition-colors ${
                           accepted ? 'border-champagne bg-champagne text-black' : 'border-white/30 bg-black/50'
                         }`}
                       >
@@ -310,7 +310,7 @@ function AuthScreen() {
                     onClick={handleSubmit}
                     whileTap={{ scale: 0.96 }}
                     disabled={loading || (!accepted && mode === 'signup')}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-[#dfcaaa] to-champagne px-4 py-3.5 text-sm font-bold text-black shadow-[0_0_15px_rgba(190,169,142,0.3)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex w-full items-center justify-center gap-2 rounded-[3rem] bg-gradient-to-b from-[#dfcaaa] to-champagne px-4 py-3.5 text-sm font-bold text-black shadow-[0_0_15px_rgba(190,169,142,0.3)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {loading && <Loader2 className="h-4 w-4 animate-spin text-black/50" />}
                     {mode === 'signin' ? 'Sign In' : 'Create Account'}
@@ -372,10 +372,10 @@ function AuditHUD({ receipts }: { receipts: ReceiptRow[] }) {
   }, [receipts]);
 
   return (
-    <div className="liquid-glass rounded-2xl px-4 py-3">
+    <div className="liquid-glass rounded-[3rem] px-4 py-3">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-success/30">
+          <div className="flex h-9 w-9 items-center justify-center rounded-[2rem] bg-emerald-success/30">
             <TrendingUp className="h-4 w-4 text-emerald-light" />
           </div>
           <div>
@@ -626,7 +626,7 @@ function AppContent() {
       <header className="fixed inset-x-0 top-0 z-50 liquid-glass">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-champagne/15 champagne-glow">
+            <div className="flex h-11 w-11 items-center justify-center rounded-[2rem] bg-champagne/15 champagne-glow">
               <ReceiptText className="h-5 w-5 text-champagne" />
             </div>
             <div>
@@ -660,13 +660,13 @@ function AppContent() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -4 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                    className="absolute right-0 top-12 z-50 w-48 rounded-2xl border border-glass-border bg-surface p-2 shadow-2xl"
+                    className="absolute right-0 top-12 z-50 w-48 rounded-[3rem] border border-glass-border bg-surface p-2 shadow-2xl"
                   >
                     <div className="pt-1">
                       <button
                         type="button"
                         onClick={handleSignOut}
-                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-text-secondary transition hover:bg-red-500/10 hover:text-red-400"
+                        className="flex w-full items-center gap-2 rounded-[2rem] px-3 py-2 text-left text-sm font-medium text-text-secondary transition hover:bg-red-500/10 hover:text-red-400"
                       >
                         <LogOut className="h-4 w-4" />
                         <span>Sign out</span>
@@ -828,29 +828,29 @@ function AppContent() {
                   <div className="grid gap-2">
                     {role !== 'Employee' && (
                       <>
-                        <button onClick={() => setActiveTab('audit')} className="flex items-center gap-3 rounded-2xl bg-gray-50 p-4 transition hover:bg-gray-100">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600"><ShieldCheck className="h-5 w-5" /></div>
+                        <button onClick={() => setActiveTab('audit')} className="flex items-center gap-3 rounded-[3rem] bg-gray-50 p-4 transition hover:bg-gray-100">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-[2rem] bg-blue-100 text-blue-600"><ShieldCheck className="h-5 w-5" /></div>
                           <div className="text-left"><p className="text-sm font-bold text-gray-900">Audit Trail</p><p className="text-xs text-gray-500">Immutable Merkle history</p></div>
                         </button>
-                        <button onClick={() => setActiveTab('export')} className="flex items-center gap-3 rounded-2xl bg-gray-50 p-4 transition hover:bg-gray-100">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600"><Download className="h-5 w-5" /></div>
+                        <button onClick={() => setActiveTab('export')} className="flex items-center gap-3 rounded-[3rem] bg-gray-50 p-4 transition hover:bg-gray-100">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-[2rem] bg-blue-100 text-blue-600"><Download className="h-5 w-5" /></div>
                           <div className="text-left"><p className="text-sm font-bold text-gray-900">CRA Export</p><p className="text-xs text-gray-500">Generate compliance ZIPs</p></div>
                         </button>
-                        <button onClick={() => setActiveTab('approvals')} className="flex items-center gap-3 rounded-2xl bg-gray-50 p-4 transition hover:bg-gray-100">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600"><CheckCircle2 className="h-5 w-5" /></div>
+                        <button onClick={() => setActiveTab('approvals')} className="flex items-center gap-3 rounded-[3rem] bg-gray-50 p-4 transition hover:bg-gray-100">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-[2rem] bg-emerald-100 text-emerald-600"><CheckCircle2 className="h-5 w-5" /></div>
                           <div className="text-left"><p className="text-sm font-bold text-gray-900">Approvals Queue</p><p className="text-xs text-gray-500">Review employee submissions</p></div>
                         </button>
-                        <button onClick={() => setActiveTab('payables')} className="flex items-center gap-3 rounded-2xl bg-gray-50 p-4 transition hover:bg-gray-100">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600"><TrendingUp className="h-5 w-5" /></div>
+                        <button onClick={() => setActiveTab('payables')} className="flex items-center gap-3 rounded-[3rem] bg-gray-50 p-4 transition hover:bg-gray-100">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-[2rem] bg-amber-100 text-amber-600"><TrendingUp className="h-5 w-5" /></div>
                           <div className="text-left"><p className="text-sm font-bold text-gray-900">Reimbursements</p><p className="text-xs text-gray-500">Employee payables tracker</p></div>
                         </button>
                         <button onClick={() => setActiveTab('projects')} className="flex items-center gap-3 rounded-2xl bg-gray-50 p-4 transition hover:bg-gray-100">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600"><Layers className="h-5 w-5" /></div>
+                          <div className="flex h-10 w-10 items-center justify-center rounded-[2rem] bg-blue-100 text-blue-600"><Layers className="h-5 w-5" /></div>
                           <div className="text-left"><p className="text-sm font-bold text-gray-900">Projects & Job Codes</p><p className="text-xs text-gray-500">Manage construction sites</p></div>
                         </button>
                         {role === 'Owner' && (
-                          <button onClick={() => { setActiveTab('dashboard'); setShowInviteModal(true); }} className="flex items-center gap-3 rounded-2xl bg-gray-50 p-4 transition hover:bg-gray-100">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600"><UserCircle2 className="h-5 w-5" /></div>
+                          <button onClick={() => { setActiveTab('dashboard'); setShowInviteModal(true); }} className="flex items-center gap-3 rounded-[3rem] bg-gray-50 p-4 transition hover:bg-gray-100">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-[2rem] bg-blue-100 text-blue-600"><UserCircle2 className="h-5 w-5" /></div>
                             <div className="text-left"><p className="text-sm font-bold text-gray-900">Invite Team Member</p><p className="text-xs text-gray-500">Generate 6-digit access code</p></div>
                           </button>
                         )}
@@ -871,8 +871,8 @@ function AppContent() {
                               showToast('error', err instanceof Error ? err.message : 'Failed to redeem code.');
                             }
                           }
-                        }} className="flex items-center gap-3 rounded-2xl bg-gray-50 p-4 transition hover:bg-gray-100">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600"><ShieldCheck className="h-5 w-5" /></div>
+                        }} className="flex items-center gap-3 rounded-[3rem] bg-gray-50 p-4 transition hover:bg-gray-100">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-[2rem] bg-blue-100 text-blue-600"><ShieldCheck className="h-5 w-5" /></div>
                           <div className="text-left"><p className="text-sm font-bold text-gray-900">Redeem Access Code</p><p className="text-xs text-gray-500">Join a workspace</p></div>
                         </button>
                       </>
@@ -880,11 +880,11 @@ function AppContent() {
                     
                     <div className="mt-4 px-2">
                       <p className="mb-2 text-xs font-bold uppercase tracking-widest text-gray-400">Legal & Settings</p>
-                      <Link href="/terms" className="flex items-center gap-3 rounded-2xl p-3 transition hover:bg-gray-100">
+                      <Link href="/terms" className="flex items-center gap-3 rounded-[3rem] p-3 transition hover:bg-gray-100">
                         <Scale className="h-4 w-4 text-gray-400" />
                         <span className="text-sm font-semibold text-gray-700">Terms of Service</span>
                       </Link>
-                      <Link href="/privacy" className="flex items-center gap-3 rounded-2xl p-3 transition hover:bg-gray-100">
+                      <Link href="/privacy" className="flex items-center gap-3 rounded-[3rem] p-3 transition hover:bg-gray-100">
                         <ShieldCheck className="h-4 w-4 text-gray-400" />
                         <span className="text-sm font-semibold text-gray-700">Privacy Policy (PIPEDA)</span>
                       </Link>
@@ -898,7 +898,7 @@ function AppContent() {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 liquid-glass">
+      <nav className="fixed inset-x-0 bottom-0 z-50 liquid-glass bottom-nav">
         <div className="mx-auto flex max-w-6xl items-end justify-around px-2 py-2 sm:px-4">
           <LayoutGroup id="nav">
             {navItems.map((item) => {
@@ -939,14 +939,14 @@ function AppContent() {
                   onClick={() => setActiveTab(item.id)}
                   whileTap={{ scale: 0.9 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                  className={`relative flex min-w-[64px] flex-col items-center gap-1 rounded-2xl px-3 py-2 transition ${
+                  className={`relative flex min-w-[64px] flex-col items-center gap-1 rounded-[3rem] px-3 py-2 transition ${
                     isActive ? 'text-champagne' : 'text-text-muted hover:text-text-secondary'
                   }`}
                 >
                   {isActive && (
                     <motion.div
                       layoutId="active-pill"
-                      className="absolute inset-0 bg-champagne/10 rounded-2xl"
+                      className="absolute inset-0 bg-champagne/10 rounded-[3rem]"
                       transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                     />
                   )}
@@ -979,7 +979,7 @@ function AppContent() {
       <Drawer.Root open={showInviteModal} onOpenChange={setShowInviteModal}>
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-sm" />
-          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[160] flex flex-col rounded-t-[2.5rem] border-t border-glass-border bg-surface outline-none focus:ring-0">
+          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[160] flex flex-col rounded-t-[3rem] border-t border-glass-border bg-surface outline-none focus:ring-0 bottom-nav">
             <div className="mx-auto mt-4 h-1.5 w-12 flex-shrink-0 rounded-full bg-glass-border" />
             <div className="p-6">
               <InviteModal

@@ -82,7 +82,7 @@ export default function ProjectManager() {
               placeholder="e.g. Westview Commercial Build"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-xl border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none focus:border-champagne/40"
+              className="w-full rounded-[2rem] border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none focus:border-champagne/40"
             />
           </div>
           <div>
@@ -92,7 +92,7 @@ export default function ProjectManager() {
               placeholder="WCB-01"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              className="w-full rounded-xl border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none focus:border-champagne/40"
+              className="w-full rounded-[2rem] border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none focus:border-champagne/40"
             />
           </div>
           <div>
@@ -102,7 +102,7 @@ export default function ProjectManager() {
               placeholder="0.00"
               value={budget}
               onChange={(e) => setBudget(e.target.value)}
-              className="w-full rounded-xl border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none focus:border-champagne/40"
+              className="w-full rounded-[2rem] border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none focus:border-champagne/40"
             />
           </div>
         </div>
@@ -111,7 +111,7 @@ export default function ProjectManager() {
             type="button"
             onClick={handleCreate}
             disabled={createMutation.isPending || !name.trim()}
-            className="flex items-center gap-2 rounded-2xl bg-champagne px-8 py-3 text-sm font-bold text-obsidian transition hover:bg-champagne-dim disabled:opacity-50 shadow-lg shadow-champagne/10"
+            className="flex items-center gap-2 rounded-[2rem] bg-champagne px-8 py-3 text-sm font-bold text-obsidian transition hover:bg-champagne-dim disabled:opacity-50 shadow-lg shadow-champagne/10"
           >
             {createMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -157,7 +157,7 @@ export default function ProjectManager() {
                       <div className="flex items-center gap-2">
                         <p className="text-lg font-bold text-text-primary">{p.name}</p>
                         {p.code && (
-                          <span className="rounded-md bg-champagne/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-champagne">
+                          <span className="rounded-[2rem] bg-champagne/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-champagne">
                             {p.code}
                           </span>
                         )}
@@ -204,7 +204,7 @@ export default function ProjectManager() {
                         }
                       }}
                       disabled={deleteMutation.isPending}
-                      className="rounded-xl p-2.5 text-text-muted transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                      className="rounded-[2rem] p-2.5 text-text-muted transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
                       aria-label="Delete project"
                     >
                       <Trash2 className="h-4 w-4" />

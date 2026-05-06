@@ -64,7 +64,7 @@ export default function PrivacyPage() {
 
           {/* Header */}
           <div className="mb-10 flex items-start gap-5 border-b border-white/10 pb-10">
-            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-champagne/15 champagne-glow">
+            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-[2rem] bg-champagne/15 champagne-glow">
               <ShieldCheck className="h-8 w-8 text-champagne" />
             </div>
             <div>
@@ -89,7 +89,7 @@ export default function PrivacyPage() {
           </div>
 
           {/* Table of Contents */}
-          <nav className="mb-10 rounded-2xl border border-glass-border bg-surface/40 p-5">
+          <nav className="mb-10 rounded-[3rem] border border-glass-border bg-surface/40 p-5">
             <p className="mb-3 text-xs font-black uppercase tracking-widest text-champagne">Contents</p>
             <ol className="space-y-1.5">
               {TOC.map(({ id, label }) => (
@@ -140,7 +140,7 @@ export default function PrivacyPage() {
           {/* Section 2 */}
           <Section id="information-collected" title="2. Personal Information We Collect">
             <p>We collect personal information in the following categories:</p>
-            <div className="rounded-xl border border-glass-border bg-surface/30 p-4 space-y-4">
+            <div className="rounded-[2rem] border border-glass-border bg-surface/30 p-4 space-y-4">
               {[
                 { title: 'a) Account Information', desc: 'Email address and encrypted authentication credentials when you register for an account. We do not store plaintext passwords. Authentication is handled by Supabase Auth, which uses bcrypt hashing.' },
                 { title: 'b) Financial Documents', desc: 'Images of physical or digital receipts, invoices, estimates, and bank statements that you upload or capture through the Service. These documents may contain: vendor names, vendor addresses, CRA Business Numbers (BN) and GST/HST registration numbers, transaction amounts, tax amounts (GST/HST/PST), payment card last-four digits, transaction dates and times, line item descriptions, and business purpose notes.' },
@@ -184,7 +184,7 @@ export default function PrivacyPage() {
 
           {/* Section 4 */}
           <Section id="ai-ml" title="4. AI & Machine Learning Disclosure">
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.05] p-4 mb-4">
+            <div className="rounded-[2rem] border border-amber-500/20 bg-amber-500/[0.05] p-4 mb-4">
               <p className="font-semibold text-amber-300 text-sm mb-1">Important AI Disclosure</p>
               <p>Images of your financial documents are transmitted to Google LLC&apos;s Generative AI API for extraction processing. This occurs every time you scan a receipt through the Service.</p>
             </div>
@@ -214,7 +214,7 @@ export default function PrivacyPage() {
 
           {/* Section 6 */}
           <Section id="retention" title="6. Data Retention — 7-Year CRA Minimum">
-            <div className="rounded-xl border border-champagne/20 bg-champagne/[0.04] p-4 mb-2">
+            <div className="rounded-[2rem] border border-champagne/20 bg-champagne/[0.04] p-4 mb-2">
               <p className="text-sm font-bold text-champagne mb-1">CRA Legal Requirement</p>
               <p>The <em>Income Tax Act</em> (Canada), s. 230(4), and the <em>Excise Tax Act</em> (Canada), s. 286, require that records supporting tax returns be retained for a minimum of <B>six (6) years from the end of the fiscal year to which they relate</B>. We retain your approved receipt records for a minimum of 7 years from the transaction date to ensure full CRA compliance regardless of your fiscal year-end date.</p>
             </div>
@@ -238,7 +238,7 @@ export default function PrivacyPage() {
                 { right: 'Withdrawal of Consent', desc: 'You may withdraw consent to non-essential data processing at any time by contacting privacy@9starlabs.ca. Note that withdrawal of consent to AI extraction will prevent use of the AI scanning features.' },
                 { right: 'Right to Complain', desc: 'If you believe your privacy rights have been violated, you may file a complaint with the Office of the Privacy Commissioner of Canada at www.priv.gc.ca or the Office of the Information and Privacy Commissioner of Alberta at www.oipc.ab.ca.' },
               ].map(({ right, desc }) => (
-                <div key={right} className="rounded-xl border border-glass-border bg-surface/30 p-4">
+                <div key={right} className="rounded-[2rem] border border-glass-border bg-surface/30 p-4">
                   <p className="text-sm font-bold text-text-primary mb-1">{right}</p>
                   <p>{desc}</p>
                 </div>
@@ -255,7 +255,7 @@ export default function PrivacyPage() {
           {/* Section 9 */}
           <Section id="cookies" title="9. Cookies & Session Tokens">
             <p>The Service uses only <B>essential first-party cookies</B> necessary for authentication and security. We do not use advertising cookies, cross-site tracking cookies, or third-party analytics cookies.</p>
-            <div className="rounded-xl border border-glass-border bg-surface/30 p-4 overflow-x-auto">
+            <div className="rounded-[2rem] border border-glass-border bg-surface/30 p-4 overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-glass-border">
@@ -295,7 +295,7 @@ export default function PrivacyPage() {
                 { name: 'Vercel Inc.', purpose: 'Application hosting and serverless function execution.', policy: 'https://vercel.com/legal/privacy-policy', region: 'United States' },
                 { name: 'Stripe Inc.', purpose: 'Payment processing for Pro/Enterprise subscriptions. Billing information only.', policy: 'https://stripe.com/en-ca/privacy', region: 'United States' },
               ].map(({ name, purpose, policy, region }) => (
-                <div key={name} className="rounded-xl border border-glass-border bg-surface/30 p-4">
+                <div key={name} className="rounded-[2rem] border border-glass-border bg-surface/30 p-4">
                   <p className="text-sm font-bold text-text-primary">{name}</p>
                   <p className="mt-1 text-xs text-text-muted">{purpose}</p>
                   <div className="mt-2 flex flex-wrap gap-3 text-xs">
@@ -324,7 +324,7 @@ export default function PrivacyPage() {
               <li>Displaying an in-app banner for 30 days following a significant update</li>
             </ul>
 
-            <div className="mt-6 rounded-2xl border border-champagne/20 bg-champagne/[0.04] p-6">
+            <div className="mt-6 rounded-[3rem] border border-champagne/20 bg-champagne/[0.04] p-6">
               <p className="text-sm font-bold text-champagne mb-3">Contact Our Privacy Officer</p>
               <div className="space-y-1 text-sm">
                 <p><B>9 Star Labs Inc.</B></p>
@@ -337,7 +337,7 @@ export default function PrivacyPage() {
               </p>
             </div>
 
-            <div className="mt-4 rounded-xl border border-glass-border bg-surface/30 p-4">
+            <div className="mt-4 rounded-[2rem] border border-glass-border bg-surface/30 p-4">
               <p className="text-xs text-text-muted">
                 <B>External Privacy Authorities:</B>{' '}
                 <A href="https://www.priv.gc.ca">Office of the Privacy Commissioner of Canada</A>{' '}

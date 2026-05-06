@@ -3,9 +3,17 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { z } from 'zod';
+import { logError, logInfo } from '@/lib/logger';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+// Input validation schemas
+const scanReceiptInputSchema = z.object({
+  base64Image: z.string().max(6_000_000, 'Image too large. Maximum 4MB after encoding.'),
+  captureSource: z.enum(['camera', 'upload', 'screenshot', 'email_screenshot']).default('camera')
+});
 
 export interface ReceiptLineItem {
   description: string;
@@ -326,6 +334,12 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
     const vendorAddr = toStr(parsed.vendor_address);
     const { province, tax_warning } = validateProvinceTax(vendorAddr, subtotal, tax_amount, pst_amount);
 
+    logInfo('Receipt scan completed successfully', {
+      vendor_name: vendor_name,
+      total_amount,
+      confidence_score: toNum(parsed.confidence_score) || 85
+    });
+
     return {
       success: true,
       data: {
@@ -361,6 +375,7 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
     };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Receipt scan failed.';
+    logError(err, { action: 'scan_receipt', captureSource });
     return { success: false, error: message };
   }
 }

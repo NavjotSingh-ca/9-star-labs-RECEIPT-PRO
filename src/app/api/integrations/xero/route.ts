@@ -6,6 +6,56 @@ const XERO_CLIENT_ID = process.env.XERO_CLIENT_ID || 'placeholder_xero_client_id
 const XERO_CLIENT_SECRET = process.env.XERO_CLIENT_SECRET || 'placeholder_xero_client_secret';
 const XERO_REDIRECT_URI = process.env.NEXT_PUBLIC_SITE_URL ? `${process.env.NEXT_PUBLIC_SITE_URL}/api/integrations/xero/callback` : 'http://localhost:3000/api/integrations/xero/callback';
 
+// Circuit Breaker State
+interface CircuitBreakerState {
+  isOpen: boolean;
+  failureCount: number;
+  lastFailureTime: number | null;
+  nextAttemptTime: number | null;
+}
+
+const circuitBreakerState: CircuitBreakerState = {
+  isOpen: false,
+  failureCount: 0,
+  lastFailureTime: null,
+  nextAttemptTime: null,
+};
+
+const CIRCUIT_BREAKER_THRESHOLD = 3;
+const CIRCUIT_BREAKER_TIMEOUT = 60000; // 1 minute
+
+function checkCircuitBreaker(): { isOpen: boolean; canProceed: boolean } {
+  const now = Date.now();
+
+  // Reset if timeout has passed
+  if (circuitBreakerState.nextAttemptTime && now >= circuitBreakerState.nextAttemptTime) {
+    circuitBreakerState.isOpen = false;
+    circuitBreakerState.failureCount = 0;
+    circuitBreakerState.nextAttemptTime = null;
+  }
+
+  return {
+    isOpen: circuitBreakerState.isOpen,
+    canProceed: !circuitBreakerState.isOpen,
+  };
+}
+
+function recordFailure(): void {
+  circuitBreakerState.failureCount++;
+  circuitBreakerState.lastFailureTime = Date.now();
+
+  if (circuitBreakerState.failureCount >= CIRCUIT_BREAKER_THRESHOLD) {
+    circuitBreakerState.isOpen = true;
+    circuitBreakerState.nextAttemptTime = Date.now() + CIRCUIT_BREAKER_TIMEOUT;
+  }
+}
+
+function recordSuccess(): void {
+  circuitBreakerState.failureCount = 0;
+  circuitBreakerState.lastFailureTime = null;
+  circuitBreakerState.nextAttemptTime = null;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const action = searchParams.get('action');

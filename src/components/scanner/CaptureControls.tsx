@@ -17,9 +17,9 @@ export default function CaptureControls({
   maxDimension
 }: CaptureControlsProps) {
   return (
-    <div className="rounded-3xl border border-dashed border-glass-border-hover bg-surface-raised p-8">
+    <div className="rounded-[3rem] border border-dashed border-glass-border-hover bg-surface-raised p-8">
       <div className="mx-auto flex max-w-md flex-col items-center text-center">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-champagne/10 text-champagne">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-[2rem] bg-champagne/10 text-champagne">
           <Camera className="h-8 w-8" />
         </div>
 
@@ -35,7 +35,7 @@ export default function CaptureControls({
             whileTap={{ scale: 0.92 }}
             whileHover={{ scale: 1.03 }}
             transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-champagne px-4 py-3 text-sm font-semibold text-obsidian shadow-lg shadow-champagne/20 transition hover:bg-champagne-dim"
+            className="inline-flex items-center justify-center gap-2 rounded-[2rem] bg-champagne px-4 py-3 text-sm font-semibold text-obsidian shadow-lg shadow-champagne/20 transition hover:bg-champagne-dim"
           >
             <Camera className="h-4 w-4" />
             Camera
@@ -44,7 +44,7 @@ export default function CaptureControls({
           <button
             type="button"
             onClick={onUploadClick}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-glass-border bg-surface px-4 py-3 text-sm font-semibold text-text-secondary transition hover:bg-surface-raised hover:text-text-primary"
+            className="inline-flex items-center justify-center gap-2 rounded-[3rem] border border-glass-border bg-surface px-4 py-3 text-sm font-semibold text-text-secondary transition hover:bg-surface-raised hover:text-text-primary"
           >
             <Upload className="h-4 w-4" />
             Upload
@@ -53,7 +53,7 @@ export default function CaptureControls({
           <button
             type="button"
             onClick={onScreenshotClick}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-glass-border bg-surface px-4 py-3 text-sm font-semibold text-text-secondary transition hover:bg-surface-raised hover:text-text-primary"
+            className="inline-flex items-center justify-center gap-2 rounded-[3rem] border border-glass-border bg-surface px-4 py-3 text-sm font-semibold text-text-secondary transition hover:bg-surface-raised hover:text-text-primary"
           >
             <ScanLine className="h-4 w-4" />
             Screenshot

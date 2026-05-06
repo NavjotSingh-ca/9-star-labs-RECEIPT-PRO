@@ -134,14 +134,14 @@ export default function AuditTrail() {
           type="button"
           onClick={loadLogs}
           disabled={loading}
-          className="inline-flex items-center gap-2 rounded-xl border border-glass-border bg-surface px-3 py-2 text-sm font-medium text-text-secondary shadow-sm transition hover:border-glass-border-hover hover:text-champagne disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-[2rem] border border-glass-border bg-surface px-3 py-2 text-sm font-medium text-text-secondary shadow-sm transition hover:border-glass-border-hover hover:text-champagne disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           <span>Refresh</span>
         </button>
       </div>
 
-      <div className="rounded-2xl border border-champagne/15 bg-champagne/[0.04] p-4">
+      <div className="rounded-[3rem] border border-champagne/15 bg-champagne/[0.04] p-4">
         <div className="flex items-start gap-3">
           <ShieldCheck className="mt-0.5 h-5 w-5 flex-shrink-0 text-champagne" />
           <div>
@@ -154,7 +154,7 @@ export default function AuditTrail() {
       </div>
 
       {loading ? (
-        <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 rounded-3xl border border-glass-border bg-surface">
+        <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 rounded-[3rem] border border-glass-border bg-surface">
           <Loader2 className="h-8 w-8 animate-spin text-champagne" />
           <p className="text-sm font-medium text-text-secondary">Loading audit events…</p>
         </div>
@@ -169,7 +169,7 @@ export default function AuditTrail() {
           </div>
         </div>
       ) : logs.length === 0 ? (
-        <div className="rounded-3xl border border-glass-border bg-surface p-12 text-center shadow-sm">
+        <div className="rounded-[3rem] border border-glass-border bg-surface p-12 text-center shadow-sm">
           <ShieldCheck className="mx-auto mb-3 h-12 w-12 text-text-muted/30" />
           <p className="text-sm font-medium text-text-secondary">
             No audit events yet. Actions like saving or exporting receipts will appear here.
@@ -183,11 +183,11 @@ export default function AuditTrail() {
             return (
               <div
                 key={log.id}
-                className="rounded-2xl border border-glass-border bg-surface p-4 shadow-sm"
+                className="rounded-[3rem] border border-glass-border bg-surface p-4 shadow-sm"
               >
                 <div className="flex items-start gap-3">
                   <div
-                    className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${meta.iconWrap}`}
+                    className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[2rem] ${meta.iconWrap}`}
                   >
                     {meta.icon}
                   </div>

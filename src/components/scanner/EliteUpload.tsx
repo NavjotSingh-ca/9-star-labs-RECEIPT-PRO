@@ -59,7 +59,7 @@ export function EliteUpload({ onFileSelect, onCameraClick, isProcessing }: Elite
           <div className="mt-8 flex items-center gap-3">
             <Button 
               variant="outline" 
-              className="rounded-full border-glass-border px-6 py-6 font-bold hover:bg-surface-raised hover:text-text-primary"
+              className="rounded-[2rem] border-glass-border px-6 py-6 font-bold hover:bg-surface-raised hover:text-text-primary"
             >
               <FileUp className="mr-2 h-4 w-4" />
               Browse Files
@@ -98,7 +98,7 @@ export function EliteUpload({ onFileSelect, onCameraClick, isProcessing }: Elite
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-center gap-3 rounded-2xl bg-surface-raised p-4 border border-glass-border"
+          className="flex items-center justify-center gap-3 rounded-[3rem] bg-surface-raised p-4 border border-glass-border"
         >
           <Loader2 className="h-5 w-5 animate-spin text-champagne" />
           <p className="text-sm font-bold text-text-primary">Gemini AI is reading your receipt...</p>

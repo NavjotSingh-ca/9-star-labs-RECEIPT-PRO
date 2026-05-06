@@ -102,7 +102,7 @@ export default function OrgSettings() {
         <div className="w-full rounded-3xl border border-glass-border bg-surface/80 p-8 shadow-2xl backdrop-blur-xl sm:p-12">
           
           <div className="mb-8 flex items-center gap-4 border-b border-glass-border pb-6">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-champagne/15">
+            <div className="flex h-14 w-14 items-center justify-center rounded-[2rem] bg-champagne/15">
               <Settings className="h-7 w-7 text-champagne" />
             </div>
             <div>
@@ -112,14 +112,14 @@ export default function OrgSettings() {
           </div>
 
           {error && (
-            <div className="mb-6 flex items-center gap-2 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20">
+            <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20">
               <AlertCircle className="h-4 w-4" />
               <span>{error}</span>
             </div>
           )}
 
           {success && (
-            <div className="mb-6 flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400 border border-emerald-500/20">
+            <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400 border border-emerald-500/20">
               <CheckCircle2 className="h-4 w-4" />
               <span>{success}</span>
             </div>
@@ -140,7 +140,7 @@ export default function OrgSettings() {
                       type="text"
                       value={settings.business_name}
                       onChange={(e) => setSettings({ ...settings, business_name: e.target.value })}
-                      className="w-full rounded-xl border border-glass-border bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-champagne/40"
+                      className="w-full rounded-[2rem] border border-glass-border bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-champagne/40"
                     />
                   </div>
                   <div>
@@ -149,7 +149,7 @@ export default function OrgSettings() {
                       type="text"
                       value={settings.business_number}
                       onChange={(e) => setSettings({ ...settings, business_number: e.target.value })}
-                      className="w-full rounded-xl border border-glass-border bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-champagne/40"
+                      className="w-full rounded-[2rem] border border-glass-border bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-champagne/40"
                     />
                   </div>
                 </div>
@@ -165,7 +165,7 @@ export default function OrgSettings() {
                       type="number"
                       value={settings.require_approval_above}
                       onChange={(e) => setSettings({ ...settings, require_approval_above: parseFloat(e.target.value) || 0 })}
-                      className="w-full rounded-xl border border-glass-border bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-champagne/40"
+                      className="w-full rounded-[2rem] border border-glass-border bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-champagne/40"
                     />
                     <p className="mt-1.5 text-xs text-text-muted">Receipts below this amount are auto-approved.</p>
                   </div>
@@ -175,7 +175,7 @@ export default function OrgSettings() {
                       type="number"
                       value={settings.high_value_threshold}
                       onChange={(e) => setSettings({ ...settings, high_value_threshold: parseFloat(e.target.value) || 0 })}
-                      className="w-full rounded-xl border border-glass-border bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-champagne/40"
+                      className="w-full rounded-[2rem] border border-glass-border bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-champagne/40"
                     />
                   </div>
                 </div>
@@ -185,9 +185,9 @@ export default function OrgSettings() {
               <div className="pt-6 border-t border-glass-border">
                 <h3 className="text-lg font-bold text-text-primary mb-4">Accounting Integrations</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div className="flex items-center justify-between rounded-2xl border border-glass-border bg-black/20 p-4">
+                  <div className="flex items-center justify-between rounded-[3rem] border border-glass-border bg-black/20 p-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 overflow-hidden rounded-lg bg-white p-1">
+                      <div className="h-10 w-10 overflow-hidden rounded-[2rem] bg-white p-1">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/2/23/QuickBooks_Logo.svg" alt="QBO" className="h-full w-full object-contain" />
                       </div>
                       <div>
@@ -197,15 +197,15 @@ export default function OrgSettings() {
                     </div>
                     <button 
                       onClick={() => window.location.href = '/api/integrations/qbo?action=connect'}
-                      className="rounded-lg bg-white/5 px-3 py-1.5 text-xs font-bold text-champagne hover:bg-white/10"
+                      className="rounded-[2rem] bg-white/5 px-3 py-1.5 text-xs font-bold text-champagne hover:bg-white/10"
                     >
                       Connect
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-between rounded-2xl border border-glass-border bg-black/20 p-4">
+                  <div className="flex items-center justify-between rounded-[3rem] border border-glass-border bg-black/20 p-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 overflow-hidden rounded-lg bg-[#00b7e2] p-1">
+                      <div className="h-10 w-10 overflow-hidden rounded-[2rem] bg-[#00b7e2] p-1">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/9/9f/Xero_software_logo.svg" alt="Xero" className="h-full w-full object-contain" />
                       </div>
                       <div>
@@ -215,7 +215,7 @@ export default function OrgSettings() {
                     </div>
                     <button 
                       onClick={() => window.location.href = '/api/integrations/xero?action=connect'}
-                      className="rounded-lg bg-white/5 px-3 py-1.5 text-xs font-bold text-champagne hover:bg-white/10"
+                      className="rounded-[2rem] bg-white/5 px-3 py-1.5 text-xs font-bold text-champagne hover:bg-white/10"
                     >
                       Connect
                     </button>
@@ -229,7 +229,7 @@ export default function OrgSettings() {
                     type="url"
                     value={settings.slack_webhook_url}
                     onChange={(e) => setSettings({ ...settings, slack_webhook_url: e.target.value })}
-                    className="w-full rounded-xl border border-glass-border bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-champagne/40"
+                    className="w-full rounded-[2rem] border border-glass-border bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-champagne/40"
                     placeholder="https://hooks.slack.com/services/..."
                   />
                 </div>
@@ -240,7 +240,7 @@ export default function OrgSettings() {
                 <button
                   onClick={saveSettings}
                   disabled={saving}
-                  className="flex items-center gap-2 rounded-xl bg-champagne px-6 py-3 text-sm font-bold text-black transition hover:bg-champagne/90 disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-[2rem] bg-champagne px-6 py-3 text-sm font-bold text-black transition hover:bg-champagne/90 disabled:opacity-50"
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   Save Configuration

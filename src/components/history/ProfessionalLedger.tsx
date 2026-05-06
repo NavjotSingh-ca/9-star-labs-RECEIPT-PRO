@@ -50,7 +50,7 @@ interface ProfessionalLedgerProps {
   onDelete: (id: string) => void;
 }
 
-export function ProfessionalLedger({ data, onSelect, onDelete }: ProfessionalLedgerProps) {
+export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data, onSelect, onDelete }: ProfessionalLedgerProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
 
@@ -121,24 +121,24 @@ export function ProfessionalLedger({ data, onSelect, onDelete }: ProfessionalLed
         return (
           <div className="flex justify-end">
             <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-md h-8 w-8 p-0 hover:bg-accent hover:text-accent-foreground focus:outline-none">
+              <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-[2rem] h-8 w-8 p-0 hover:bg-accent hover:text-accent-foreground focus:outline-none">
                 <MoreHorizontal className="h-4 w-4" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 rounded-2xl border-glass-border bg-surface/90 backdrop-blur-xl p-2 shadow-2xl">
+              <DropdownMenuContent align="end" className="w-48 rounded-[3rem] border-glass-border bg-surface/90 backdrop-blur-xl p-2 shadow-2xl">
                 <DropdownMenuLabel className="text-xs font-bold text-text-muted">Actions</DropdownMenuLabel>
                 <DropdownMenuItem 
                   onClick={() => onSelect(receipt)}
-                  className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition hover:bg-champagne/10 hover:text-champagne"
+                  className="flex items-center gap-2 rounded-[2rem] px-3 py-2 text-sm transition hover:bg-champagne/10 hover:text-champagne"
                 >
                   <Eye className="h-4 w-4" /> View Details
                 </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition hover:bg-champagne/10 hover:text-champagne">
+                <DropdownMenuItem className="flex items-center gap-2 rounded-[2rem] px-3 py-2 text-sm transition hover:bg-champagne/10 hover:text-champagne">
                   <FileDown className="h-4 w-4" /> Export PDF
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="my-1 bg-glass-border" />
                 <DropdownMenuItem 
                   onClick={() => onDelete(receipt.id)}
-                  className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/10"
+                  className="flex items-center gap-2 rounded-[2rem] px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/10"
                 >
                   <Trash2 className="h-4 w-4" /> Delete Record
                 </DropdownMenuItem>
@@ -173,17 +173,17 @@ export function ProfessionalLedger({ data, onSelect, onDelete }: ProfessionalLed
             placeholder="Search vendor, category, or amount..."
             value={globalFilter ?? ''}
             onChange={(event) => setGlobalFilter(event.target.value)}
-            className="rounded-2xl border-glass-border bg-surface/50 pl-10 focus:ring-champagne/20"
+            className="rounded-[3rem] border-glass-border bg-surface/50 pl-10 focus:ring-champagne/20"
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="rounded-xl border-glass-border bg-surface/50 font-bold hover:bg-surface-raised">
+          <Button variant="outline" className="rounded-[2rem] border-glass-border bg-surface/50 font-bold hover:bg-surface-raised">
             Filters <ChevronDown className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      <div className="rounded-[2.5rem] border border-glass-border bg-surface/30 backdrop-blur-md overflow-hidden">
+      <div className="rounded-[3rem] border border-glass-border bg-surface/30 backdrop-blur-md overflow-hidden">
         <Table>
           <TableHeader className="bg-surface/50">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -223,7 +223,7 @@ export function ProfessionalLedger({ data, onSelect, onDelete }: ProfessionalLed
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-64 text-center">
                   <div className="flex flex-col items-center justify-center gap-3 text-text-muted">
-                    <div className="h-16 w-16 rounded-full bg-surface-raised flex items-center justify-center mb-2">
+                    <div className="h-16 w-16 rounded-[3rem] bg-surface-raised flex items-center justify-center mb-2">
                       <Search className="h-8 w-8 opacity-20" />
                     </div>
                     <p className="font-bold">No records matching your search</p>
@@ -239,4 +239,4 @@ export function ProfessionalLedger({ data, onSelect, onDelete }: ProfessionalLed
       </div>
     </div>
   );
-}
+});

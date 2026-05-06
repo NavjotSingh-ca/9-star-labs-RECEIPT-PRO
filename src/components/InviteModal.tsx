@@ -45,7 +45,7 @@ export default function InviteModal({ onClose, businessUnits }: InviteModalProps
       {/* Header */}
       <div className="flex items-start justify-between mb-8 pb-4 border-b border-glass-border">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-champagne/15 text-champagne champagne-glow">
+          <div className="flex h-14 w-14 items-center justify-center rounded-[2rem] bg-champagne/15 text-champagne champagne-glow">
             <ShieldCheck className="h-7 w-7" />
           </div>
           <div>
@@ -55,7 +55,7 @@ export default function InviteModal({ onClose, businessUnits }: InviteModalProps
         </div>
         <button
           onClick={onClose}
-          className="rounded-xl p-2 text-text-muted transition hover:bg-surface-raised hover:text-text-primary"
+          className="rounded-[2rem] p-2 text-text-muted transition hover:bg-surface-raised hover:text-text-primary"
         >
           <X className="h-6 w-6" />
         </button>
@@ -74,7 +74,7 @@ export default function InviteModal({ onClose, businessUnits }: InviteModalProps
                 type="button"
                 onClick={() => setRole(r)}
                 className={[
-                  'rounded-2xl border py-4 text-sm font-semibold transition',
+                  'rounded-[3rem] border py-4 text-sm font-semibold transition',
                   role === r
                     ? 'border-champagne/40 bg-champagne/10 text-champagne'
                     : 'border-glass-border bg-surface-raised text-text-secondary hover:border-glass-border-hover',
@@ -95,7 +95,7 @@ export default function InviteModal({ onClose, businessUnits }: InviteModalProps
             <select
               value={businessUnitId}
               onChange={(e) => setBusinessUnitId(e.target.value)}
-              className="w-full rounded-2xl border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none focus:border-champagne/40"
+              className="w-full rounded-[2rem] border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none focus:border-champagne/40"
             >
               <option value="">No specific unit</option>
               {businessUnits.map((bu) => (
@@ -107,7 +107,7 @@ export default function InviteModal({ onClose, businessUnits }: InviteModalProps
 
         {/* Error */}
         {error && (
-          <p className="rounded-xl bg-red-500/10 px-4 py-2 text-sm text-red-400">{error}</p>
+          <p className="rounded-[2rem] bg-red-500/10 px-4 py-2 text-sm text-red-400">{error}</p>
         )}
 
         {/* Generated Code Display */}
@@ -115,7 +115,7 @@ export default function InviteModal({ onClose, businessUnits }: InviteModalProps
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="rounded-[2.5rem] border border-emerald-500/20 bg-emerald-500/[0.04] p-6 text-center"
+            className="rounded-[3rem] border border-emerald-500/20 bg-emerald-500/[0.04] p-6 text-center"
           >
             <p className="mb-2 text-xs font-bold uppercase tracking-widest text-emerald-light/70">
               Invite Code — Expires in 24h
@@ -124,7 +124,7 @@ export default function InviteModal({ onClose, businessUnits }: InviteModalProps
             <button
               onClick={handleCopy}
               className={[
-                'mt-5 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition',
+                'mt-5 inline-flex items-center gap-2 rounded-[2rem] px-4 py-2 text-sm font-semibold transition',
                 copied
                   ? 'bg-emerald-500/15 text-emerald-light'
                   : 'bg-surface border border-glass-border text-text-secondary hover:text-text-primary',

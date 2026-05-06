@@ -328,7 +328,7 @@ export default function Export({ receipts }: ExportProps) {
           <h2 className="mt-1 text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">CRA Export — 9 Star Labs</h2>
         </div>
 
-        <div className="rounded-2xl border border-glass-border bg-surface px-3 py-2 text-xs font-medium text-text-secondary shadow-sm">
+        <div className="rounded-[3rem] border border-glass-border bg-surface px-3 py-2 text-xs font-medium text-text-secondary shadow-sm">
           {filteredReceipts.length} receipt{filteredReceipts.length === 1 ? '' : 's'} in range
         </div>
       </div>
@@ -340,7 +340,7 @@ export default function Export({ receipts }: ExportProps) {
             type="date"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
-            className="w-full rounded-2xl border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none transition focus:border-champagne/40 focus:ring-2 focus:ring-champagne/15"
+            className="w-full rounded-[2rem] border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none transition focus:border-champagne/40 focus:ring-2 focus:ring-champagne/15"
           />
         </div>
 
@@ -350,7 +350,7 @@ export default function Export({ receipts }: ExportProps) {
             type="date"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
-            className="w-full rounded-2xl border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none transition focus:border-champagne/40 focus:ring-2 focus:ring-champagne/15"
+            className="w-full rounded-[2rem] border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none transition focus:border-champagne/40 focus:ring-2 focus:ring-champagne/15"
           />
         </div>
       </div>
@@ -363,7 +363,7 @@ export default function Export({ receipts }: ExportProps) {
           className="rounded-3xl border border-glass-border bg-surface p-4 text-left shadow-sm transition hover:border-glass-border-hover hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-50"
         >
           <div className="flex items-start gap-3">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-light">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[2rem] bg-emerald-500/10 text-emerald-light">
               <FileText className="h-6 w-6" />
             </div>
             <div className="min-w-0 flex-1">
@@ -383,7 +383,7 @@ export default function Export({ receipts }: ExportProps) {
           className="rounded-3xl border border-glass-border bg-surface p-4 text-left shadow-sm transition hover:border-glass-border-hover hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-50"
         >
           <div className="flex items-start gap-3">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-champagne/10 text-champagne">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[2rem] bg-champagne/10 text-champagne">
               {zipping ? <Loader2 className="h-6 w-6 animate-spin" /> : <FileArchive className="h-6 w-6" />}
             </div>
             <div className="min-w-0 flex-1">
@@ -403,7 +403,7 @@ export default function Export({ receipts }: ExportProps) {
           className="rounded-3xl border border-glass-border bg-surface p-4 text-left shadow-sm transition hover:border-glass-border-hover hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-50"
         >
           <div className="flex items-start gap-3">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[2rem] bg-amber-500/10 text-amber-500">
               <FileArchive className="h-6 w-6" />
             </div>
             <div className="min-w-0 flex-1">
@@ -438,7 +438,7 @@ export default function Export({ receipts }: ExportProps) {
 
       <div className="rounded-3xl border border-amber-500/15 bg-amber-500/[0.04] p-4 shadow-sm">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 shadow-sm">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[2rem] bg-amber-500/10 text-amber-400 shadow-sm">
             <AlertTriangle className="h-5 w-5" />
           </div>
           <div>
@@ -453,7 +453,7 @@ export default function Export({ receipts }: ExportProps) {
 
       <div className="rounded-3xl border border-glass-border bg-surface p-4 shadow-sm">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-champagne/10 text-champagne">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[2rem] bg-champagne/10 text-champagne">
             <ShieldCheck className="h-5 w-5" />
           </div>
           <div className="min-w-0">

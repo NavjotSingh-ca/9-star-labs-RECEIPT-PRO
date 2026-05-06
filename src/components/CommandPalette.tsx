@@ -67,7 +67,7 @@ export default function CommandPalette({ onAction }: CommandPaletteProps) {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="flex w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-glass-border bg-surface shadow-2xl backdrop-blur-3xl"
+              className="flex w-full max-w-xl flex-col overflow-hidden rounded-[3rem] border border-glass-border bg-surface shadow-2xl backdrop-blur-3xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-3 border-b border-glass-border px-4 py-4">
@@ -99,9 +99,9 @@ export default function CommandPalette({ onAction }: CommandPaletteProps) {
                       whileHover={{ scale: 1.01, x: 4 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleAction(item.id)}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-surface-raised"
+                      className="flex w-full items-center gap-3 rounded-[2rem] px-3 py-3 text-left transition hover:bg-surface-raised"
                     >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-champagne/10 text-champagne">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[2rem] bg-champagne/10 text-champagne">
                         <item.icon className="h-5 w-5" />
                       </div>
                       <div>

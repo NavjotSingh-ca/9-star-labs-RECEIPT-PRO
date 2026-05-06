@@ -130,7 +130,7 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
             <p className="text-red-400 mb-4">{error}</p>
             <button 
               onClick={onClose}
-              className="px-6 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition"
+              className="px-6 py-2 rounded-[2rem] bg-white/10 hover:bg-white/20 transition"
             >
               Go Back
             </button>

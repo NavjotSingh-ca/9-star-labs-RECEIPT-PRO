@@ -172,11 +172,11 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
       </div>
 
       {bankData.length === 0 && (
-        <div className="rounded-3xl border border-dashed border-glass-border bg-surface p-12 text-center transition hover:bg-surface-raised">
+        <div className="rounded-[3rem] border border-dashed border-glass-border bg-surface p-12 text-center transition hover:bg-surface-raised">
           <FileSpreadsheet className="mx-auto mb-3 h-12 w-12 text-text-muted/30" />
           <p className="text-sm font-semibold text-text-primary">No bank statement uploaded.</p>
           <p className="mt-1 text-xs text-text-secondary mb-4">CSV format: Date, Description, Amount</p>
-          <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-[#dfcaaa] to-champagne px-4 py-3 text-sm font-bold text-black shadow-lg transition hover:opacity-90">
+          <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-[2rem] bg-gradient-to-b from-[#dfcaaa] to-champagne px-4 py-3 text-sm font-bold text-black shadow-lg transition hover:opacity-90">
             <Upload className="h-4 w-4" />
             Upload File
             <input type="file" accept=".csv,application/pdf" className="hidden" onChange={handleFileUpload} />
@@ -194,7 +194,7 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
 
       {bankData.length > 0 && !loading && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between rounded-2xl border border-glass-border bg-surface p-4 shadow-sm">
+          <div className="flex items-center justify-between rounded-[3rem] border border-glass-border bg-surface p-4 shadow-sm">
             <div>
               <p className="text-sm font-bold text-text-primary">Match Results</p>
               <p className="text-xs text-text-secondary">Found receipts for {matchedCount} out of {bankData.length} transactions.</p>
@@ -212,7 +212,7 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05 }}
-                className="rounded-2xl border border-glass-border bg-surface p-4 shadow-sm"
+                className="rounded-[3rem] border border-glass-border bg-surface p-4 shadow-sm"
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="min-w-0 md:w-1/2">
@@ -224,7 +224,7 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
                     </div>
                   </div>
 
-                  <div className="md:w-1/2 rounded-xl border border-white/5 bg-black/20 p-3">
+                  <div className="md:w-1/2 rounded-[2rem] border border-white/5 bg-black/20 p-3">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Receipt Match</p>
                     {m.receipt ? (
                       <div className="mt-1">

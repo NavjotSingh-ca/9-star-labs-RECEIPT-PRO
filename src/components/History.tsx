@@ -212,7 +212,7 @@ export default function History({
             <Button
               onClick={() => refetch()}
               variant="outline"
-              className="rounded-xl border-glass-border bg-surface px-4 font-bold hover:bg-surface-raised"
+              className="rounded-[2rem] border-glass-border bg-surface px-4 font-bold hover:bg-surface-raised"
             >
               <RefreshCw className={cn("mr-2 h-4 w-4", isFetchingNextPage ? "animate-spin" : "")} />
               Sync
@@ -220,8 +220,8 @@ export default function History({
             <Button
               onClick={() => setSemanticMode(!semanticMode)}
               className={cn(
-                "rounded-xl font-bold transition-all",
-                semanticMode ? "bg-champagne text-obsidian shadow-lg shadow-champagne/20" : "bg-surface-raised text-text-primary border border-glass-border"
+                "rounded-[2rem] font-bold transition-all",
+                semanticMode ? "bg-champagne text-obsidian shadow-lg shadow-champagne/20" : "bg-surface-raised text-text-primary border border-glass-border rounded-[2rem]"
               )}
             >
               <BrainCircuit className="mr-2 h-4 w-4" />
@@ -239,9 +239,9 @@ export default function History({
               exit={{ opacity: 0, height: 0 }}
               className="px-2"
             >
-              <div className="rounded-2xl border border-champagne/30 bg-champagne/5 p-4 backdrop-blur-md">
+              <div className="rounded-[2rem] border border-champagne/30 bg-champagne/5 p-4 backdrop-blur-md">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-champagne text-obsidian">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-[2rem] bg-champagne text-obsidian">
                     <BrainCircuit className="h-4 w-4" />
                   </div>
                   <div className="flex-1">
@@ -320,7 +320,7 @@ export default function History({
       >
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-sm" />
-          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[160] flex flex-col rounded-t-[3rem] border-t border-glass-border bg-surface outline-none focus:ring-0 sm:max-w-3xl sm:mx-auto sm:mb-6 sm:rounded-[3rem] sm:max-h-[95vh]">
+          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[160] flex flex-col rounded-t-[3rem] border-t border-glass-border bg-surface outline-none focus:ring-0 sm:max-w-3xl sm:mx-auto sm:mb-6 sm:rounded-[3rem] sm:max-h-[95vh] bottom-nav">
             <div className="mx-auto mt-4 h-1.5 w-12 flex-shrink-0 rounded-full bg-glass-border" />
             
             {selectedReceipt && (
@@ -513,7 +513,7 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
               size="icon"
               onClick={handleDelete}
               disabled={deleteLoading}
-              className="h-12 w-12 rounded-2xl bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"
+              className="h-12 w-12 rounded-[2rem] bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"
             >
               {deleteLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Trash2 className="h-5 w-5" />}
             </Button>
@@ -521,7 +521,7 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="h-12 w-12 rounded-2xl bg-surface-raised"
+              className="h-12 w-12 rounded-[2rem] bg-surface-raised"
             >
               <X className="h-6 w-6" />
             </Button>
@@ -530,7 +530,7 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
 
         <div className="flex-1 overflow-y-auto px-5 space-y-8">
           {imageUrl && (
-            <div className="relative rounded-[2.5rem] border border-glass-border bg-obsidian/20 overflow-hidden shadow-2xl">
+            <div className="relative rounded-[3rem] border border-glass-border bg-obsidian/20 overflow-hidden shadow-2xl">
               <img 
                 src={imageUrl} 
                 alt="Receipt" 
@@ -574,7 +574,7 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
           </div>
 
           {/* Audit Data Fields */}
-          <Card className="rounded-[2.5rem] border-glass-border bg-surface/50 overflow-hidden shadow-sm">
+          <Card className="rounded-[3rem] border-glass-border bg-surface/50 overflow-hidden shadow-sm">
             <div className="border-b border-glass-border bg-surface-raised px-6 py-4">
               <p className="text-xs font-black uppercase tracking-widest text-text-muted">Compliance Records</p>
             </div>

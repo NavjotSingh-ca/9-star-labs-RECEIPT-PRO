@@ -17,14 +17,14 @@ interface SpendingChartProps {
 
 export function SpendingChart({ data }: SpendingChartProps) {
   return (
-    <Card className="rounded-[2.5rem] border border-glass-border bg-surface/50 backdrop-blur-xl shadow-2xl overflow-hidden group">
+    <Card className="rounded-[3rem] border border-glass-border bg-surface/50 backdrop-blur-xl shadow-2xl overflow-hidden group">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-lg font-bold tracking-tight text-text-primary">Financial Velocity</CardTitle>
             <p className="text-xs text-text-muted">Monthly spend and tax trajectory</p>
           </div>
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-champagne/10 text-champagne shadow-inner group-hover:scale-110 transition-transform duration-500">
+          <div className="flex h-10 w-10 items-center justify-center rounded-[2rem] bg-champagne/10 text-champagne shadow-inner group-hover:scale-110 transition-transform duration-500">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
           </div>
         </div>

@@ -20,13 +20,13 @@ const CAD = {
 };
 
 const inputCls =
-  'w-full rounded-xl border border-glass-border bg-surface-raised px-3 py-2.5 text-sm text-text-primary outline-none transition placeholder:text-text-muted focus:border-champagne/40 focus:ring-2 focus:ring-champagne/15';
+  'w-full rounded-[2rem] border border-glass-border bg-surface-raised px-3 py-2.5 text-sm text-text-primary outline-none transition placeholder:text-text-muted focus:border-champagne/40 focus:ring-2 focus:ring-champagne/15';
 
 const errorInputCls =
-  'w-full rounded-xl border border-red-500/40 bg-red-500/[0.06] px-3 py-2.5 text-sm text-text-primary outline-none transition focus:border-red-500/60 focus:ring-2 focus:ring-red-500/15';
+  'w-full rounded-[2rem] border border-red-500/40 bg-red-500/[0.06] px-3 py-2.5 text-sm text-text-primary outline-none transition focus:border-red-500/60 focus:ring-2 focus:ring-red-500/15';
 
 const warningInputCls =
-  'w-full rounded-xl border border-amber-500/40 bg-amber-500/[0.06] px-3 py-2.5 text-sm text-text-primary outline-none transition focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/15';
+  'w-full rounded-[2rem] border border-amber-500/40 bg-amber-500/[0.06] px-3 py-2.5 text-sm text-text-primary outline-none transition focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/15';
 
 function safeNumber(value: unknown): number {
   const n = Number(value ?? 0);
@@ -195,7 +195,7 @@ export default function ScannerForm({
       {/* Warnings & Live Policy Guardrails */}
       <div className="space-y-3">
         {formData.document_type?.toLowerCase() === 'estimate' && (
-          <div className="rounded-2xl border border-blue-500/20 bg-blue-500/[0.06] px-4 py-3">
+          <div className="rounded-[3rem] border border-blue-500/20 bg-blue-500/[0.06] px-4 py-3">
             <div className="flex items-start gap-3">
               <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-400" />
               <div>
@@ -210,7 +210,7 @@ export default function ScannerForm({
           <>
           {/* Policy Flags */}
           {isHighValue && (
-            <div className="rounded-2xl border border-[#dfcaaa]/40 bg-[#dfcaaa]/10 px-4 py-3 shadow-[0_0_15px_rgba(190,169,142,0.15)]">
+            <div className="rounded-[3rem] border border-[#dfcaaa]/40 bg-[#dfcaaa]/10 px-4 py-3 shadow-[0_0_15px_rgba(190,169,142,0.15)]">
               <div className="flex items-start gap-3">
                 <DollarSign className="mt-0.5 h-4 w-4 flex-shrink-0 text-champagne" />
                 <div>
@@ -221,7 +221,7 @@ export default function ScannerForm({
             </div>
           )}
           {needsVehicleId && (
-            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+            <div className="rounded-[3rem] border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
                 <div>
@@ -232,7 +232,7 @@ export default function ScannerForm({
             </div>
           )}
           {isOutOfProvince && (
-            <div className="rounded-2xl border border-blue-500/20 bg-blue-500/[0.06] px-4 py-3">
+            <div className="rounded-[3rem] border border-blue-500/20 bg-blue-500/[0.06] px-4 py-3">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-400" />
                 <div>
@@ -245,7 +245,7 @@ export default function ScannerForm({
 
           {/* Core AI Flags */}
           {fraudSuspicion && (
-            <div className="rounded-2xl border border-red-500/30 bg-red-500/[0.08] px-4 py-3 shadow-lg shadow-red-500/5">
+            <div className="rounded-[3rem] border border-red-500/30 bg-red-500/[0.08] px-4 py-3 shadow-lg shadow-red-500/5">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500" />
                 <div>
@@ -258,7 +258,7 @@ export default function ScannerForm({
             </div>
           )}
           {missingBN && (
-            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+            <div className="rounded-[3rem] border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
                 <div>
@@ -271,7 +271,7 @@ export default function ScannerForm({
             </div>
           )}
           {mathMismatch && (
-            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+            <div className="rounded-[3rem] border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
                 <div>
@@ -284,7 +284,7 @@ export default function ScannerForm({
             </div>
           )}
           {thermalWarning && (
-            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+            <div className="rounded-[3rem] border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
                 <div>
@@ -297,7 +297,7 @@ export default function ScannerForm({
             </div>
           )}
           {lowReadiness && (
-            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+            <div className="rounded-[3rem] border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
                 <div>
@@ -314,7 +314,7 @@ export default function ScannerForm({
       </div>
 
       {/* Card 1: Store Info */}
-      <div className="rounded-3xl border border-glass-border bg-surface shadow-sm">
+      <div className="rounded-[3rem] border border-glass-border bg-surface shadow-sm">
         <div className="border-b border-glass-border px-5 py-3">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">1. Store Info</p>
         </div>
@@ -334,7 +334,7 @@ export default function ScannerForm({
                 Date
                 <span className="group relative flex items-center">
                   <Info className="h-3 w-3 text-champagne cursor-help" />
-                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden w-max max-w-[200px] rounded-lg bg-surface-raised px-2 py-1 text-[10px] text-text-primary shadow-xl group-hover:block border border-glass-border">
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden w-max max-w-[200px] rounded-[2rem] bg-surface-raised px-2 py-1 text-[10px] text-text-primary shadow-xl group-hover:block border border-glass-border">
                     CRA Required: Needed for ITCs.
                   </span>
                 </span>
@@ -382,7 +382,7 @@ export default function ScannerForm({
                 setValue('paid_by', 'company_card');
                 setValue('reimbursement_status', null);
               }}
-              className={`rounded-2xl border p-4 text-left transition ${
+              className={`rounded-[3rem] border p-4 text-left transition ${
                 formData.paid_by === 'company_card'
                   ? 'border-champagne/40 bg-champagne/[0.08]'
                   : 'border-glass-border bg-surface-raised hover:border-glass-border-hover'
@@ -403,7 +403,7 @@ export default function ScannerForm({
                 setValue('paid_by', 'employee_cash');
                 setValue('reimbursement_status', 'pending');
               }}
-              className={`rounded-2xl border p-4 text-left transition ${
+              className={`rounded-[3rem] border p-4 text-left transition ${
                 formData.paid_by === 'employee_cash'
                   ? 'border-amber-500/40 bg-amber-500/[0.08]'
                   : 'border-glass-border bg-surface-raised hover:border-glass-border-hover'
@@ -420,7 +420,7 @@ export default function ScannerForm({
           </div>
 
           {formData.paid_by === 'employee_cash' && (
-            <div className="mt-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+            <div className="mt-3 rounded-[2rem] border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
               <div className="flex items-center gap-2 text-sm text-amber-300">
                 <AlertTriangle className="h-4 w-4 flex-shrink-0" />
                 <span className="font-semibold">Reimbursement queued</span>
@@ -432,7 +432,7 @@ export default function ScannerForm({
       </div>
 
       {/* Card 2: Financials */}
-      <div className="rounded-3xl border border-glass-border bg-surface shadow-sm">
+      <div className="rounded-[3rem] border border-glass-border bg-surface shadow-sm">
         <div className="border-b border-glass-border px-5 py-3">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">2. Financials</p>
         </div>
@@ -448,7 +448,7 @@ export default function ScannerForm({
                 Total
                 <span className="group relative flex items-center">
                   <Info className="h-3 w-3 text-champagne cursor-help" />
-                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden w-max max-w-[200px] rounded-lg bg-surface-raised px-2 py-1 text-[10px] text-text-primary shadow-xl group-hover:block border border-glass-border">
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden w-max max-w-[200px] rounded-[2rem] bg-surface-raised px-2 py-1 text-[10px] text-text-primary shadow-xl group-hover:block border border-glass-border">
                     CRA Required: Needed for ITCs.
                   </span>
                 </span>
@@ -470,7 +470,7 @@ export default function ScannerForm({
 
           {/* Multi-Currency Exchange Rate */}
           {isNonCAD && (
-            <div className="mt-4 rounded-2xl border border-blue-500/20 bg-blue-500/[0.06] p-4">
+            <div className="mt-4 rounded-[3rem] border border-blue-500/20 bg-blue-500/[0.06] p-4">
               <p className="mb-2 text-xs font-bold uppercase tracking-wide text-blue-400">Non-CAD Currency Detected: {formData.currency}</p>
               <div>
                 <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-muted">Exchange Rate to CAD</label>
@@ -482,7 +482,7 @@ export default function ScannerForm({
       </div>
 
       {/* Card 3: Compliance */}
-      <div className="rounded-3xl border border-glass-border bg-surface shadow-sm">
+      <div className="rounded-[3rem] border border-glass-border bg-surface shadow-sm">
         <div className="border-b border-glass-border px-5 py-3">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">3. Compliance</p>
         </div>
@@ -493,7 +493,7 @@ export default function ScannerForm({
                 GST / Vendor Tax Number
                 <span className="group relative flex items-center">
                   <Info className="h-3 w-3 text-champagne cursor-help" />
-                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden w-max max-w-[200px] rounded-lg bg-surface-raised px-2 py-1 text-[10px] text-text-primary shadow-xl group-hover:block border border-glass-border z-10">
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden w-max max-w-[200px] rounded-[2rem] bg-surface-raised px-2 py-1 text-[10px] text-text-primary shadow-xl group-hover:block border border-glass-border z-10">
                     CRA Required: Needed for ITCs.
                   </span>
                 </span>
@@ -540,7 +540,7 @@ export default function ScannerForm({
       <div className="overflow-hidden rounded-3xl border border-glass-border bg-surface shadow-sm">
         <div className="flex items-center justify-between border-b border-glass-border px-5 py-3">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Line Items</p>
-          <button type="button" onClick={() => append({ description: '', quantity: 1, unit_price: 0, tax_rate: 0, tax_amount: 0, line_total: 0 })} className="inline-flex items-center gap-1.5 rounded-lg bg-surface-raised px-2.5 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-glass-border-hover hover:text-text-primary">
+          <button type="button" onClick={() => append({ description: '', quantity: 1, unit_price: 0, tax_rate: 0, tax_amount: 0, line_total: 0 })} className="inline-flex items-center gap-1.5 rounded-[2rem] bg-surface-raised px-2.5 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-glass-border-hover hover:text-text-primary">
             <Plus className="h-3 w-3" /> Add Item
           </button>
         </div>
@@ -558,11 +558,11 @@ export default function ScannerForm({
                   <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-text-muted">
                     <div className="flex items-center gap-1.5">
                       <span>Qty:</span>
-                      <input type="number" min="0" step="1" {...register(`line_items.${index}.quantity` as const, { valueAsNumber: true })} className="w-12 rounded border border-transparent bg-surface-raised px-1 py-0.5 text-text-secondary focus:border-glass-border focus:outline-none" />
+                      <input type="number" min="0" step="1" {...register(`line_items.${index}.quantity` as const, { valueAsNumber: true })} className="w-12 rounded-[2rem] border border-transparent bg-surface-raised px-1 py-0.5 text-text-secondary focus:border-glass-border focus:outline-none" />
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span>Unit:</span>
-                      <input type="number" min="0" step="0.01" {...register(`line_items.${index}.unit_price` as const, { valueAsNumber: true })} className="w-16 rounded border border-transparent bg-surface-raised px-1 py-0.5 text-text-secondary focus:border-glass-border focus:outline-none" />
+                      <input type="number" min="0" step="0.01" {...register(`line_items.${index}.unit_price` as const, { valueAsNumber: true })} className="w-16 rounded-[2rem] border border-transparent bg-surface-raised px-1 py-0.5 text-text-secondary focus:border-glass-border focus:outline-none" />
                     </div>
                   </div>
                 </div>
@@ -578,14 +578,14 @@ export default function ScannerForm({
       {/* Real-Time Scores */}
       <section className="space-y-3">
         <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-3xl border border-glass-border bg-surface-raised px-5 py-4">
+          <div className="rounded-[3rem] border border-glass-border bg-surface-raised px-5 py-4">
             <div className="flex items-center gap-2 text-text-muted">
               <Hash className="h-4 w-4" />
               <span className="text-xs font-semibold uppercase tracking-wide">AI confidence</span>
             </div>
             <p className="mt-2 text-2xl font-bold tabular-nums text-text-primary">{safeNumber(formData.confidence_score)}</p>
           </div>
-          <div className="rounded-3xl border border-glass-border bg-surface-raised px-5 py-4">
+          <div className="rounded-[3rem] border border-glass-border bg-surface-raised px-5 py-4">
             <div className="flex items-center gap-2 text-text-muted">
               <FileText className="h-4 w-4" />
               <span className="text-xs font-semibold uppercase tracking-wide">CRA readiness</span>
@@ -595,7 +595,7 @@ export default function ScannerForm({
         </div>
 
         {/* CRA Score Ring (Animated SVG) */}
-        <div className="rounded-2xl border border-glass-border bg-surface-raised px-4 py-3">
+        <div className="rounded-[3rem] border border-glass-border bg-surface-raised px-4 py-3">
           <div className="flex items-center gap-4">
             <CRAScoreRing score={liveCRAScore} />
             <div className="flex-1">
@@ -616,7 +616,7 @@ export default function ScannerForm({
         {/* Buttons - sticky at bottom */}
         <div className="sticky bottom-0 bg-surface border-t p-4 space-y-3 z-20">
           {!isMathValid && hasAnalyzed && (
-            <div className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-red-600 border border-red-100">
+            <div className="flex items-center gap-2 rounded-[2rem] bg-red-50 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-red-600 border border-red-100">
               <AlertTriangle className="h-4 w-4" />
               Math Discrepancy
             </div>
@@ -626,11 +626,11 @@ export default function ScannerForm({
             <button 
               type="button" 
               onClick={() => setIsConfirmed((v) => !v)} 
-              className={`flex items-center gap-3 rounded-xl border p-4 text-left transition ${
+              className={`flex items-center gap-3 rounded-[2rem] border p-4 text-left transition ${
                 isConfirmed ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-gray-50'
               }`}
             >
-              <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-all ${
+              <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-[2rem] border transition-all ${
                 isConfirmed ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white'
               }`}>
                 {isConfirmed && <CheckCircle2 className="h-4 w-4" />}
@@ -645,7 +645,7 @@ export default function ScannerForm({
               <button 
                 type="submit" 
                 disabled={!canSave} 
-                className="w-full h-14 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-lg"
+                className="w-full h-14 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-bold rounded-[2rem] flex items-center justify-center gap-2 transition shadow-lg"
               >
                 {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
                 <span>{saving ? 'Saving...' : 'Save Receipt'}</span>

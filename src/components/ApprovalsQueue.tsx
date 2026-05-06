@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertCircle,
@@ -23,7 +23,7 @@ interface ApprovalsQueueProps {
 
 const cad = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 2 });
 
-function ApprovalCard({
+const ApprovalCard = React.memo(function ApprovalCard({
   receipt,
   selected,
   onToggle,
@@ -57,7 +57,7 @@ function ApprovalCard({
           type="button"
           onClick={onToggle}
           className={[
-            'mt-0.5 h-5 w-5 flex-shrink-0 rounded-md border-2 transition',
+            'mt-0.5 h-5 w-5 flex-shrink-0 rounded-[2rem] border-2 transition',
             selected ? 'border-champagne bg-champagne' : 'border-glass-border',
           ].join(' ')}
           aria-label={selected ? 'Deselect' : 'Select'}
@@ -66,7 +66,7 @@ function ApprovalCard({
         </button>
 
         {/* Image thumbnail */}
-        <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-2xl border border-glass-border bg-surface-raised">
+        <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-[2rem] border border-glass-border bg-surface-raised">
           {receipt.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -94,26 +94,26 @@ function ApprovalCard({
           </div>
 
           <div className="mt-2 flex flex-wrap gap-2">
-            <span className="rounded-lg bg-surface-raised px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+            <span className="rounded-[2rem] bg-surface-raised px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
               {receipt.category ?? 'Uncategorized'}
             </span>
             {receipt.needs_reimbursement && (
-              <span className="rounded-lg bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-400">
+              <span className="rounded-[2rem] bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-400">
                 Reimbursement Pending
               </span>
             )}
             {receipt.document_type === 'estimate' && (
-              <span className="rounded-lg bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-400">
+              <span className="rounded-[2rem] bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-400">
                 Estimate
               </span>
             )}
             {receipt.fraud_suspicion && (
-              <span className="rounded-lg bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-400">
+              <span className="rounded-[2rem] bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-400">
                 Fraud Flag
               </span>
             )}
             {receipt.paid_by && (
-              <span className="flex items-center gap-1 rounded-lg bg-surface-raised px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+              <span className="flex items-center gap-1 rounded-[2rem] bg-surface-raised px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
                 <DollarSign className="h-2.5 w-2.5" />
                 {receipt.paid_by === 'employee_cash' ? 'Employee Cash' : 'Company Card'}
               </span>
@@ -126,7 +126,7 @@ function ApprovalCard({
               type="button"
               onClick={() => onApprove(receipt.id)}
               disabled={loading}
-              className="flex items-center gap-1.5 rounded-xl bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-[2rem] bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-50"
               aria-label="Approve (A)"
             >
               <ThumbsUp className="h-3.5 w-3.5" />
@@ -136,7 +136,7 @@ function ApprovalCard({
               type="button"
               onClick={() => onReject(receipt.id)}
               disabled={loading}
-              className="flex items-center gap-1.5 rounded-xl bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-[2rem] bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
               aria-label="Reject (R)"
             >
               <ThumbsDown className="h-3.5 w-3.5" />
@@ -147,7 +147,7 @@ function ApprovalCard({
       </div>
     </motion.div>
   );
-}
+});
 
 export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
   const queryClient = useQueryClient();
@@ -180,6 +180,27 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
         role
       );
     },
+    onMutate: async ({ id, status }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['approvals_pending'] });
+
+      // Snapshot previous value
+      const previousPending = queryClient.getQueryData(['approvals_pending']) as ReceiptRow[];
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(['approvals_pending'], (old: ReceiptRow[] = []) =>
+        old.filter((r) => r.id !== id)
+      );
+
+      // Return context with previous data
+      return { previousPending };
+    },
+    onError: (err, variables, context) => {
+      // Rollback to previous value on error
+      if (context?.previousPending) {
+        queryClient.setQueryData(['approvals_pending'], context.previousPending);
+      }
+    },
     onSuccess: invalidate,
   });
 
@@ -188,6 +209,27 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
       await bulkUpdateApproval([...selected], status, user.id);
+    },
+    onMutate: async (status) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['approvals_pending'] });
+
+      // Snapshot previous value
+      const previousPending = queryClient.getQueryData(['approvals_pending']) as ReceiptRow[];
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(['approvals_pending'], (old: ReceiptRow[] = []) =>
+        old.filter((r) => !selected.has(r.id))
+      );
+
+      // Return context with previous data
+      return { previousPending };
+    },
+    onError: (err, variables, context) => {
+      // Rollback to previous value on error
+      if (context?.previousPending) {
+        queryClient.setQueryData(['approvals_pending'], context.previousPending);
+      }
     },
     onSuccess: () => {
       setSelected(new Set());
@@ -257,7 +299,7 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
           </h2>
         </div>
         {pending.length > 0 && (
-          <div className="rounded-2xl border border-champagne/30 bg-champagne/[0.05] px-3 py-1.5 text-sm font-black text-champagne">
+          <div className="rounded-[3rem] border border-champagne/30 bg-champagne/[0.05] px-3 py-1.5 text-sm font-black text-champagne">
             {pending.length} pending
           </div>
         )}
@@ -270,7 +312,7 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className="flex items-center gap-3 rounded-2xl border border-glass-border bg-surface-raised px-4 py-3"
+            className="flex items-center gap-3 rounded-[3rem] border border-glass-border bg-surface-raised px-4 py-3"
           >
             <span className="text-sm font-semibold text-text-secondary">
               {selected.size} selected
@@ -280,7 +322,7 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
                 type="button"
                 onClick={() => bulkMutation.mutate('approved')}
                 disabled={bulkMutation.isPending}
-                className="flex items-center gap-2 rounded-xl bg-emerald-500/15 px-4 py-2 text-sm font-bold text-emerald-400 transition hover:bg-emerald-500/25 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-[2rem] bg-emerald-500/15 px-4 py-2 text-sm font-bold text-emerald-400 transition hover:bg-emerald-500/25 disabled:opacity-50"
               >
                 <ThumbsUp className="h-4 w-4" />
                 Approve All <span className="text-xs opacity-60">(A)</span>
@@ -289,7 +331,7 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
                 type="button"
                 onClick={() => bulkMutation.mutate('rejected')}
                 disabled={bulkMutation.isPending}
-                className="flex items-center gap-2 rounded-xl bg-red-500/15 px-4 py-2 text-sm font-bold text-red-400 transition hover:bg-red-500/25 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-[2rem] bg-red-500/15 px-4 py-2 text-sm font-bold text-red-400 transition hover:bg-red-500/25 disabled:opacity-50"
               >
                 <ThumbsDown className="h-4 w-4" />
                 Reject All <span className="text-xs opacity-60">(R)</span>
@@ -322,7 +364,7 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="flex min-h-[40vh] flex-col items-center justify-center gap-4 rounded-3xl border border-glass-border bg-surface p-10 text-center"
+          className="flex min-h-[40vh] flex-col items-center justify-center gap-4 rounded-[3rem] border border-glass-border bg-surface p-10 text-center"
         >
           <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-500/10 text-emerald-400">
             <CheckCircle2 className="h-8 w-8" />
@@ -351,7 +393,7 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
 
       {/* Keyboard hint */}
       {pending.length > 0 && (
-        <div className="flex items-center gap-2 rounded-2xl border border-glass-border bg-surface px-4 py-3">
+        <div className="flex items-center gap-2 rounded-[3rem] border border-glass-border bg-surface px-4 py-3">
           <Clock className="h-4 w-4 text-text-muted" />
           <p className="text-xs text-text-muted">
             Select receipts then use the bulk toolbar. Keyboard: <kbd className="rounded bg-surface-raised px-1.5 py-0.5 text-champagne">A</kbd> = Approve, <kbd className="rounded bg-surface-raised px-1.5 py-0.5 text-red-400">R</kbd> = Reject.

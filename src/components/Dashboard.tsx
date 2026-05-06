@@ -249,8 +249,8 @@ export default function Dashboard({
 
       {/* Security & Intelligence Footer */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <ShadcnCard className="rounded-[2rem] border-glass-border bg-surface/50 p-6 flex flex-col gap-4">
-          <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+        <ShadcnCard className="rounded-[3rem] border-glass-border bg-surface/50 p-6 flex flex-col gap-4">
+          <div className="h-10 w-10 rounded-[2rem] bg-blue-500/10 flex items-center justify-center text-blue-400">
             <ShieldAlert className="h-5 w-5" />
           </div>
           <div>
@@ -259,8 +259,8 @@ export default function Dashboard({
           </div>
         </ShadcnCard>
 
-        <ShadcnCard className="rounded-[2rem] border-glass-border bg-surface/50 p-6 flex flex-col gap-4">
-          <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+        <ShadcnCard className="rounded-[3rem] border-glass-border bg-surface/50 p-6 flex flex-col gap-4">
+          <div className="h-10 w-10 rounded-[2rem] bg-emerald-500/10 flex items-center justify-center text-emerald-400">
             <Lock className="h-5 w-5" />
           </div>
           <div>
@@ -269,8 +269,8 @@ export default function Dashboard({
           </div>
         </ShadcnCard>
 
-        <div className="col-span-2 rounded-[2rem] border border-champagne/15 bg-champagne/[0.03] p-6 flex items-start gap-4">
-          <div className="h-10 w-10 rounded-xl bg-champagne/10 flex items-center justify-center text-champagne shrink-0">
+        <div className="flex col-span-2 rounded-[3rem] border border-champagne/15 bg-champagne/[0.03] p-6 flex items-start gap-4">
+          <div className="h-10 w-10 rounded-[2rem] bg-champagne/10 flex items-center justify-center text-champagne shrink-0">
             <TrendingUp className="h-5 w-5" />
           </div>
           <div>
@@ -367,7 +367,7 @@ function AlertTile({ title, count, description, tone, onClick }: { title: string
   return (
     <button onClick={onClick} className={cn("group rounded-[2rem] border p-5 text-left transition-all hover:bg-surface-raised active:scale-[0.98]", toneMap)}>
       <div className="flex justify-between items-start mb-4">
-        <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", tone === 'danger' ? 'bg-red-500/10' : tone === 'info' ? 'bg-blue-500/10' : 'bg-amber-500/10')}>
+        <div className={cn("flex h-10 w-10 items-center justify-center rounded-[2rem]", tone === 'danger' ? 'bg-red-500/10' : tone === 'info' ? 'bg-blue-500/10' : 'bg-amber-500/10')}>
           {tone === 'danger' ? <BadgeAlert className="h-5 w-5" /> : tone === 'info' ? <FileSearch className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
         </div>
         <span className="text-2xl font-black tabular-nums">{count}</span>

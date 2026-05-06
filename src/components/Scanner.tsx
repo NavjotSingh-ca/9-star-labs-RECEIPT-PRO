@@ -12,11 +12,12 @@ import { scanReceipt } from '@/app/actions/scan-receipt';
 import { generateDuplicateHash, generateIntegrityHash } from '@/lib/hash';
 import { supabase } from '@/lib/supabase';
 import { saveReceipt } from '@/lib/services/receipts';
+import { handleSupabaseError, withRetry } from '@/lib/supabase-error-handler';
 
-import { 
-  computeBlurScore, 
-  readFileAsDataUrl, 
-  resizeImage 
+import {
+  computeBlurScore,
+  readFileAsDataUrl,
+  resizeImage
 } from './scanner/utils';
 import BatchOverlay from './scanner/BatchOverlay';
 import CaptureControls from './scanner/CaptureControls';
@@ -108,22 +109,38 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
           integrityHash = await generateIntegrityHash(arrayBuffer);
 
           const filePath = `${user.id}/${Date.now()}-receipt.jpg`;
-          const { error: uploadError } = await supabase.storage
-            .from(STORAGE_BUCKET)
-            .upload(filePath, blob, { contentType: 'image/jpeg' });
+
+          // Upload with retry logic
+          const { error: uploadError } = await withRetry(
+            () => supabase.storage
+              .from(STORAGE_BUCKET)
+              .upload(filePath, blob, { contentType: 'image/jpeg' }),
+            { maxRetries: 3, delayMs: 1000 }
+          );
 
           if (!uploadError) {
-            // Generate signed URL valid for 1 hour
-            const { data, error: signError } = await supabase.storage
-              .from(STORAGE_BUCKET)
-              .createSignedUrl(filePath, 3600); // 3600 seconds = 1 hour
-            
+            // Generate signed URL with retry logic
+            const { data, error: signError } = await withRetry(
+              () => supabase.storage
+                .from(STORAGE_BUCKET)
+                .createSignedUrl(filePath, 3600),
+              { maxRetries: 2, delayMs: 500 }
+            );
+
             if (!signError && data) {
               imageUrl = data.signedUrl;
+            } else if (signError) {
+              const error = handleSupabaseError(signError);
+              console.warn('Failed to generate signed URL:', error.userMessage);
             }
+          } else {
+            const error = handleSupabaseError(uploadError);
+            console.warn('Failed to upload image:', error.userMessage);
           }
-        } catch {
-          // Image upload is non-blocking
+        } catch (err) {
+          const error = handleSupabaseError(err);
+          console.warn('Image upload failed:', error.userMessage);
+          // Image upload is non-blocking - continue without image
         }
       }
 
@@ -181,20 +198,29 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
     async function loadBusinessUnits() {
       setLoadingBusinessUnits(true);
 
-      const { data, error } = await supabase
-        .from('business_units')
-        .select('id, name')
-        .order('name', { ascending: true });
+      try {
+        const { data, error } = await withRetry(
+          () => supabase
+            .from('business_units')
+            .select('id, name')
+            .order('name', { ascending: true }),
+          { maxRetries: 2, delayMs: 500 }
+        );
 
-      if (!active) return;
+        if (!active) return;
 
-      if (error) {
-        showNotice('error', 'Could not load business units.');
-      } else {
-        setBusinessUnits((data ?? []) as { id: string; name: string }[]);
+        if (error) {
+          const supabaseError = handleSupabaseError(error);
+          showNotice('error', supabaseError.userMessage);
+        } else {
+          setBusinessUnits((data ?? []) as { id: string; name: string }[]);
+        }
+      } catch (err) {
+        const supabaseError = handleSupabaseError(err);
+        showNotice('error', supabaseError.userMessage);
+      } finally {
+        setLoadingBusinessUnits(false);
       }
-
-      setLoadingBusinessUnits(false);
     }
 
     loadBusinessUnits();
@@ -555,7 +581,7 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="rounded-2xl border border-amber-500/30 bg-amber-500/[0.06] p-4"
+            className="rounded-[2rem] border border-amber-500/30 bg-amber-500/[0.06] p-4"
           >
             <div className="flex items-start gap-3">
               <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-400" />
@@ -568,7 +594,7 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
                   <button
                     type="button"
                     onClick={() => { setShowBlurWarning(false); cameraInputRef.current?.click(); }}
-                    className="rounded-xl bg-amber-500/15 px-3 py-1.5 text-xs font-bold text-amber-400 transition hover:bg-amber-500/25"
+                    className="rounded-[2rem] bg-amber-500/15 px-3 py-1.5 text-xs font-bold text-amber-400 transition hover:bg-amber-500/25"
                   >
                     Retake Photo
                   </button>
@@ -579,7 +605,7 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
                       setFormData(prev => ({ ...createBlankReceiptForm(), capture_source: prev.capture_source, usage_type: prev.usage_type, business_use_percent: prev.business_use_percent, business_unit_id: prev.business_unit_id }));
                       setShowCropper(true);
                     }}
-                    className="rounded-xl bg-surface-raised px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:text-text-primary"
+                    className="rounded-[2rem] bg-surface-raised px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:text-text-primary"
                   >
                     Use Anyway
                   </button>
@@ -617,7 +643,7 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
                 <div className={hasAnalyzed ? "grid h-full gap-6 lg:grid-cols-2" : "mx-auto flex max-w-2xl flex-col gap-6"}>
                   {/* Image Section */}
                   <div className="space-y-4">
-                    <div className="overflow-hidden rounded-[2.5rem] border border-glass-border bg-surface shadow-lg">
+                    <div className="overflow-hidden rounded-[3rem] border border-glass-border bg-surface shadow-lg">
                       <div className="flex items-center justify-between border-b border-glass-border bg-surface-raised/50 px-6 py-4">
                         <div>
                           <p className="text-xs font-black uppercase tracking-widest text-text-muted">Digital Capture</p>
@@ -628,14 +654,14 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
                           <button
                             type="button"
                             onClick={() => setShowCropper(true)}
-                            className="rounded-xl border border-glass-border bg-surface px-4 py-2 text-xs font-bold text-text-secondary transition hover:bg-surface-hover hover:text-text-primary"
+                            className="rounded-[2rem] border border-glass-border bg-surface px-4 py-2 text-xs font-bold text-text-secondary transition hover:bg-surface-hover hover:text-text-primary"
                           >
                             Crop
                           </button>
                           <button
                             type="button"
                             onClick={resetScanner}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-glass-border bg-surface text-text-secondary transition hover:bg-surface-hover hover:text-red-400"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-[2rem] border border-glass-border bg-surface text-text-secondary transition hover:bg-surface-hover hover:text-red-400"
                           >
                             <RefreshCw className="h-4 w-4" />
                           </button>
@@ -659,7 +685,7 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
                         disabled={!canProcess}
                         whileHover={{ scale: 1.01 }}
                         whileTap={{ scale: 0.98 }}
-                        className="inline-flex w-full items-center justify-center gap-3 rounded-[1.5rem] bg-champagne py-4 text-sm font-black uppercase tracking-[0.15em] text-obsidian transition hover:bg-champagne-dim shadow-xl shadow-champagne/10 disabled:cursor-not-allowed disabled:opacity-40 glowing-border"
+                        className="inline-flex w-full items-center justify-center gap-3 rounded-[2rem] bg-champagne py-4 text-sm font-black uppercase tracking-[0.15em] text-obsidian transition hover:bg-champagne-dim shadow-xl shadow-champagne/10 disabled:cursor-not-allowed disabled:opacity-40 glowing-border"
                       >
                         {processingAI ? <Loader2 className="h-5 w-5 animate-spin" /> : <ScanLine className="h-5 w-5" />}
                         {processingAI ? 'AI Analysis in Progress...' : 'Start AI Analysis'}
@@ -724,7 +750,7 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="w-full max-w-md rounded-[2.5rem] border border-red-500/30 bg-surface p-8 shadow-2xl"
+              className="w-full max-w-md rounded-[3rem] border border-red-500/30 bg-surface p-8 shadow-2xl"
             >
               <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-3xl bg-red-500/10 text-red-500">
                 <AlertCircle className="h-8 w-8" />
@@ -733,12 +759,12 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
               <p className="mt-2 text-sm leading-relaxed text-text-secondary">
                 The vault rejected this entry. This usually happens if a required field is malformed or a connection was interrupted.
               </p>
-              <div className="mt-6 rounded-2xl bg-red-500/[0.05] p-4 font-mono text-xs text-red-400 border border-red-500/10 overflow-x-auto">
+              <div className="mt-6 rounded-[3rem] bg-red-500/[0.05] p-4 font-mono text-xs text-red-400 border border-red-500/10 overflow-x-auto">
                 {sqlError}
               </div>
               <button
                 onClick={() => setSqlError(null)}
-                className="mt-8 w-full rounded-2xl bg-surface-raised py-4 text-sm font-bold text-text-primary transition hover:bg-surface-hover"
+                className="mt-8 w-full rounded-[2rem] bg-surface-raised py-4 text-sm font-bold text-text-primary transition hover:bg-surface-hover"
               >
                 Dismiss & Correct
               </button>

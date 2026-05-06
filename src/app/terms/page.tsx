@@ -38,7 +38,7 @@ export default function TermsPage() {
 
         <div className="rounded-[2.5rem] border border-glass-border bg-black/60 p-8 shadow-2xl backdrop-blur-3xl sm:p-14">
           <div className="mb-10 flex items-start gap-5 border-b border-white/10 pb-10">
-            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-champagne/15 champagne-glow">
+            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-[2rem] bg-champagne/15 champagne-glow">
               <FileSignature className="h-8 w-8 text-champagne" />
             </div>
             <div>
@@ -59,7 +59,7 @@ export default function TermsPage() {
             </div>
           </div>
 
-          <div className="mb-8 rounded-2xl border border-champagne/20 bg-champagne/[0.04] p-5">
+          <div className="mb-8 rounded-[3rem] border border-champagne/20 bg-champagne/[0.04] p-5">
             <p className="text-sm leading-7 text-text-secondary">
               By accessing or using the 9 Star Labs Receipt Intelligence platform (the &ldquo;Service&rdquo;),
               you agree to be bound by these Terms of Service. Please read them carefully. If you do not
@@ -84,7 +84,7 @@ export default function TermsPage() {
           </Section>
 
           <Section id="cra-compliance" title="3. CRA Compliance & Tax Liability">
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.05] p-4 mb-4">
+            <div className="rounded-[2rem] border border-amber-500/20 bg-amber-500/[0.05] p-4 mb-4">
               <p className="font-semibold text-amber-300 text-sm mb-1">No Tax Advice or Guarantee</p>
               <p>
                 The Service provides &ldquo;CRA Readiness Scores&rdquo; and tax rate validations based on AI extraction.
