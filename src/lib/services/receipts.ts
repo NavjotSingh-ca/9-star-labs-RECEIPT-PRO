@@ -545,10 +545,15 @@ export const updateReceipt = async (
   userId: string,
   originalReceipt: ReceiptRow
 ) => {
+  // Get org_id for history record
+  const { data: orgData } = await supabase.rpc('get_user_org');
+  const orgId = orgData as unknown as string;
+
   // Archive full snapshot to receipt_history FIRST
   const { error: archiveError } = await supabase
     .from('receipt_history')
     .insert({
+      org_id: orgId,
       receipt_id: originalReceipt.id,
       user_id: originalReceipt.user_id,
       vendor_name: originalReceipt.vendor_name,
