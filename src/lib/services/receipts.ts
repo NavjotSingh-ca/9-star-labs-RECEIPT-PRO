@@ -230,7 +230,7 @@ export const getDashboardSummary = async (role: UserRole, userId: string): Promi
     .sort((a, b) => b.amount - a.amount);
 
   // 3. Fetch Alert Counts
-  const { count: missingBN } = await supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).is('vendor_tax_number', null);
+  const { count: missingBN } = await supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).or('vendor_tax_number.is.null,vendor_tax_number.eq.');
   const { count: pendingReview } = await supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).eq('approval_status', 'submitted');
   const { count: flaggedAudit } = await supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).eq('flagged_for_audit', true);
 
