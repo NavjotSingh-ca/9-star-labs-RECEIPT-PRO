@@ -195,11 +195,12 @@ export default function OrgSettings() {
                         <p className="text-[10px] text-text-secondary uppercase tracking-wider">Not Connected</p>
                       </div>
                     </div>
-                    <button 
-                      onClick={() => window.location.href = '/api/integrations/qbo?action=connect'}
-                      className="rounded-[2rem] bg-white/5 px-3 py-1.5 text-xs font-bold text-champagne hover:bg-white/10"
+                    <button
+                      disabled
+                      className="rounded-[2rem] bg-white/5 px-3 py-1.5 text-xs font-bold text-champagne opacity-50 cursor-not-allowed"
                     >
                       Connect
+                      <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Coming Soon</span>
                     </button>
                   </div>
 
@@ -213,11 +214,12 @@ export default function OrgSettings() {
                         <p className="text-[10px] text-text-secondary uppercase tracking-wider">Not Connected</p>
                       </div>
                     </div>
-                    <button 
-                      onClick={() => window.location.href = '/api/integrations/xero?action=connect'}
-                      className="rounded-[2rem] bg-white/5 px-3 py-1.5 text-xs font-bold text-champagne hover:bg-white/10"
+                    <button
+                      disabled
+                      className="rounded-[2rem] bg-white/5 px-3 py-1.5 text-xs font-bold text-champagne opacity-50 cursor-not-allowed"
                     >
                       Connect
+                      <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Coming Soon</span>
                     </button>
                   </div>
                 </div>
