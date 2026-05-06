@@ -15,9 +15,36 @@ export const getUserRole = async (userId: string): Promise<UserRole> => {
 };
 
 export const setUserRole = async (userId: string, role: UserRole): Promise<void> => {
-  const { error } = await supabase
-    .from('user_roles')
-    .upsert({ user_id: userId, role }, { onConflict: 'user_id' });
+  // Get the user's current org
+  const { data: orgData } = await supabase.rpc('get_user_org');
+  const orgId = orgData as unknown as string;
 
-  if (error) throw error;
+  if (!orgId) {
+    console.error('setUserRole: no org found for user', userId);
+    return;
+  }
+
+  // Check if a role row already exists
+  const { data: existing } = await supabase
+    .from('user_roles')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('org_id', orgId)
+    .single();
+
+  if (existing) {
+    // Update existing role
+    const { error } = await supabase
+      .from('user_roles')
+      .update({ role })
+      .eq('user_id', userId)
+      .eq('org_id', orgId);
+    if (error) throw error;
+  } else {
+    // Insert new role
+    const { error } = await supabase
+      .from('user_roles')
+      .insert({ user_id: userId, org_id: orgId, role });
+    if (error) throw error;
+  }
 };
