@@ -117,7 +117,7 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
       </div>
 
       {/* Camera Area */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-black overflow-hidden relative">
+      <div className="flex-1 flex flex-col items-center justify-center bg-black overflow-hidden relative" role="region" aria-label="Camera viewfinder">
         {isStarting && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-white/60 z-10">
             <RefreshCcw className="h-10 w-10 animate-spin mb-4" />

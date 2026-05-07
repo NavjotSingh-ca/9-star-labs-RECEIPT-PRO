@@ -381,7 +381,7 @@ function AuditHUD({ receipts }: { receipts: ReceiptRow[] }) {
   }, [receipts]);
 
   return (
-    <div className="liquid-glass rounded-[3rem] px-4 py-3">
+    <div className="liquid-glass rounded-[3rem] px-4 py-3" role="status" aria-label="Tax recoverable this month">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-[2rem] bg-emerald-success/30">
@@ -645,7 +645,7 @@ function AppContent() {
     <div className="min-h-screen w-full bg-obsidian flex flex-col overflow-hidden text-text-primary">
 
       {/* Header */}
-      <header className="fixed inset-x-0 top-0 z-50 liquid-glass">
+      <header className="fixed inset-x-0 top-0 z-50 liquid-glass" role="banner">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-[2rem] bg-champagne/15 champagne-glow">
@@ -703,7 +703,7 @@ function AppContent() {
       </header>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-6xl px-4 pb-28 pt-24 sm:px-6 relative overflow-hidden">
+      <main className="mx-auto max-w-6xl px-4 pb-28 pt-24 sm:px-6 relative overflow-hidden" role="main">
         {/* Audit HUD */}
         {!receiptsLoading && receipts.length > 0 && role !== 'Employee' && (
           <motion.div 
@@ -959,7 +959,7 @@ function AppContent() {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 liquid-glass bottom-nav">
+      <nav className="fixed inset-x-0 bottom-0 z-50 liquid-glass bottom-nav" role="navigation" aria-label="Main navigation">
         <div className="mx-auto flex max-w-6xl items-end justify-around px-2 py-2 sm:px-4">
           <LayoutGroup id="nav">
             {navItems.map((item) => {
@@ -979,6 +979,7 @@ function AppContent() {
                     type="button"
                     onClick={() => setActiveTab(item.id)}
                     aria-label={item.label}
+                    aria-current={isActive ? 'page' : undefined}
                     whileTap={{ scale: 0.88 }}
                     whileHover={{ scale: 1.06 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 15 }}
@@ -1000,6 +1001,7 @@ function AppContent() {
                   type="button"
                   onClick={() => setActiveTab(item.id)}
                   aria-label={item.label}
+                  aria-current={isActive ? 'page' : undefined}
                   whileTap={{ scale: 0.9 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                   className={`relative flex min-w-[64px] flex-col items-center gap-1 rounded-[3rem] px-3 py-2 transition ${
