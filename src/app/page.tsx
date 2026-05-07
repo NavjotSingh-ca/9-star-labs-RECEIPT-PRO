@@ -414,6 +414,8 @@ function AppContent() {
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [activeFilter, setActiveFilter] = useState<string>('all');
+  const touchStartX = useRef<number>(0);
+  const touchStartY = useRef<number>(0);
 
   // Standardize mount state
   useEffect(() => {
@@ -622,6 +624,35 @@ function AppContent() {
   const [redeemCodeValue, setRedeemCodeValue] = useState('');
   const [redeemLoading, setRedeemLoading] = useState(false);
 
+  // Swipe gesture handlers for mobile tab navigation
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+
+    // Only trigger on horizontal swipes (more horizontal than vertical)
+    if (Math.abs(deltaX) < 50 || Math.abs(deltaX) < Math.abs(deltaY) * 1.5) return;
+
+    const tabOrder: Tab[] = isPrivileged
+      ? ['dashboard', 'receipts', 'scan', 'reconcile']
+      : ['receipts', 'scan'];
+
+    const currentIndex = tabOrder.indexOf(activeTab);
+    if (currentIndex === -1) return;
+
+    if (deltaX < 0 && currentIndex < tabOrder.length - 1) {
+      // Swipe left → next tab
+      setTabWithUrl(tabOrder[currentIndex + 1]);
+    } else if (deltaX > 0 && currentIndex > 0) {
+      // Swipe right → previous tab
+      setTabWithUrl(tabOrder[currentIndex - 1]);
+    }
+  }, [activeTab, isPrivileged, setTabWithUrl]);
+
   if (authLoading || !hasMounted) return <FullPageLoader />;
   if (!user) return <AuthScreen />;
 
@@ -703,7 +734,12 @@ function AppContent() {
       </header>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-6xl px-4 pb-28 pt-24 sm:px-6 relative overflow-hidden" role="main">
+      <main
+        className="mx-auto max-w-6xl px-4 pb-28 pt-24 sm:px-6 relative overflow-hidden"
+        role="main"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {/* Audit HUD */}
         {!receiptsLoading && receipts.length > 0 && role !== 'Employee' && (
           <motion.div 
