@@ -623,13 +623,8 @@ function AppContent() {
   const [redeemCodeValue, setRedeemCodeValue] = useState('');
   const [redeemLoading, setRedeemLoading] = useState(false);
 
-  if (authLoading || !hasMounted) return <FullPageLoader />;
-  if (!user) return <AuthScreen />;
-
-  // Only Owner/Accountant see these tabs
-  const isPrivileged = role !== 'Employee';
-
   // Swipe gesture handlers for mobile tab navigation
+  // Define these BEFORE early returns to avoid hook order issues
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
@@ -642,7 +637,7 @@ function AppContent() {
     // Only trigger on horizontal swipes (more horizontal than vertical)
     if (Math.abs(deltaX) < 50 || Math.abs(deltaX) < Math.abs(deltaY) * 1.5) return;
 
-    const tabOrder: Tab[] = isPrivileged
+    const tabOrder: Tab[] = role !== 'Employee'
       ? ['dashboard', 'receipts', 'scan', 'reconcile']
       : ['receipts', 'scan'];
 
@@ -656,7 +651,13 @@ function AppContent() {
       // Swipe right → previous tab
       setTabWithUrl(tabOrder[currentIndex - 1]);
     }
-  }, [activeTab, isPrivileged, setTabWithUrl]);
+  }, [activeTab, role, setTabWithUrl]);
+
+  if (authLoading || !hasMounted) return <FullPageLoader />;
+  if (!user) return <AuthScreen />;
+
+  // Only Owner/Accountant see these tabs
+  const isPrivileged = role !== 'Employee';
 
   const navItems: Array<{
     id: Tab;
