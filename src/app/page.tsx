@@ -321,42 +321,41 @@ function AuthScreen() {
                     {loading && <Loader2 className="h-4 w-4 animate-spin text-black/50" />}
                     {mode === 'signin' ? 'Sign In' : 'Create Account'}
                   </motion.button>
-
-                  {mode === 'signin' && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!email) {
-                          showToast('error', 'Enter your email first.');
-                          return;
-                        }
-                        try {
-                          const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                            redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback?type=recovery`,
-                          });
-                          if (error) throw error;
-                          showToast('success', 'Password reset email sent. Check your inbox.');
-                        } catch (err: unknown) {
-                          showToast('error', err instanceof Error ? err.message : 'Failed to send reset email.');
-                        }
-                      }}
-                      className="mt-2 text-xs font-medium text-text-secondary transition hover:text-champagne"
-                    >
-                      Forgot password?
-                    </button>
-                  )}
                 </div>
               </form>
 
+              {mode === 'signin' && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!email) {
+                      showToast('error', 'Enter your email first.');
+                      return;
+                    }
+                    try {
+                      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback?type=recovery`,
+                      });
+                      if (error) throw error;
+                      showToast('success', 'Password reset email sent. Check your inbox.');
+                    } catch (err: unknown) {
+                      showToast('error', err instanceof Error ? err.message : 'Failed to send reset email.');
+                    }
+                  }}
+                  className="mt-2 text-xs font-medium text-text-secondary transition hover:text-champagne"
+                >
+                  Forgot password?
+                </button>
+              )}
+
               <div className="mt-8 text-center border-t border-white/10 pt-6">
-                  <button
-                    type="button"
-                    onClick={() => setMode((m) => (m === 'signin' ? 'signup' : 'signin'))}
-                    className="text-xs font-semibold text-text-secondary transition hover:text-champagne lg:text-sm"
-                  >
-                    {mode === 'signin' ? "Don't have access? Request account" : 'Already authorized? Sign in'}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setMode((m) => (m === 'signin' ? 'signup' : 'signin'))}
+                  className="text-xs font-semibold text-text-secondary transition hover:text-champagne lg:text-sm"
+                >
+                  {mode === 'signin' ? "Don't have access? Request account" : 'Already authorized? Sign in'}
+                </button>
               </div>
             </div>
           </div>
@@ -624,6 +623,12 @@ function AppContent() {
   const [redeemCodeValue, setRedeemCodeValue] = useState('');
   const [redeemLoading, setRedeemLoading] = useState(false);
 
+  if (authLoading || !hasMounted) return <FullPageLoader />;
+  if (!user) return <AuthScreen />;
+
+  // Only Owner/Accountant see these tabs
+  const isPrivileged = role !== 'Employee';
+
   // Swipe gesture handlers for mobile tab navigation
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -652,12 +657,6 @@ function AppContent() {
       setTabWithUrl(tabOrder[currentIndex - 1]);
     }
   }, [activeTab, isPrivileged, setTabWithUrl]);
-
-  if (authLoading || !hasMounted) return <FullPageLoader />;
-  if (!user) return <AuthScreen />;
-
-  // Only Owner/Accountant see these tabs
-  const isPrivileged = role !== 'Employee';
 
   const navItems: Array<{
     id: Tab;
