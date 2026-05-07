@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, Loader2, Plus, Trash2, Briefcase } from 'lucide-react';
+import { AlertCircle, Loader2, Plus, Trash2, Briefcase, X } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getProjects, createProject, deleteProject, getReceipts } from '@/lib/services/receipts';
 import type { Project, ReceiptRow } from '@/lib/types';
@@ -15,6 +15,7 @@ export default function ProjectManager() {
   const [code, setCode] = useState('');
   const [budget, setBudget] = useState('');
   const [error, setError] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['projects'],
@@ -55,11 +56,15 @@ export default function ProjectManager() {
 
   const handleCreate = () => {
     if (!name.trim()) { setError('Project name is required.'); return; }
+    if (name.trim().length < 2) { setError('Project name must be at least 2 characters.'); return; }
+    if (name.trim().length > 100) { setError('Project name must be less than 100 characters.'); return; }
+    if (code && code.length > 10) { setError('Code must be less than 10 characters.'); return; }
+    if (budget && (parseFloat(budget) < 0 || isNaN(parseFloat(budget)))) { setError('Budget must be a positive number.'); return; }
     createMutation.mutate();
   };
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6" role="region" aria-label="Project management">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-champagne">Jobs & Sites</p>
         <h2 className="mt-1 text-2xl font-bold tracking-tight text-text-primary">Project Portfolio</h2>
@@ -74,54 +79,61 @@ export default function ProjectManager() {
           <Briefcase className="h-4 w-4 text-champagne" />
           <p className="text-sm font-bold text-text-primary">Add New Project</p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-4 items-end">
-          <div className="sm:col-span-2">
-            <label className="block text-[10px] font-black uppercase tracking-widest text-text-muted mb-1.5 ml-1">Project Name</label>
-            <input
-              type="text"
-              placeholder="e.g. Westview Commercial Build"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-[2rem] border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none focus:border-champagne/40"
-            />
+        <form onSubmit={(e) => { e.preventDefault(); handleCreate(); }} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-4 items-end">
+            <div className="sm:col-span-2">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-text-muted mb-1.5 ml-1">Project Name</label>
+              <input
+                type="text"
+                placeholder="e.g. Westview Commercial Build"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={100}
+                minLength={2}
+                required
+                className="w-full rounded-[2rem] border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none focus:border-champagne/40"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-text-muted mb-1.5 ml-1">Code</label>
+              <input
+                type="text"
+                placeholder="WCB-01"
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                maxLength={10}
+                className="w-full rounded-[2rem] border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none focus:border-champagne/40"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-text-muted mb-1.5 ml-1">Budget ($)</label>
+              <input
+                type="number"
+                placeholder="0.00"
+                value={budget}
+                onChange={(e) => setBudget(e.target.value)}
+                min="0"
+                step="0.01"
+                className="w-full rounded-[2rem] border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none focus:border-champagne/40"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-[10px] font-black uppercase tracking-widest text-text-muted mb-1.5 ml-1">Code</label>
-            <input
-              type="text"
-              placeholder="WCB-01"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="w-full rounded-[2rem] border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none focus:border-champagne/40"
-            />
+          <div className="flex justify-end border-t border-glass-border pt-4">
+            <button
+              type="submit"
+              disabled={createMutation.isPending || !name.trim()}
+              className="flex items-center gap-2 rounded-[2rem] bg-champagne px-8 py-3 text-sm font-bold text-obsidian transition hover:bg-champagne-dim disabled:opacity-50 shadow-lg shadow-champagne/10"
+            >
+              {createMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+              Initialize Project
+            </button>
           </div>
-          <div>
-            <label className="block text-[10px] font-black uppercase tracking-widest text-text-muted mb-1.5 ml-1">Budget ($)</label>
-            <input
-              type="number"
-              placeholder="0.00"
-              value={budget}
-              onChange={(e) => setBudget(e.target.value)}
-              className="w-full rounded-[2rem] border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none focus:border-champagne/40"
-            />
-          </div>
-        </div>
-        <div className="mt-4 flex justify-end border-t border-glass-border pt-4">
-          <button
-            type="button"
-            onClick={handleCreate}
-            disabled={createMutation.isPending || !name.trim()}
-            className="flex items-center gap-2 rounded-[2rem] bg-champagne px-8 py-3 text-sm font-bold text-obsidian transition hover:bg-champagne-dim disabled:opacity-50 shadow-lg shadow-champagne/10"
-          >
-            {createMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Plus className="h-4 w-4" />
-            )}
-            Initialize Project
-          </button>
-        </div>
-        {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
+        </form>
+        {error && <p className="mt-2 text-xs text-red-400" role="alert">{error}</p>}
       </div>
 
       {/* Project list */}
@@ -198,11 +210,7 @@ export default function ProjectManager() {
 
                     <button
                       type="button"
-                      onClick={() => {
-                        if (confirm(`Delete project "${p.name}"? This cannot be undone.`)) {
-                          deleteMutation.mutate(p.id);
-                        }
-                      }}
+                      onClick={() => setDeleteConfirm({ id: p.id, name: p.name })}
                       disabled={deleteMutation.isPending}
                       className="rounded-[2rem] p-2.5 text-text-muted transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
                       aria-label="Delete project"
@@ -216,6 +224,67 @@ export default function ProjectManager() {
           </AnimatePresence>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AnimatePresence>
+        {deleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+            onClick={() => setDeleteConfirm(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-md rounded-3xl border border-red-500/20 bg-surface p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-red-400">
+                  <AlertCircle className="h-6 w-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-text-primary">Delete Project?</h3>
+                  <p className="mt-2 text-sm text-text-secondary">
+                    Are you sure you want to delete <strong className="text-text-primary">{deleteConfirm.name}</strong>? This action cannot be undone.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  className="text-text-muted hover:text-text-primary"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  className="rounded-2rem border border-glass-border bg-surface-raised px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-surface"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    deleteMutation.mutate(deleteConfirm.id);
+                    setDeleteConfirm(null);
+                  }}
+                  disabled={deleteMutation.isPending}
+                  className="rounded-2rem bg-red-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-600 disabled:opacity-50"
+                >
+                  {deleteMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    'Delete'
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

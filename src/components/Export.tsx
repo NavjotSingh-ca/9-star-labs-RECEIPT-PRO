@@ -327,7 +327,7 @@ export default function Export({ receipts }: ExportProps) {
   }
 
   return (
-    <section className="space-y-5 fade-in">
+    <section className="space-y-5 fade-in" role="region" aria-label="Export receipts">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-champagne">Export center</p>

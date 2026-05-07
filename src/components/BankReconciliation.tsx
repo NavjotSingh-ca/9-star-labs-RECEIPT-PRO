@@ -165,7 +165,7 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
   const matchedCount = matches.filter(m => m.receipt).length;
 
   return (
-    <div className="space-y-6 fade-in pb-10">
+    <div className="space-y-6 fade-in pb-10" role="region" aria-label="Bank reconciliation">
       <div>
         <h2 className="text-xl font-bold text-text-primary">Bank Reconciliation</h2>
         <p className="mt-1 text-sm text-text-secondary">Upload a bank statement CSV to AI-fuzzy match transactions against receipts.</p>

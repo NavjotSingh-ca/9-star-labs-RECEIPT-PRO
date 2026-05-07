@@ -121,7 +121,7 @@ export default function AuditTrail() {
   }, []);
 
   return (
-    <div className="space-y-4 fade-in">
+    <div className="space-y-4 fade-in" role="region" aria-label="Audit trail">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold text-text-primary">Audit Trail</h2>

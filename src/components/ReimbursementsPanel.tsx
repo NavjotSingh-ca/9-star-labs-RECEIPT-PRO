@@ -133,7 +133,7 @@ export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) 
   if (role === 'Employee') return null;
 
   return (
-    <section className="space-y-5 fade-in">
+    <section className="space-y-5 fade-in" role="region" aria-label="Reimbursements panel">
       {/* Header */}
       <div className="flex items-end justify-between gap-4">
         <div>

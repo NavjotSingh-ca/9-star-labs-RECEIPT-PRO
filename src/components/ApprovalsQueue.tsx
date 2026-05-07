@@ -289,7 +289,7 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
   }
 
   return (
-    <section className="space-y-5 fade-in">
+    <section className="space-y-5 fade-in" role="region" aria-label="Approvals queue">
       {/* Header */}
       <div className="flex items-end justify-between gap-4">
         <div>
