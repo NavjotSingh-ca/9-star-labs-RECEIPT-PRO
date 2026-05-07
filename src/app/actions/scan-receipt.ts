@@ -343,6 +343,55 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
     // If rate limit check fails, allow the scan (don't block users on DB errors)
   }
 
+  // ─── Plan Enforcement: check receipt limits ───
+  try {
+    const cookieStore = await cookies();
+    const supabaseClient = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: () => {},
+      },
+    });
+    const { data: authData } = await supabaseClient.auth.getUser();
+    if (authData?.user) {
+      const { data: roleData } = await supabaseClient
+        .from('user_roles')
+        .select('org_id')
+        .eq('user_id', authData.user.id)
+        .single();
+      const orgId = roleData?.org_id;
+      if (orgId) {
+        const { data: subData } = await supabaseClient
+          .from('subscriptions')
+          .select('plan, receipt_limit, status')
+          .eq('org_id', orgId)
+          .single();
+        const plan = (subData?.plan || 'free') as 'free' | 'pro' | 'enterprise';
+        const receiptLimit = typeof subData?.receipt_limit === 'number' ? subData.receipt_limit : 50;
+        if (plan === 'free' || receiptLimit !== 999999) {
+          const now = new Date();
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+          const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+          const { count: monthCount } = await supabaseClient
+            .from('receipts')
+            .select('*', { count: 'exact', head: true })
+            .eq('org_id', orgId)
+            .eq('is_deleted', false)
+            .gte('created_at', monthStart)
+            .lt('created_at', monthEnd);
+          if ((monthCount ?? 0) >= receiptLimit) {
+            return {
+              success: false,
+              error: `Receipt limit reached: ${receiptLimit} receipts per month on the ${plan} plan. Upgrade to continue scanning.`,
+            };
+          }
+        }
+      }
+    }
+  } catch {
+    // If plan enforcement check fails, allow the scan (don't block on DB errors)
+  }
+
   if (base64Image.length > 6_000_000) {
     return { success: false, error: 'Image too large. Maximum 4MB after encoding.' };
   }

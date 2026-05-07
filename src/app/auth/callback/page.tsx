@@ -13,32 +13,58 @@ export default function AuthCallback() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Check if this is a password reset
-    const hash = window.location.hash;
-    const params = new URLSearchParams(window.location.search);
-    const type = params.get('type');
+    let mounted = true;
 
-    if (type === 'recovery' || hash.includes('type=recovery')) {
-      setIsReset(true);
-    } else {
-      // Regular auth callback — redirect to home
-      router.replace('/');
+    async function handleCallback() {
+      try {
+        const hash = window.location.hash;
+        const params = new URLSearchParams(window.location.search);
+        const type = params.get('type');
+
+        if (type === 'recovery' || hash.includes('type=recovery')) {
+          if (mounted) setIsReset(true);
+        } else {
+          // Exchange the auth code for a session if present
+          const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+          if (mounted) router.replace('/');
+          if (error && mounted) {
+            console.error('[AuthCallback] Session exchange failed:', error.message);
+            router.replace('/?error=auth');
+          }
+        }
+      } catch (e) {
+        console.error('[AuthCallback] Unexpected error:', e);
+        if (mounted) router.replace('/?error=auth');
+      }
     }
+
+    handleCallback();
+    return () => { mounted = false; };
   }, [router]);
 
   const handlePasswordReset = async () => {
-    if (!newPassword || newPassword.length < 6) {
-      setError('Password must be at least 6 characters.');
+    if (!newPassword || newPassword.length < 8) {
+      setError('Password must be at least 8 characters.');
       return;
     }
-    setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) {
-      setError(error.message);
-    } else {
-      router.replace('/');
+    if (newPassword.length > 128) {
+      setError('Password is too long.');
+      return;
     }
-    setLoading(false);
+    setError('');
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        setError(error.message);
+      } else {
+        router.replace('/');
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to update password.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isReset) return (

@@ -24,6 +24,7 @@ import {
   UserCircle2,
   Fingerprint,
   X,
+  Crown,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -45,7 +46,10 @@ import { AuroraBackground } from '@/components/aceternity/aurora-background';
 import { Marquee } from '@/components/magicui/marquee';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import OfflineIndicator from '@/components/OfflineIndicator';
+import { UpgradePrompt } from '@/components/upgrade-prompt';
 import { supabase } from '@/lib/supabase';
+import { usePlan } from '@/hooks/use-plan';
 import type { ReceiptRow, UserRole } from '@/lib/types';
 import type { User } from '@supabase/supabase-js';
 import { getReceipts, getBusinessUnits, getAuditLogs, redeemAccessCode } from '@/lib/services/receipts';
@@ -575,6 +579,12 @@ function AppContent() {
     enabled: !!userId && role !== 'Employee',
   });
 
+  // ─── Plan Enforcement ───
+  const { plan, label: planLabel, receiptCount, teamSize, isTrialing, subscription, isLoading: planLoading } = usePlan();
+  const trialDaysLeft = subscription?.trial_ends_at
+    ? Math.max(0, Math.ceil((new Date(subscription.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : undefined;
+
   // ─── Supabase Realtime: auto-invalidate TanStack cache on DB changes ───
   const queryClient = useQueryClient();
   useEffect(() => {
@@ -665,48 +675,59 @@ function AppContent() {
     icon: React.ReactNode;
     primary?: boolean;
   }> = [
-    ...(isPrivileged ? [{ id: 'dashboard' as Tab, label: 'Dash', icon: <LayoutDashboard className="h-5 w-5" /> }] : []),
-    { id: 'receipts', label: 'Records', icon: <ReceiptText className="h-5 w-5" /> },
-    { id: 'scan', label: 'Scan', icon: <Camera className="h-6 w-6" />, primary: true },
-    ...(isPrivileged ? [{ id: 'reconcile' as Tab, label: 'Bank', icon: <TrendingUp className="h-5 w-5" /> }] : []),
-    { id: 'more', label: 'More', icon: <MoreHorizontal className="h-5 w-5" /> },
-  ];
+  ...(isPrivileged ? [{ id: 'dashboard' as Tab, label: 'Dash', icon: <LayoutDashboard className="h-5 w-5" /> }] : []),
+  { id: 'receipts', label: 'Records', icon: <ReceiptText className="h-5 w-5" /> },
+  { id: 'scan', label: 'Scan', icon: <Camera className="h-6 w-6" />, primary: true },
+  ...(isPrivileged ? [{ id: 'reconcile' as Tab, label: 'Bank', icon: <TrendingUp className="h-5 w-5" /> }] : []),
+  { id: 'more', label: 'More', icon: <MoreHorizontal className="h-5 w-5" /> },
+];
 
-  return (
-    <div className="min-h-screen w-full bg-obsidian flex flex-col overflow-hidden text-text-primary">
+return (
+  <div className="min-h-screen w-full bg-obsidian flex flex-col overflow-hidden text-text-primary">
+    <OfflineIndicator />
 
-      {/* Header */}
-      <header className="fixed inset-x-0 top-0 z-50 liquid-glass" role="banner">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-        <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-[2rem] bg-champagne/15 champagne-glow">
-              <ReceiptText className="h-5 w-5 text-champagne" />
-            </div>
-            <div>
-              <h1 className="text-base font-bold tracking-tight text-text-primary">9 Star Labs</h1>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-champagne">
-                CRA-ready records
-              </p>
-            </div>
+    {/* Header */}
+    <header className="fixed inset-x-0 top-0 z-50 liquid-glass" role="banner">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+      <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-[2rem] bg-champagne/15 champagne-glow">
+            <ReceiptText className="h-5 w-5 text-champagne" />
           </div>
+          <div>
+            <h1 className="text-base font-bold tracking-tight text-text-primary">9 Star Labs</h1>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-champagne">
+              CRA-ready records
+            </p>
+          </div>
+        </div>
 
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setRoleOpen((v) => !v)}
-                className="flex items-center gap-2 rounded-full border border-glass-border bg-surface px-3 py-2 text-xs font-semibold text-text-secondary transition hover:border-glass-border-hover hover:bg-surface-raised"
-              >
-                <UserCircle2 className="h-4 w-4 text-champagne" />
-                <span>Role: {role}</span>
-                <ChevronDown
-                  className={`h-3.5 w-3.5 text-text-muted transition ${roleOpen ? 'rotate-180' : ''}`}
-                />
-              </button>
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setRoleOpen((v) => !v)}
+              className="flex items-center gap-2 rounded-full border border-glass-border bg-surface px-3 py-2 text-xs font-semibold text-text-secondary transition hover:border-glass-border-hover hover:bg-surface-raised"
+            >
+              <UserCircle2 className="h-4 w-4 text-champagne" />
+              <span>Role: {role}</span>
+              <ChevronDown
+                className={`h-3.5 w-3.5 text-text-muted transition ${roleOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
 
-              <AnimatePresence>
+            <Link
+              href="/settings/billing"
+              className="flex items-center gap-1.5 rounded-full border border-glass-border bg-surface px-3 py-2 text-xs font-semibold transition hover:border-glass-border-hover hover:bg-surface-raised"
+            >
+              <Crown className="h-4 w-4 text-amber-400" />
+              <span className={plan === 'pro' || plan === 'enterprise' ? 'text-amber-300' : 'text-text-secondary'}>
+                {planLoading ? '...' : planLabel}
+              </span>
+            </Link>
+
+            <AnimatePresence>
                 {roleOpen && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: -4 }}
@@ -742,13 +763,30 @@ function AppContent() {
       >
         {/* Audit HUD */}
         {!receiptsLoading && receipts.length > 0 && role !== 'Employee' && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }} 
-            animate={{ opacity: 1, y: 0 }} 
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={tabTransition}
             className="mb-5"
           >
             <AuditHUD receipts={receipts} />
+          </motion.div>
+        )}
+
+        {/* Upgrade Prompt Banner */}
+        {!planLoading && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-5"
+          >
+            <UpgradePrompt
+              plan={plan}
+              receiptCount={receiptCount}
+              teamSize={teamSize}
+              isTrialing={isTrialing}
+              daysLeftInTrial={trialDaysLeft}
+            />
           </motion.div>
         )}
 
@@ -976,7 +1014,24 @@ function AppContent() {
                     )}
                     
                     <div className="mt-4 px-2">
-                      <p className="mb-2 text-xs font-bold uppercase tracking-widest text-gray-400">Legal & Settings</p>
+                      <p className="mb-2 text-xs font-bold uppercase tracking-widest text-gray-400">Settings</p>
+                      <Link href="/settings/billing" className="flex items-center gap-3 rounded-[3rem] p-3 transition hover:bg-gray-100">
+                        <Crown className="h-4 w-4 text-amber-500" />
+                        <span className="text-sm font-semibold text-gray-700">Billing & Plan</span>
+                        <span className={`ml-auto text-[10px] px-2 py-0.5 rounded-full ${plan === 'pro' || plan === 'enterprise' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
+                          {planLabel}
+                        </span>
+                      </Link>
+                      <Link href="/settings/org" className="flex items-center gap-3 rounded-[3rem] p-3 transition hover:bg-gray-100">
+                        <Settings className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm font-semibold text-gray-700">Organization</span>
+                      </Link>
+                      <Link href="/settings/security" className="flex items-center gap-3 rounded-[3rem] p-3 transition hover:bg-gray-100">
+                        <ShieldCheck className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm font-semibold text-gray-700">Security</span>
+                      </Link>
+
+                      <p className="mt-6 mb-2 text-xs font-bold uppercase tracking-widest text-gray-400">Legal</p>
                       <Link href="/terms" className="flex items-center gap-3 rounded-[3rem] p-3 transition hover:bg-gray-100">
                         <Scale className="h-4 w-4 text-gray-400" />
                         <span className="text-sm font-semibold text-gray-700">Terms of Service</span>

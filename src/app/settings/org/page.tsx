@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Settings, Loader2, Save, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Settings, Loader2, Save, AlertCircle, CheckCircle2, Link2, RefreshCw } from 'lucide-react';
 import { AuroraBackground } from '@/components/aceternity/aurora-background';
 import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 export default function OrgSettings() {
   const router = useRouter();
@@ -23,6 +24,11 @@ export default function OrgSettings() {
     require_approval_above: 500.0,
     slack_webhook_url: '',
   });
+
+  const [qboConnected, setQboConnected] = useState(false);
+  const [qboConnectedAt, setQboConnectedAt] = useState<string | null>(null);
+  const [qboConnecting, setQboConnecting] = useState(false);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     loadSettings();
@@ -57,11 +63,42 @@ export default function OrgSettings() {
           require_approval_above: data.require_approval_above ?? 500.0,
           slack_webhook_url: data.slack_webhook_url || '',
         });
+        setQboConnected(!!data.qbo_realm_id && !!data.qbo_refresh_token);
+        setQboConnectedAt(data.qbo_connected_at);
+      }
+
+      // Check for QBO callback params
+      if (searchParams.get('qbo_success')) {
+        setSuccess('QuickBooks Online connected successfully!');
+      } else if (searchParams.get('qbo_error')) {
+        setError(`QBO connection failed: ${searchParams.get('qbo_error')}`);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleQboConnect() {
+    if (qboConnected) return; // Already connected
+    setQboConnecting(true);
+    setError('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Not authenticated');
+
+      const res = await fetch('/api/qbo/auth', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'QBO auth failed');
+
+      window.location.href = body.url;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'QBO connection failed');
+      setQboConnecting(false);
     }
   }
 
@@ -192,15 +229,30 @@ export default function OrgSettings() {
                       </div>
                       <div>
                         <p className="text-sm font-bold text-white">QuickBooks Online</p>
-                        <p className="text-[10px] text-text-secondary uppercase tracking-wider">Not Connected</p>
+                        <p className={`text-[10px] uppercase tracking-wider ${qboConnected ? 'text-emerald-400' : 'text-text-secondary'}`}>
+                          {qboConnected ? `Connected ${qboConnectedAt ? `• ${new Date(qboConnectedAt).toLocaleDateString('en-CA')}` : ''}` : 'Not Connected'}
+                        </p>
                       </div>
                     </div>
                     <button
-                      disabled
-                      className="rounded-[2rem] bg-white/5 px-3 py-1.5 text-xs font-bold text-champagne opacity-50 cursor-not-allowed"
+                      onClick={handleQboConnect}
+                      disabled={qboConnecting}
+                      className={`rounded-[2rem] px-3 py-1.5 text-xs font-bold transition ${
+                        qboConnected
+                          ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                          : 'bg-white/5 text-champagne hover:bg-white/10'
+                      } disabled:opacity-50`}
                     >
-                      Connect
-                      <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Coming Soon</span>
+                      {qboConnecting ? (
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                      ) : qboConnected ? (
+                        <>
+                          <Link2 className="h-3.5 w-3.5 inline mr-1" />
+                          Connected
+                        </>
+                      ) : (
+                        'Connect'
+                      )}
                     </button>
                   </div>
 
