@@ -134,6 +134,21 @@ export default function Dashboard({
     duplicatesBlockedCount = 0,
   } = summary;
 
+  // Empty state for new users
+  if (receiptCount === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center animate-in fade-in slide-in-from-bottom-6 duration-1000">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-[2rem] bg-champagne/10">
+          <Receipt className="h-8 w-8 text-champagne/50" />
+        </div>
+        <h3 className="text-lg font-bold text-text-primary">No receipts yet</h3>
+        <p className="mt-2 max-w-sm text-sm text-text-secondary">
+          Start by scanning your first receipt. Tap the green Scan button below.
+        </p>
+      </div>
+    );
+  }
+
   return role === 'Employee' ? (
     <AccessDeniedDashboard 
       scans={receiptCount} 
