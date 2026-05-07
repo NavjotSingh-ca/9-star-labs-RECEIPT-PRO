@@ -85,12 +85,48 @@ self.addEventListener('sync', (event) => {
   }
 });
 
-async function syncPendingReceipts() {
-  // This will be called by the SyncManager when connectivity is restored
-  // The actual implementation reads from IndexedDB and posts to the server
-  // For now, notify the client to trigger a refetch
-  const clients = await self.clients.matchAll();
-  clients.forEach((client) => {
-    client.postMessage({ type: 'SYNC_COMPLETE' });
+// ─── IndexedDB helpers for offline queue ───
+function openOfflineDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('9sl-offline', 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('pending_scans')) {
+        db.createObjectStore('pending_scans', { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
   });
+}
+
+async function syncPendingReceipts() {
+  try {
+    const db = await openOfflineDB();
+    const tx = db.transaction('pending_scans', 'readonly');
+    const store = tx.objectStore('pending_scans');
+    const allKeys = await new Promise((resolve) => {
+      const req = store.getAllKeys();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve([]);
+    });
+
+    if (allKeys.length === 0) {
+      // Nothing to sync
+      self.clients.matchAll().then(clients => {
+        clients.forEach(client => client.postMessage({ type: 'SYNC_COMPLETE', count: 0 }));
+      });
+      return;
+    }
+
+    // Notify clients to process the pending queue
+    self.clients.matchAll().then(clients => {
+      clients.forEach(client => client.postMessage({
+        type: 'PROCESS_OFFLINE_QUEUE',
+        pendingCount: allKeys.length
+      }));
+    });
+  } catch (err) {
+    console.error('[SW] syncPendingReceipts failed:', err);
+  }
 }

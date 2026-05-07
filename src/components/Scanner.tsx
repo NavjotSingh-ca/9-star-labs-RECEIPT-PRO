@@ -219,6 +219,25 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
     };
   }, []);
 
+  // Handle service worker messages for offline queue
+  useEffect(() => {
+    if (!navigator.serviceWorker) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'PROCESS_OFFLINE_QUEUE') {
+        toast.info(`${event.data.pendingCount} receipt(s) saved offline. Syncing now...`);
+      }
+      if (event.data?.type === 'SYNC_COMPLETE') {
+        if (event.data.count > 0) {
+          toast.success(`${event.data.count} receipt(s) synced successfully!`);
+        }
+      }
+    };
+
+    navigator.serviceWorker.addEventListener('message', handleMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', handleMessage);
+  }, []);
+
   const canProcess = useMemo(() => Boolean(imageSrc) && !processingAI, [imageSrc, processingAI]);
 
   function showNotice(tone: 'success' | 'error' | 'info', message: string) {
