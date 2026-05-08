@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useForm, useFieldArray, useWatch } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, CheckCircle2, DollarSign, FileText, Hash, Plus, Trash2, Info, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -33,20 +33,7 @@ function safeNumber(value: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function updateComputedLineTotal(item: ReceiptLineItem): ReceiptLineItem {
-  const quantity = safeNumber(item.quantity);
-  const unitPrice = safeNumber(item.unit_price);
-  const lineTotal = Math.round(quantity * unitPrice * 100) / 100;
 
-  return {
-    ...item,
-    quantity,
-    unit_price: unitPrice,
-    tax_rate: safeNumber(item.tax_rate),
-    tax_amount: safeNumber(item.tax_amount),
-    line_total: lineTotal,
-  };
-}
 
 function craScoreColor(score: number): string {
   if (score >= 80) return '#10b981';

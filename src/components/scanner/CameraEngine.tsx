@@ -8,6 +8,7 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [isFlashOn, setIsFlashOn] = useState(false);
   const [hasFlash, setHasFlash] = useState(false);
   const [isStarting, setIsStarting] = useState(true);
@@ -38,6 +39,7 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
           };
         }
         setStream(stream);
+        streamRef.current = stream;
 
         // Check for flash support (torch)
         const track = stream.getVideoTracks()[0];
@@ -56,8 +58,8 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
     startCamera();
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
   }, []);
@@ -68,8 +70,11 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
     try {
       const track = stream.getVideoTracks()[0];
       const nextFlashState = !isFlashOn;
+      interface ExtendedMediaTrackConstraintSet extends MediaTrackConstraintSet {
+        torch?: boolean;
+      }
       await track.applyConstraints({
-        advanced: [{ torch: nextFlashState } as any]
+        advanced: [{ torch: nextFlashState } as ExtendedMediaTrackConstraintSet]
       });
       setIsFlashOn(nextFlashState);
     } catch (err) {

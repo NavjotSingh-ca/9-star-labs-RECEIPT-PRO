@@ -12,8 +12,13 @@ jobs:
     steps:
       - name: Ping health endpoint
         run: |
+          if [ -z "${{ secrets.SITE_URL }}" ]; then
+            echo "ERROR: SITE_URL secret is not set. Please add it to your GitHub Actions secrets."
+            exit 1
+          fi
           RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.SITE_URL }}/api/health")
           echo "Health check response: $RESPONSE"
           if [ "$RESPONSE" != "200" ]; then
             echo "WARNING: Health check returned $RESPONSE"
+            exit 1
           fi

@@ -453,7 +453,7 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
         notes: [SMART_PURPOSE[toStr(parsed.category) as ValidCategory] || '', tax_warning ? `⚠️ Tax Alert: ${tax_warning}` : ''].filter(Boolean).join(' — '),
         currency: toStr(parsed.currency) || 'CAD',
         confidence_score: toNum(parsed.confidence_score) || 85,
-        cra_readiness_score: computeCRAScoreForSave({
+                cra_readiness_score: computeCRAScoreForSave({
           vendor_name,
           vendor_tax_number: toStr(parsed.vendor_tax_number),
           transaction_date: normalizeDate(toStr(parsed.transaction_date)),
@@ -462,7 +462,7 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
           category: toStr(parsed.category),
         }),
         thermal_warning: Boolean(parsed.thermal_warning),
-        document_type: (toStr(parsed.document_type).toLowerCase() || 'receipt') as any,
+        document_type: (toStr(parsed.document_type).toLowerCase() || 'receipt') as 'receipt' | 'invoice' | 'statement' | 'unknown',
         duplicate_warning: false,
         duplicate_hash: '',
         math_mismatch_warning: Math.abs((subtotal + tax_amount + pst_amount) - total_amount) > 0.05,

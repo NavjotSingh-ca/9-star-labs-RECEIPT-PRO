@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 
 export function useNetworkStatus(): { online: boolean; since: Date } {
-  const [online, setOnline] = useState(true);
+  const [online, setOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [since, setSince] = useState(new Date());
 
   useEffect(() => {
@@ -15,8 +15,6 @@ export function useNetworkStatus(): { online: boolean; since: Date } {
       setOnline(false);
       setSince(new Date());
     };
-
-    setOnline(navigator.onLine);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
