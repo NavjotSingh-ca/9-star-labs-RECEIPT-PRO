@@ -201,40 +201,51 @@ function AppContent() {
     if (!hasMounted) return;
     let active = true;
 
+    async function resolveUser(currentUser: User) {
+      setUser(currentUser);
+      try {
+        const role = await getUserRole(currentUser.id);
+        if (!active) return;
+        const { data: orgId } = await supabase.rpc('get_user_org');
+        let finalRole = role;
+        if (!orgId) {
+          await supabase.rpc('bootstrap_first_user_org', {
+            p_user_id: currentUser.id,
+            p_org_name: 'My Business',
+          });
+          finalRole = await getUserRole(currentUser.id);
+        }
+        if (active) {
+          setRole(finalRole);
+          authLoadingRef.current = false;
+          setAuthLoading(false);
+        }
+      } catch (err) {
+        if (active) {
+          console.error('Auth failed:', err);
+          setRole('Employee');
+          authLoadingRef.current = false;
+          setAuthLoading(false);
+        }
+      }
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!active) return;
+      if (session?.user) {
+        resolveUser(session.user);
+      } else {
+        authLoadingRef.current = false;
+        setAuthLoading(false);
+      }
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-
-      if (currentUser) {
-        (async () => {
-          try {
-            const role = await getUserRole(currentUser.id);
-            if (!active) return;
-            const { data: orgId } = await supabase.rpc('get_user_org');
-            let finalRole = role;
-            if (!orgId && currentUser) {
-              await supabase.rpc('bootstrap_first_user_org', {
-                p_user_id: currentUser.id,
-                p_org_name: 'My Business',
-              });
-              finalRole = await getUserRole(currentUser.id);
-            }
-            if (active) {
-              setRole(finalRole);
-              authLoadingRef.current = false;
-              setAuthLoading(false);
-            }
-          } catch (err) {
-            if (active) {
-              console.error('Auth failed:', err);
-              setRole('Employee');
-              authLoadingRef.current = false;
-              setAuthLoading(false);
-            }
-          }
-        })();
+      if (session?.user) {
+        resolveUser(session.user);
       } else {
+        setUser(null);
         authLoadingRef.current = false;
         setAuthLoading(false);
       }
@@ -245,7 +256,7 @@ function AppContent() {
         authLoadingRef.current = false;
         setAuthLoading(false);
       }
-    }, 4500);
+    }, 8000);
 
     return () => {
       active = false;
