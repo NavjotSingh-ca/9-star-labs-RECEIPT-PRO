@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
+import { z } from 'zod';
 import { env } from '@/lib/env';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 const stripe = env.STRIPE_SECRET_KEY
-  ? new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2026-04-22.dahlia' as any })
+  ? new Stripe(env.STRIPE_SECRET_KEY)
   : null;
 
 function getSupabaseClient(token?: string) {
@@ -16,23 +18,21 @@ function getSupabaseClient(token?: string) {
   });
 }
 
-const supabaseAdmin = createClient(
-  env.NEXT_PUBLIC_SUPABASE_URL!,
-  env.NEXT_PUBLIC_SUPABASE_ANON_KEY! // Use service role in prod
-);
-
 export async function POST(request: Request) {
   try {
     if (!stripe) {
       return NextResponse.json({ error: 'Stripe is not configured. Set STRIPE_SECRET_KEY in env.' }, { status: 503 });
     }
 
-    const body = await request.json().catch(() => ({}));
-    const { priceId, plan } = body as { priceId?: string; plan?: string };
+    const parsed = z.object({
+      priceId: z.string().min(1),
+      plan: z.enum(['free', 'pro', 'enterprise']).optional(),
+    }).safeParse(await request.json().catch(() => ({})));
 
-    if (!priceId) {
-      return NextResponse.json({ error: 'Missing priceId' }, { status: 400 });
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
+    const { priceId, plan } = parsed.data;
 
     // Get auth user from request headers (Supabase SSR token)
     const authHeader = request.headers.get('authorization') || '';
@@ -99,8 +99,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: session.url });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Checkout failed';
     console.error('[Stripe Checkout]', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Checkout failed' }, { status: 500 });
   }
 }

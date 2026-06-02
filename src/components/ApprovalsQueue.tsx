@@ -16,12 +16,30 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getReceiptsPendingApproval, updateReceiptApproval, bulkUpdateApproval } from '@/lib/services/receipts';
 import type { ReceiptRow, UserRole } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
+import { getReceiptImageUrl } from '@/lib/supabase';
 
 interface ApprovalsQueueProps {
   role: UserRole;
 }
 
 const cad = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 2 });
+
+const ReceiptThumbnail = React.memo(function ReceiptThumbnail({ imageUrl, vendorName }: { imageUrl: string | null | undefined; vendorName: string | null | undefined }) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    if (!imageUrl) return;
+    getReceiptImageUrl(imageUrl).then(setSrc).catch(() => setSrc(null));
+  }, [imageUrl]);
+  if (!src) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <ImageIcon className="h-6 w-6 text-text-muted" />
+      </div>
+    );
+  }
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt={vendorName ?? 'Receipt'} className="h-full w-full object-cover" />;
+});
 
 const ApprovalCard = React.memo(function ApprovalCard({
   receipt,
@@ -67,18 +85,7 @@ const ApprovalCard = React.memo(function ApprovalCard({
 
         {/* Image thumbnail */}
         <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-[2rem] border border-glass-border bg-surface-raised">
-          {receipt.image_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={receipt.image_url}
-              alt={receipt.vendor_name ?? 'Receipt'}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <ImageIcon className="h-6 w-6 text-text-muted" />
-            </div>
-          )}
+          <ReceiptThumbnail imageUrl={receipt.image_url} vendorName={receipt.vendor_name} />
         </div>
 
         {/* Details */}
@@ -103,7 +110,7 @@ const ApprovalCard = React.memo(function ApprovalCard({
               </span>
             )}
             {receipt.document_type === 'estimate' && (
-              <span className="rounded-[2rem] bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-400">
+              <span className="rounded-[2rem] bg-champagne/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-champagne">
                 Estimate
               </span>
             )}
@@ -176,8 +183,7 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
         user.id,
         r?.needs_reimbursement ?? false,
         r?.vendor_name ?? 'Unknown',
-        r?.transaction_date ?? '',
-        role
+        r?.transaction_date ?? ''
       );
     },
     onMutate: async ({ id, status }) => {

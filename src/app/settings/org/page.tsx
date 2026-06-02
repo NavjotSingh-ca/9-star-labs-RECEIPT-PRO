@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Settings, Loader2, Save, AlertCircle, CheckCircle2, Link2, RefreshCw } from 'lucide-react';
-import { AuroraBackground } from '@/components/aceternity/aurora-background';
-import { useRouter } from 'next/navigation';
-import { useSearchParams } from 'next/navigation';
+import { Loader2, Save, AlertCircle, CheckCircle2, Link2, RefreshCw } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export default function OrgSettings() {
   const router = useRouter();
@@ -129,34 +130,24 @@ export default function OrgSettings() {
   }
 
   return (
-    <AuroraBackground>
-      <div className="relative mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-24 z-10">
-        
-        <div className="mb-6">
-          <button onClick={() => router.push('/')} className="text-sm font-semibold text-text-secondary hover:text-champagne transition">&larr; Back to Dashboard</button>
-        </div>
+    <>
+    <div className="mb-6">
+      <h1 className="text-xl font-bold tracking-tight text-text-primary">Organization Settings</h1>
+      <p className="mt-1 text-sm text-text-secondary">Manage global policies and configuration</p>
+    </div>
 
-        <div className="w-full rounded-3xl border border-glass-border bg-surface/80 p-8 shadow-2xl backdrop-blur-xl sm:p-12">
-          
-          <div className="mb-8 flex items-center gap-4 border-b border-glass-border pb-6">
-            <div className="flex h-14 w-14 items-center justify-center rounded-[2rem] bg-champagne/15">
-              <Settings className="h-7 w-7 text-champagne" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-text-primary">Organization Settings</h1>
-              <p className="text-sm text-text-secondary">Manage global policies and configuration</p>
-            </div>
-          </div>
+        <Card className="w-full shadow-sm overflow-hidden bg-card border border-white/5">
+          <CardContent className="p-6">
 
           {error && (
-            <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20">
+            <div className="mb-6 flex items-center gap-2 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive border border-destructive/20">
               <AlertCircle className="h-4 w-4" />
               <span>{error}</span>
             </div>
           )}
 
           {success && (
-            <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400 border border-emerald-500/20">
+            <div className="mb-6 flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               <CheckCircle2 className="h-4 w-4" />
               <span>{success}</span>
             </div>
@@ -169,79 +160,77 @@ export default function OrgSettings() {
               
               {/* Business Info */}
               <div>
-                <h3 className="text-lg font-bold text-text-primary mb-4">Business Information</h3>
+                <h3 className="text-lg font-bold mb-4">Business Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-text-muted mb-1.5">Business Name</label>
-                    <input
+                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Business Name</label>
+                    <Input
                       type="text"
                       value={settings.business_name}
                       onChange={(e) => setSettings({ ...settings, business_name: e.target.value })}
-                      className="w-full rounded-[2rem] border border-glass-border bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-champagne/40"
+                      className="rounded-xl bg-background"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-text-muted mb-1.5">CRA Business Number (GST/BN)</label>
-                    <input
+                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">CRA Business Number (GST/BN)</label>
+                    <Input
                       type="text"
                       value={settings.business_number}
                       onChange={(e) => setSettings({ ...settings, business_number: e.target.value })}
-                      className="w-full rounded-[2rem] border border-glass-border bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-champagne/40"
+                      className="rounded-xl bg-background"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Thresholds & Policies */}
-              <div className="pt-6 border-t border-glass-border">
-                <h3 className="text-lg font-bold text-text-primary mb-4">Reimbursement & Approval Policies</h3>
+              <div className="pt-6 border-t">
+                <h3 className="text-lg font-bold mb-4">Reimbursement & Approval Policies</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-text-muted mb-1.5">Require Approval Above ($)</label>
-                    <input
+                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Require Approval Above ($)</label>
+                    <Input
                       type="number"
                       value={settings.require_approval_above}
                       onChange={(e) => setSettings({ ...settings, require_approval_above: parseFloat(e.target.value) || 0 })}
-                      className="w-full rounded-[2rem] border border-glass-border bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-champagne/40"
+                      className="rounded-xl bg-background"
                     />
-                    <p className="mt-1.5 text-xs text-text-muted">Receipts below this amount are auto-approved.</p>
+                    <p className="mt-1.5 text-xs text-muted-foreground">Receipts below this amount are auto-approved.</p>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-text-muted mb-1.5">High Value Flag Threshold ($)</label>
-                    <input
+                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">High Value Flag Threshold ($)</label>
+                    <Input
                       type="number"
                       value={settings.high_value_threshold}
                       onChange={(e) => setSettings({ ...settings, high_value_threshold: parseFloat(e.target.value) || 0 })}
-                      className="w-full rounded-[2rem] border border-glass-border bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-champagne/40"
+                      className="rounded-xl bg-background"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Integrations */}
-              <div className="pt-6 border-t border-glass-border">
-                <h3 className="text-lg font-bold text-text-primary mb-4">Accounting Integrations</h3>
+              <div className="pt-6 border-t">
+                <h3 className="text-lg font-bold mb-4">Accounting Integrations</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div className="flex items-center justify-between rounded-[3rem] border border-glass-border bg-black/20 p-4">
+                  <div className="flex items-center justify-between rounded-xl border bg-muted/20 p-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 overflow-hidden rounded-[2rem] bg-white p-1">
+                      <div className="h-10 w-10 overflow-hidden rounded-xl bg-white p-1">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/2/23/QuickBooks_Logo.svg" alt="QBO" className="h-full w-full object-contain" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-white">QuickBooks Online</p>
-                        <p className={`text-[10px] uppercase tracking-wider ${qboConnected ? 'text-emerald-400' : 'text-text-secondary'}`}>
+                        <p className="text-sm font-bold">QuickBooks Online</p>
+                        <p className={`text-[10px] uppercase tracking-wider font-bold ${qboConnected ? 'text-emerald-500' : 'text-muted-foreground'}`}>
                           {qboConnected ? `Connected ${qboConnectedAt ? `• ${new Date(qboConnectedAt).toLocaleDateString('en-CA')}` : ''}` : 'Not Connected'}
                         </p>
                       </div>
                     </div>
-                    <button
+                    <Button
+                      variant={qboConnected ? "outline" : "default"}
+                      size="sm"
                       onClick={handleQboConnect}
                       disabled={qboConnecting}
-                      className={`rounded-[2rem] px-3 py-1.5 text-xs font-bold transition ${
-                        qboConnected
-                          ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
-                          : 'bg-white/5 text-champagne hover:bg-white/10'
-                      } disabled:opacity-50`}
+                      className="rounded-lg font-bold"
                     >
                       {qboConnecting ? (
                         <RefreshCw className="h-3.5 w-3.5 animate-spin" />
@@ -253,58 +242,61 @@ export default function OrgSettings() {
                       ) : (
                         'Connect'
                       )}
-                    </button>
+                    </Button>
                   </div>
 
-                  <div className="flex items-center justify-between rounded-[3rem] border border-glass-border bg-black/20 p-4">
+                  <div className="flex items-center justify-between rounded-xl border bg-muted/20 p-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 overflow-hidden rounded-[2rem] bg-[#00b7e2] p-1">
+                      <div className="h-10 w-10 overflow-hidden rounded-xl bg-[#00b7e2] p-1">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/9/9f/Xero_software_logo.svg" alt="Xero" className="h-full w-full object-contain" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-white">Xero</p>
-                        <p className="text-[10px] text-text-secondary uppercase tracking-wider">Not Connected</p>
+                        <p className="text-sm font-bold">Xero</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Not Connected</p>
                       </div>
                     </div>
-                    <button
+                    <Button
+                      variant="outline"
+                      size="sm"
                       disabled
-                      className="rounded-[2rem] bg-white/5 px-3 py-1.5 text-xs font-bold text-champagne opacity-50 cursor-not-allowed"
+                      className="rounded-lg font-bold opacity-50 cursor-not-allowed"
                     >
                       Connect
-                      <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Coming Soon</span>
-                    </button>
+                      <span className="ml-2 text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md">Coming Soon</span>
+                    </Button>
                   </div>
                 </div>
 
-                <h3 className="text-lg font-bold text-text-primary mb-4">Webhooks</h3>
+                <h3 className="text-lg font-bold mb-4">Webhooks</h3>
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-text-muted mb-1.5">Slack/Teams Webhook URL (Audit Alerts)</label>
-                  <input
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Slack/Teams Webhook URL (Audit Alerts)</label>
+                  <Input
                     type="url"
                     value={settings.slack_webhook_url}
                     onChange={(e) => setSettings({ ...settings, slack_webhook_url: e.target.value })}
-                    className="w-full rounded-[2rem] border border-glass-border bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-champagne/40"
+                    className="rounded-xl bg-background"
                     placeholder="https://hooks.slack.com/services/..."
                   />
                 </div>
               </div>
 
               {/* Save Button */}
-              <div className="pt-6 border-t border-glass-border flex justify-end">
-                <button
+              <div className="pt-6 border-t flex justify-end">
+                <Button
                   onClick={saveSettings}
                   disabled={saving}
-                  className="flex items-center gap-2 rounded-[2rem] bg-champagne px-6 py-3 text-sm font-bold text-black transition hover:bg-champagne/90 disabled:opacity-50"
+                  size="lg"
+                  className="rounded-xl font-bold"
                 >
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   Save Configuration
-                </button>
+                </Button>
               </div>
 
             </div>
           )}
-        </div>
-      </div>
-    </AuroraBackground>
+        </CardContent>
+        </Card>
+    </>
   );
 }

@@ -1,42 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 
 export function proxy(request: NextRequest) {
-  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
-  
-  const cspHeader = `
-    default-src 'self';
-    script-src 'self' 'unsafe-inline' https://*.supabase.co;
-    style-src 'self' 'unsafe-inline';
-    img-src 'self' blob: data: https:;
-    font-src 'self' data:;
-    connect-src 'self' https://*.supabase.co https://*.googleapis.com;
-    frame-ancestors 'none'
-  `;
-
-  // Replace newline characters and spaces
-  const contentSecurityPolicyHeaderValue = cspHeader
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-
+  const isDev = process.env.NODE_ENV === 'development';
   const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-nonce', nonce);
-  requestHeaders.set(
-    'Content-Security-Policy',
-    contentSecurityPolicyHeaderValue
-  );
 
-  const response = NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
+  if (!isDev) {
+    const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+    const cspParts = [
+      "default-src 'self'",
+      `script-src 'self' 'nonce-${nonce}'`,
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' blob: data: https:",
+      "font-src 'self' data:",
+      "connect-src 'self' https://*.supabase.co https://*.supabase.in https://*.googleapis.com https://generativelanguage.googleapis.com",
+      "frame-ancestors 'none'",
+    ];
+    const cspHeader = cspParts.join('; ');
+    requestHeaders.set('x-nonce', nonce);
+    requestHeaders.set('Content-Security-Policy', cspHeader);
 
-  response.headers.set(
-    'Content-Security-Policy',
-    contentSecurityPolicyHeaderValue
-  );
+    const response = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+    response.headers.set('Content-Security-Policy', cspHeader);
+    return response;
+  }
 
-  return response;
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 export const config = {

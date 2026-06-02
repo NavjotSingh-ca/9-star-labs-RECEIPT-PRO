@@ -53,10 +53,20 @@ export async function getReceiptImageUrl(pathOrUrl: string | null | undefined): 
   }
 
   // It's a storage path — generate a fresh 1-hour signed URL
-  const { data, error } = await supabase.storage
+  const client = getSupabase();
+  const { data, error } = await client.storage
     .from('receipt-images')
     .createSignedUrl(pathOrUrl, 3600);
 
   if (error || !data) return null;
   return data.signedUrl;
+}
+
+/**
+ * Typed helper: fetch current user's org ID as a string.
+ * Returns null if not authenticated or no org found.
+ */
+export async function getOrgIdString(): Promise<string | null> {
+  const { data } = await getSupabase().rpc('get_user_org');
+  return typeof data === 'string' ? data : null;
 }

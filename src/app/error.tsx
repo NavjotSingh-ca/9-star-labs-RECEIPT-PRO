@@ -33,7 +33,7 @@ export default function Error({
         </p>
 
         <div className="mt-6 rounded-[3rem] bg-black/40 p-4 text-left font-mono text-[10px] text-red-400/80 border border-red-500/10 overflow-auto max-h-32">
-          {error.message || 'Unknown runtime error'}
+          {process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'}
           {error.digest && <div className="mt-2 text-white/20">Digest: {error.digest}</div>}
         </div>
 

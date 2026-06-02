@@ -93,7 +93,7 @@ function buildCSV(receipts: ReceiptRow[]): string {
     'Business Number (GST/BN)', 'Business Use %', 'Job Code', 'Vehicle ID',
     'Document Type', 'Notes', 'Paid By', 'Reimbursement Status', 'Approval Status',
     'AI Fraud Suspicion', 'AI Fraud Reason', 'Blur Score',
-    'Line Items', 'Integrity Hash', 'Image URL',
+    'Line Items', 'Integrity Hash', 'Image URL', 'Is Reconciled',
   ];
 
   const rows = receipts.map((r) => [
@@ -125,6 +125,7 @@ function buildCSV(receipts: ReceiptRow[]): string {
     stringifyLineItems(r.line_items),
     getHash(r),
     getImageUrl(r),
+    'is_reconciled' in r ? 'TRUE' : 'FALSE',
   ]);
 
   return '\ufeff' + [headers.map(csvEscape).join(','), ...rows.map((row) => row.map(csvEscape).join(','))].join('\n');
@@ -194,6 +195,7 @@ export default function Export({ receipts }: ExportProps) {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [zipping, setZipping] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   const filteredReceipts = useMemo(
     () => receipts.filter((r) => withinRange(r, fromDate, toDate)),
@@ -238,6 +240,32 @@ export default function Export({ receipts }: ExportProps) {
     a.click();
 
     URL.revokeObjectURL(url);
+  }
+
+  async function downloadCRAPDF() {
+    try {
+      setGeneratingPdf(true);
+      const year = new Date().getFullYear() - 1; // Default to last year
+      const response = await fetch(`/api/cra/generate?year=${year}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+      
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `CRA-Package-${year}.pdf`;
+      a.click();
+      
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error downloading CRA PDF:', err);
+    } finally {
+      setGeneratingPdf(false);
+    }
   }
 
   async function downloadAuditPackage() {
@@ -416,6 +444,26 @@ export default function Export({ receipts }: ExportProps) {
               <p className="text-sm font-bold text-text-primary">Generate Structured Audit Export</p>
               <p className="mt-1 text-sm leading-relaxed text-text-secondary">
                 Flat CSV mapped for the CRA IDEA audit software framework. 
+              </p>
+            </div>
+            <Download className="mt-1 h-4 w-4 flex-shrink-0 text-text-muted" />
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={downloadCRAPDF}
+          disabled={filteredReceipts.length === 0 || generatingPdf}
+          className="rounded-3xl border border-glass-border bg-surface p-4 text-left shadow-sm transition hover:border-glass-border-hover hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[2rem] bg-champagne/10 text-champagne">
+              {generatingPdf ? <Loader2 className="h-6 w-6 animate-spin" /> : <FileText className="h-6 w-6" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-text-primary">Generate CRA Package</p>
+              <p className="mt-1 text-sm leading-relaxed text-text-secondary">
+                Download a PDF package with T2125/T777 pre-fill data and top vendor summary.
               </p>
             </div>
             <Download className="mt-1 h-4 w-4 flex-shrink-0 text-text-muted" />

@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
-import { AuroraBackground } from '@/components/aceternity/aurora-background';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -25,7 +24,7 @@ function A({ href, children }: { href: string; children: React.ReactNode }) {
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
     <section id={id} className="scroll-mt-24">
-      <h2 className="mt-10 mb-4 text-xl font-bold text-white border-b border-white/10 pb-3">
+      <h2 className="mt-10 mb-4 text-xl font-bold text-text-primary border-b border-white/10 pb-3">
         {title}
       </h2>
       <div className="space-y-4 text-sm leading-7 text-text-secondary">{children}</div>
@@ -45,13 +44,14 @@ const TOC = [
   { id: 'cookies', label: '9. Cookies & Session Tokens' },
   { id: 'third-party', label: '10. Third-Party Service Providers' },
   { id: 'cross-border', label: '11. Cross-Border Data Transfers' },
-  { id: 'updates', label: '12. Policy Updates & Contact' },
+  { id: 'quebec', label: '12. Quebec Law 25 Compliance' },
+  { id: 'updates', label: '13. Policy Updates & Contact' },
 ];
 
 export default function PrivacyPage() {
   return (
-    <AuroraBackground>
-      <div className="relative z-10 mx-auto max-w-4xl px-4 py-20 sm:px-6">
+    <div className="min-h-screen bg-obsidian">
+      <div className="mx-auto max-w-4xl px-4 py-20 sm:px-6">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-sm font-semibold text-champagne transition hover:text-champagne-dim mb-10 group"
@@ -60,7 +60,7 @@ export default function PrivacyPage() {
           Return to App
         </Link>
 
-        <div className="rounded-[2.5rem] border border-glass-border bg-black/60 p-8 shadow-2xl backdrop-blur-3xl sm:p-14">
+        <div className="rounded-[2.5rem] border border-white/5 bg-card p-8 sm:p-14">
 
           {/* Header */}
           <div className="mb-10 flex items-start gap-5 border-b border-white/10 pb-10">
@@ -68,7 +68,7 @@ export default function PrivacyPage() {
               <ShieldCheck className="h-8 w-8 text-champagne" />
             </div>
             <div>
-              <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
+              <h1 className="text-3xl font-black tracking-tight text-text-primary sm:text-4xl">
                 Privacy Policy
               </h1>
               <p className="mt-2 text-sm text-text-secondary">
@@ -78,8 +78,11 @@ export default function PrivacyPage() {
                 <span className="rounded-full border border-champagne/30 bg-champagne/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-champagne">
                   PIPEDA Compliant
                 </span>
-                <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-blue-400">
+                <span className="rounded-full border border-champagne/30 bg-champagne/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-champagne">
                   Alberta PIPA Aligned
+                </span>
+                <span className="rounded-full border border-champagne/30 bg-champagne/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-champagne">
+                  Quebec Law 25 Ready
                 </span>
                 <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-emerald-400">
                   Effective: April 27, 2026
@@ -128,7 +131,7 @@ export default function PrivacyPage() {
               principal office is located in Edmonton, Alberta. We provide AI-assisted receipt
               capture, CRA compliance scoring, tamper-evident audit trails, and multi-user expense
               management services to Canadian small and medium-sized businesses, with a focus on the
-              Alberta construction, trades, and professional services industries.
+               Canadian small and medium-sized businesses across all industries.
             </p>
             <p>
               <B>Our Privacy Officer</B> is responsible for overseeing our compliance with PIPEDA
@@ -316,7 +319,55 @@ export default function PrivacyPage() {
           </Section>
 
           {/* Section 12 */}
-          <Section id="updates" title="12. Policy Updates & Contact">
+          <Section id="quebec" title="12. Quebec Law 25 Compliance">
+            <div className="rounded-[2rem] border border-champagne/20 bg-champagne/[0.04] p-4 mb-4">
+              <p className="text-sm font-bold text-champagne mb-1">Quebec Privacy Framework</p>
+              <p>
+                For individuals and businesses domiciled in Quebec, the <B><em>Act respecting the protection
+                of personal information in the private sector</em></B> (CQLR c. P-39.1, as amended by
+                Law 25) provides additional privacy protections beyond PIPEDA. This section addresses
+                those obligations.
+              </p>
+            </div>
+            <p>
+              <B>Privacy Officer:</B> Our Privacy Officer oversees compliance with Quebec&apos;s privacy
+              framework. Quebec residents may contact our Privacy Officer directly at{' '}
+              <A href="mailto:privacy@9starlabs.ca">privacy@9starlabs.ca</A> with the subject line
+              &ldquo;Quebec Privacy Request.&rdquo;
+            </p>
+            <p>
+              <B>Privacy Impact Assessment (PIA):</B> We have conducted a Privacy Impact Assessment for
+              our AI receipt processing and cross-border data transfer practices, as recommended by the
+              Commission d&rsquo;accès à l&rsquo;information du Québec (CAI). A summary is available
+              upon written request.
+            </p>
+            <p>
+              <B>Automated decision-making:</B> The Service uses AI to extract financial data from receipt
+              images. This constitutes automated processing that may affect business decisions. You have
+              the right to be informed of and request human review of automated decisions. Contact our
+              Privacy Officer to exercise this right.
+            </p>
+            <p>
+              <B>Right to erasure and de-indexing:</B> In addition to rights described in Section 7,
+              Quebec residents have the right to request that personal information be de-indexed from
+              any search engine or directory used by the Service. We do not operate public search
+              indexes of Customer Data.
+            </p>
+            <p>
+              <B>Breach notification:</B> In the event of a confidentiality incident involving personal
+              information of Quebec residents, we will notify the Commission d&rsquo;accès à
+              l&rsquo;information and affected individuals as required by Law 25.
+            </p>
+            <p>
+              <B>French language:</B> A French-language version of this Privacy Policy is available
+              upon request. In the event of a discrepancy between the English and French versions,
+              the French version prevails for Quebec residents to the extent required by the{' '}
+              <em>Charter of the French Language</em> (CQLR c. C-11).
+            </p>
+          </Section>
+
+          {/* Section 13 */}
+          <Section id="updates" title="13. Policy Updates & Contact">
             <p>We will update this Privacy Policy as our practices change, as new features are introduced, or as required by changes in applicable law. We will notify you of material changes by:</p>
             <ul className="list-disc list-outside ml-5 space-y-1">
               <li>Posting the updated policy at this URL with a new effective date</li>
@@ -341,13 +392,14 @@ export default function PrivacyPage() {
               <p className="text-xs text-text-muted">
                 <B>External Privacy Authorities:</B>{' '}
                 <A href="https://www.priv.gc.ca">Office of the Privacy Commissioner of Canada</A>{' '}
-                · <A href="https://www.oipc.ab.ca">Office of the Information and Privacy Commissioner of Alberta</A>
+                · <A href="https://www.oipc.ab.ca">Office of the Information and Privacy Commissioner of Alberta</A>{' '}
+                · <A href="https://www.cai.gouv.qc.ca">Commission d&rsquo;accès à l&rsquo;information du Québec</A>
               </p>
             </div>
           </Section>
 
         </div>
       </div>
-    </AuroraBackground>
+    </div>
   );
 }

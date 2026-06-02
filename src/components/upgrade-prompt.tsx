@@ -78,7 +78,7 @@ export function UpgradePrompt({ plan, receiptCount, teamSize, isTrialing, daysLe
       )}
 
       {showTrialWarning && (
-        <div className="flex items-center gap-3 rounded-[2rem] bg-purple-500/10 border border-purple-500/20 px-4 py-3 text-sm text-purple-200">
+        <div className="flex items-center gap-3 rounded-[2rem] bg-champagne/10 border border-champagne/20 px-4 py-3 text-sm text-champagne">
           <Crown className="h-5 w-5 flex-shrink-0" />
           <div className="flex-1">
             <p className="font-semibold">Trial ending soon</p>

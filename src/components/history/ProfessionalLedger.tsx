@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
 import {
   flexRender,
   getCoreRowModel,
@@ -69,8 +70,8 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
       ),
       cell: ({ row }) => (
         <div className="flex flex-col">
-          <span className="font-bold text-text-primary">{row.getValue('vendor_name') || 'Unknown Vendor'}</span>
-          <span className="text-[10px] text-text-muted">{row.original.business_unit_id || 'Main Unit'}</span>
+          <span className="font-bold text-foreground">{row.getValue('vendor_name') || 'Unknown Vendor'}</span>
+          <span className="text-[10px] text-muted-foreground">{row.original.business_unit_id || 'Main Unit'}</span>
         </div>
       ),
     },
@@ -93,10 +94,10 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
     },
     {
       accessorKey: 'total_amount',
-      header: () => <div className="text-right">Total</div>,
+      header: () => <div className="text-right font-bold">Total</div>,
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue('total_amount'));
-        return <div className="text-right font-black tabular-nums text-text-primary">{formatCurrency(amount)}</div>;
+        return <div className="text-right font-mono font-bold tracking-tight text-foreground tabular-nums">{formatCurrency(amount)}</div>;
       },
     },
     {
@@ -107,7 +108,7 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
         const config = approvalBadge(status);
         return (
           <div className="flex items-center gap-2">
-            <div className={`h-2 w-2 rounded-full ${config.cls.includes('emerald') ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+            <div className={`h-2 w-2 rounded-full ${config.cls.includes('emerald') ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
             <span className="text-[10px] font-bold uppercase tracking-wider">{status}</span>
           </div>
         );
@@ -121,24 +122,27 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
         return (
           <div className="flex justify-end">
             <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-[2rem] h-8 w-8 p-0 hover:bg-accent hover:text-accent-foreground focus:outline-none">
+              <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-full h-8 w-8 p-0 hover:bg-muted focus:outline-none">
                 <MoreHorizontal className="h-4 w-4" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 rounded-[3rem] border-glass-border bg-surface/90 backdrop-blur-xl p-2 shadow-2xl">
-                <DropdownMenuLabel className="text-xs font-bold text-text-muted">Actions</DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="w-48 rounded-xl p-2 shadow-md">
+                <DropdownMenuLabel className="text-xs font-bold text-muted-foreground">Actions</DropdownMenuLabel>
                 <DropdownMenuItem 
-                  onClick={() => onSelect(receipt)}
-                  className="flex items-center gap-2 rounded-[2rem] px-3 py-2 text-sm transition hover:bg-champagne/10 hover:text-champagne"
+                  onClick={(e) => { e.stopPropagation(); onSelect(receipt); }}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition cursor-pointer"
                 >
                   <Eye className="h-4 w-4" /> View Details
                 </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-center gap-2 rounded-[2rem] px-3 py-2 text-sm transition hover:bg-champagne/10 hover:text-champagne">
+                <DropdownMenuItem 
+                  onClick={(e) => { e.stopPropagation(); }}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition cursor-pointer"
+                >
                   <FileDown className="h-4 w-4" /> Export PDF
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="my-1 bg-glass-border" />
+                <DropdownMenuSeparator className="my-1" />
                 <DropdownMenuItem 
-                  onClick={() => onDelete(receipt.id)}
-                  className="flex items-center gap-2 rounded-[2rem] px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/10"
+                  onClick={(e) => { e.stopPropagation(); onDelete(receipt.id); }}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-destructive focus:text-destructive transition cursor-pointer"
                 >
                   <Trash2 className="h-4 w-4" /> Delete Record
                 </DropdownMenuItem>
@@ -149,6 +153,8 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
       },
     },
   ];
+
+  const [tableRef] = useAutoAnimate<HTMLTableElement>();
 
   const table = useReactTable({
     data,
@@ -168,28 +174,28 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
     <div className="w-full space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search vendor, category, or amount..."
             value={globalFilter ?? ''}
             onChange={(event) => setGlobalFilter(event.target.value)}
-            className="rounded-[3rem] border-glass-border bg-surface/50 pl-10 focus:ring-champagne/20"
+            className="pl-10 rounded-xl bg-background"
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="rounded-[2rem] border-glass-border bg-surface/50 font-bold hover:bg-surface-raised">
+          <Button variant="outline" className="rounded-xl font-bold">
             Filters <ChevronDown className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      <div className="rounded-[3rem] border border-glass-border bg-surface/30 backdrop-blur-md overflow-hidden">
-        <Table>
-          <TableHeader className="bg-surface/50">
+      <div className="rounded-xl border bg-card overflow-auto max-h-[65vh]">
+        <Table ref={tableRef} className="relative">
+          <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="border-glass-border hover:bg-transparent">
+              <TableRow key={headerGroup.id} className="hover:bg-transparent bg-surface-raised/50 border-b border-glass-border">
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted px-6 h-14">
+                  <TableHead key={header.id} className="text-[10px] font-bold uppercase tracking-tight text-text-muted px-6 h-12 sticky top-0 bg-surface-raised backdrop-blur z-10">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -209,11 +215,12 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
+                  whileHover={{ scale: 1.005, backgroundColor: 'rgba(190, 169, 142, 0.04)' }}
                   onClick={() => onSelect(row.original)}
-                  className="group cursor-pointer border-glass-border hover:bg-champagne/[0.03] transition-colors"
+                  className={`group cursor-pointer transition-colors border-b border-white/5 ${i % 2 === 0 ? 'bg-black/30' : 'bg-white/[0.03]'} hover:bg-white/5`}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="px-6 py-4">
+                    <TableCell key={cell.id} className="px-6 py-3">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -222,12 +229,12 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-64 text-center">
-                  <div className="flex flex-col items-center justify-center gap-3 text-text-muted">
-                    <div className="h-16 w-16 rounded-[3rem] bg-surface-raised flex items-center justify-center mb-2">
-                      <Search className="h-8 w-8 opacity-20" />
+                  <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground">
+                    <div className="h-16 w-16 rounded-xl bg-muted flex items-center justify-center mb-2">
+                      <Search className="h-8 w-8 opacity-40" />
                     </div>
                     <p className="font-bold">No records matching your search</p>
-                    <Button variant="link" onClick={() => setGlobalFilter('')} className="text-champagne">
+                    <Button variant="link" onClick={() => setGlobalFilter('')} className="text-primary">
                       Clear all filters
                     </Button>
                   </div>

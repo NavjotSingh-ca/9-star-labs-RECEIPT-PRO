@@ -103,6 +103,8 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
       if (blob) {
         const file = new File([blob], `camera-${Date.now()}.jpg`, { type: 'image/jpeg' });
         onCapture(file);
+      } else {
+        console.error('[Camera] toBlob returned null — browser may not support image/jpeg');
       }
     }, 'image/jpeg', 0.95);
   };
@@ -114,7 +116,7 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
         <h2 className="text-lg font-semibold">Take Photo</h2>
         <button
           onClick={onClose}
-          className="text-2xl leading-none hover:text-gray-300"
+          className="text-2xl leading-none text-text-muted hover:text-text-primary transition"
           aria-label="Close camera"
         >
           ✕
@@ -158,7 +160,7 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
             <button
               onClick={toggleFlash}
               className={`px-6 py-3 rounded-full text-sm font-bold uppercase tracking-widest transition-all ${
-                isFlashOn ? 'bg-amber-500 text-black' : 'bg-gray-800 text-white hover:bg-gray-700'
+                isFlashOn ? 'bg-amber-500 text-obsidian' : 'bg-surface-raised text-text-secondary hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
               {isFlashOn ? 'Flash On' : 'Flash Off'}
@@ -167,13 +169,13 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
           <button
             onClick={takePhoto}
             disabled={isStarting || !!error}
-            className="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-full flex-1 text-sm font-bold uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50"
+            className="bg-champagne hover:bg-champagne-dim text-obsidian px-8 py-3 rounded-full flex-1 text-sm font-bold uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50"
           >
             Capture
           </button>
           <button
             onClick={onClose}
-            className="bg-gray-800 hover:bg-gray-700 px-8 py-3 rounded-full flex-1 text-sm font-bold uppercase tracking-widest transition-all"
+            className="bg-surface-raised hover:bg-surface-hover text-text-secondary px-8 py-3 rounded-full flex-1 text-sm font-bold uppercase tracking-widest transition-all"
           >
             Cancel
           </button>

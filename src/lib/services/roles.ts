@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase, getOrgIdString } from '@/lib/supabase';
 import type { UserRole } from '@/lib/types';
 
 export const getUserRole = async (userId: string): Promise<UserRole> => {
@@ -14,37 +14,33 @@ export const getUserRole = async (userId: string): Promise<UserRole> => {
   return data.role as UserRole;
 };
 
-export const setUserRole = async (userId: string, role: UserRole): Promise<void> => {
-  // Get the user's current org
-  const { data: orgData } = await supabase.rpc('get_user_org');
-  const orgId = orgData as unknown as string;
-
-  if (!orgId) {
-    console.error('setUserRole: no org found for user', userId);
-    return;
+export const setUserRole = async (targetUserId: string, role: UserRole, callerUserId: string): Promise<void> => {
+  if (!callerUserId) throw new Error('Unauthorized: callerUserId is required');
+  const callerRole = await getUserRole(callerUserId);
+  if (callerRole !== 'Owner') {
+    throw new Error('Unauthorized: only Owners can change roles');
   }
 
-  // Check if a role row already exists
-  const { data: existing } = await supabase
+  // Get the caller's org for scoping
+  const orgId = await getOrgIdString();
+  if (!orgId) throw new Error('No organization found for user. Cannot set role.');
+
+  // Verify target user is in the same org
+  const { data: targetRoleData } = await supabase
     .from('user_roles')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('org_id', orgId)
+    .select('org_id')
+    .eq('user_id', targetUserId)
     .single();
 
-  if (existing) {
-    // Update existing role
-    const { error } = await supabase
-      .from('user_roles')
-      .update({ role })
-      .eq('user_id', userId)
-      .eq('org_id', orgId);
-    if (error) throw error;
-  } else {
-    // Insert new role
-    const { error } = await supabase
-      .from('user_roles')
-      .insert({ user_id: userId, org_id: orgId, role });
-    if (error) throw error;
+  if (targetRoleData && targetRoleData.org_id !== orgId) {
+    throw new Error('Cannot modify roles for users outside your organization.');
   }
+
+  // Use SECURITY DEFINER RPC to bypass user_roles RLS restrictions
+  const { error } = await supabase.rpc('upsert_user_role', {
+    p_target_user_id: targetUserId,
+    p_role: role,
+    p_org_id: orgId,
+  });
+  if (error) throw error;
 };

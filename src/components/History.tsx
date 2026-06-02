@@ -2,33 +2,33 @@
 
 import React, { useMemo, useState } from 'react';
 import {
-  AlertCircle,
-  CalendarDays,
-  CheckCircle2,
-  ChevronRight,
   ChevronDown,
-  CreditCard,
   DollarSign,
-  Edit3,
-  Eye,
-  Fingerprint,
   Loader2,
-  MapPin,
   Receipt,
   RefreshCw,
-  Save,
-  Tag,
   Trash2,
   X,
-  XCircle,
   BrainCircuit,
+  MessageSquare,
+  Send,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Drawer } from 'vaul';
 
 import { semanticSearchAction } from '@/app/actions/semantic-search';
-import { updateReceiptApproval, updateReceiptNotes, deleteReceipt, getReceiptsPaginated } from '@/lib/services/receipts';
-import { CATEGORIES } from '@/components/scanner/types';
+import { updateReceiptApproval, updateReceipt, deleteReceipt, getReceiptsPaginated } from '@/lib/services/receipts';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ProfessionalLedger } from '@/components/history/ProfessionalLedger';
 import { ReceiptTableSkeleton } from '@/components/ui/PremiumSkeletons';
 import { Button } from '@/components/ui/button';
@@ -65,6 +65,7 @@ type HistoryProps = {
   receipts: ReceiptRow[];
   activeFilter?: string;
   onUpdate?: () => Promise<void> | void;
+  onScan?: () => void;
   role?: UserRole;
   userId?: string | null;
 };
@@ -73,10 +74,12 @@ export default function History({
   receipts: initialReceipts,
   activeFilter = 'all',
   onUpdate,
+  onScan,
   role = 'Owner',
   userId,
 }: HistoryProps) {
   const [selectedReceipt, setSelectedReceipt] = useState<ReceiptRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [semanticMode, setSemanticMode] = useState(false);
@@ -169,14 +172,19 @@ export default function History({
   }, [receipts, activeFilter, semanticMode, semanticResults]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Permanently delete this audit record?')) return;
+    setDeleteTarget(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget || !userId) return;
     try {
-      if (!userId) return;
-      await deleteReceipt(id, userId);
+      await deleteReceipt(deleteTarget, userId);
       if (onUpdate) await onUpdate();
       refetch();
     } catch (err) {
       console.error('Delete error:', err);
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -199,31 +207,28 @@ export default function History({
   return (
     <>
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-        {/* Header Section */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between px-2">
           <div>
-            <h2 className="text-3xl font-black tracking-tighter text-text-primary sm:text-4xl">
-              Audit <span className="text-champagne">Ledger</span>
+            <h2 className="text-3xl font-bold tracking-tight">
+              {new Date().toLocaleDateString('en-CA', { month: 'long', year: 'numeric' })} Receipts
             </h2>
-            <p className="mt-1 text-sm font-medium text-text-secondary">
-              Managing <span className="text-text-primary font-bold">{totalCount}</span> secure financial records
+            <p className="mt-1 text-sm font-medium text-muted-foreground">
+              <span className="font-bold">{totalCount}</span> record{totalCount === 1 ? '' : 's'} · {activeFilter === 'all' ? 'All entries' : activeFilter}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Button
               onClick={() => refetch()}
               variant="outline"
-              className="rounded-[2rem] border-glass-border bg-surface px-4 font-bold hover:bg-surface-raised"
+              className="px-4 font-bold"
             >
               <RefreshCw className={cn("mr-2 h-4 w-4", isFetchingNextPage ? "animate-spin" : "")} />
               Sync
             </Button>
             <Button
               onClick={() => setSemanticMode(!semanticMode)}
-              className={cn(
-                "rounded-[2rem] font-bold transition-all",
-                semanticMode ? "bg-champagne text-obsidian shadow-lg shadow-champagne/20" : "bg-surface-raised text-text-primary border border-glass-border rounded-[2rem]"
-              )}
+              variant={semanticMode ? "default" : "outline"}
+              className="font-bold transition-all"
             >
               <BrainCircuit className="mr-2 h-4 w-4" />
               AI Search
@@ -240,23 +245,23 @@ export default function History({
               exit={{ opacity: 0, height: 0 }}
               className="px-2"
             >
-              <div className="rounded-[2rem] border border-champagne/30 bg-champagne/5 p-4 backdrop-blur-md">
+              <div className="rounded-xl border bg-muted/20 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-[2rem] bg-champagne text-obsidian">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                     <BrainCircuit className="h-4 w-4" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-xs font-black uppercase tracking-widest text-champagne">Semantic Audit Engine Active</p>
+                    <p className="text-xs font-bold uppercase tracking-widest text-primary">Semantic Audit Engine Active</p>
                     <input 
                       type="text"
                       placeholder="Describe what you're looking for (e.g. 'Fuel receipts over $100 from last March')"
-                      className="mt-2 w-full bg-transparent text-sm font-medium text-text-primary outline-none placeholder:text-text-muted"
+                      className="mt-2 w-full bg-transparent text-sm font-medium outline-none placeholder:text-muted-foreground"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleSemanticSearch(e.currentTarget.value);
                       }}
                     />
                     {semanticLoading && (
-                      <div className="mt-2 flex items-center gap-2 text-[10px] text-champagne font-bold uppercase tracking-widest animate-pulse">
+                      <div className="mt-2 flex items-center gap-2 text-[10px] text-primary font-bold uppercase tracking-widest animate-pulse">
                         Analyzing patterns...
                       </div>
                     )}
@@ -271,17 +276,22 @@ export default function History({
         {isLoading && !receipts.length ? (
           <ReceiptTableSkeleton />
         ) : receipts.length === 0 ? (
-          <div className="flex min-h-[40vh] flex-col items-center justify-center gap-6 rounded-[3rem] border border-dashed border-glass-border bg-surface/30 p-12 text-center backdrop-blur-sm">
-            <div className="flex h-20 w-20 items-center justify-center rounded-[2rem] bg-surface-raised text-text-muted opacity-20">
+          <div className="flex min-h-[40vh] flex-col items-center justify-center gap-6 rounded-xl border border-dashed bg-muted/10 p-12 text-center">
+            <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-muted text-muted-foreground">
               <Receipt className="h-10 w-10" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-text-primary tracking-tight">
+              <h3 className="text-xl font-bold tracking-tight">
                 {emptyStateMap[activeFilter]?.title || 'No records found'}
               </h3>
-              <p className="mt-2 text-sm text-text-secondary max-w-xs">
+              <p className="mt-2 text-sm text-muted-foreground max-w-xs">
                 {emptyStateMap[activeFilter]?.subtitle || 'Adjust your filters or scan a new receipt to populate the ledger.'}
               </p>
+              {onScan && activeFilter === 'all' && (
+                <Button onClick={onScan} className="rounded-full px-6">
+                  Scan Receipt
+                </Button>
+              )}
             </div>
           </div>
         ) : (
@@ -299,7 +309,7 @@ export default function History({
                   onClick={() => fetchNextPage()}
                   disabled={isFetchingNextPage}
                   variant="outline"
-                  className="rounded-full border-glass-border bg-surface px-8 font-bold hover:bg-surface-raised"
+                  className="px-8 font-bold"
                 >
                   {isFetchingNextPage ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -321,23 +331,48 @@ export default function History({
       >
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-sm" />
-          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[160] flex flex-col rounded-t-[3rem] border-t border-glass-border bg-surface outline-none focus:ring-0 sm:max-w-3xl sm:mx-auto sm:mb-6 sm:rounded-[3rem] sm:max-h-[95vh] bottom-nav">
-            <div className="mx-auto mt-4 h-1.5 w-12 flex-shrink-0 rounded-full bg-glass-border" />
+          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[160] flex flex-col rounded-t-2xl border-t bg-background outline-none focus:ring-0 sm:max-w-3xl sm:mx-auto sm:mb-6 sm:rounded-2xl sm:max-h-[95vh] bottom-nav">
+            <div className="mx-auto mt-4 h-1.5 w-12 flex-shrink-0 rounded-full bg-muted" />
             
             {selectedReceipt && (
               <div className="flex-1 overflow-y-auto px-2">
-                <ReceiptDetailModal
-                  key={`detail-${selectedReceipt.id}`}
-                  receipt={selectedReceipt}
-                  onClose={() => setSelectedReceipt(null)}
-                  role={role}
-                  onUpdate={onUpdate}
-                />
+                <ErrorBoundary componentName="ReceiptDetailModal">
+                  <ReceiptDetailModal
+                    key={`detail-${selectedReceipt.id}`}
+                    receipt={selectedReceipt}
+                    onClose={() => setSelectedReceipt(null)}
+                    role={role}
+                    onUpdate={onUpdate}
+                  />
+                </ErrorBoundary>
               </div>
             )}
           </Drawer.Content>
         </Drawer.Portal>
       </Drawer.Root>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Receipt Record</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this receipt from the ledger. The original data will be preserved in the audit trail, but this entry will no longer appear in reports or searches.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              render={<Button variant="outline" className="rounded-xl font-semibold" />}
+            />
+            <AlertDialogAction
+              render={<Button variant="destructive" className="rounded-xl font-semibold" />}
+              onClick={confirmDelete}
+            >
+              Delete Record
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
@@ -370,6 +405,42 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [localApproval, setLocalApproval] = useState(receipt.approval_status ?? 'submitted');
 
+  // Comments State
+  const [commentText, setCommentText] = useState('');
+  const [comments, setComments] = useState<{ id: string; comment: string; created_at: string; user_id?: string; user?: { email: string } }[]>([]);
+  const [commentLoading, setCommentLoading] = useState(false);
+
+  React.useEffect(() => {
+    fetch(`/api/receipts/comments?receiptId=${receipt.id}`)
+      .then(res => res.json())
+      .then(data => { if (data.data) setComments(data.data) })
+      .catch(console.error);
+  }, [receipt.id]);
+
+  async function handlePostComment() {
+    if (!commentText.trim()) return;
+    setCommentLoading(true);
+    try {
+      const res = await fetch('/api/receipts/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receiptId: receipt.id, comment: commentText })
+      });
+      if (res.ok) {
+        setCommentText('');
+        const { data } = await res.json();
+        setComments(prev => [...prev, data]);
+        
+        // Also set status to needs_clarification if Accountant
+        if (role === 'Accountant' && localApproval !== 'needs_clarification') {
+          handleApproval('needs_clarification' as 'approved' | 'rejected'); // cast for now if type doesn't support it
+        }
+      }
+    } finally {
+      setCommentLoading(false);
+    }
+  }
+
   const approval = approvalBadge(localApproval);
   const needsReimburse = receipt.paid_by === 'employee_cash';
   const reimburse = needsReimburse ? reimbursementBadge(receipt.reimbursement_status) : null;
@@ -386,8 +457,7 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
         user.id,
         needsReimburse,
         receipt.vendor_name || 'Unknown',
-        receipt.transaction_date || '',
-        role
+        receipt.transaction_date || ''
       );
 
       setLocalApproval(status);
@@ -408,8 +478,6 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { updateReceipt } = await import('@/lib/services/receipts');
-      
       await updateReceipt(receipt.id, {
         vendor_name: vendorName,
         vendor_tax_number: vendorTaxNumber,
@@ -528,61 +596,100 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
 
           <div className="grid gap-6 sm:grid-cols-2">
             {/* AI Context Card */}
-            <Card className="rounded-[2rem] border-glass-border bg-surface p-6">
-              <div className="flex items-center gap-3 mb-4 text-xs font-black uppercase tracking-widest text-text-muted">
-                <BrainCircuit className="h-4 w-4 text-champagne" />
+            <Card className="rounded-xl border bg-card p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-4 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                <BrainCircuit className="h-4 w-4 text-primary" />
                 AI Analysis
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-text-primary">Confidence Score</span>
-                <span className={cn("text-xl font-black tabular-nums", tone.label.includes('High') ? 'text-emerald-light' : 'text-amber-400')}>
+                <span className="text-sm font-bold">Confidence Score</span>
+                <span className={cn("text-xl font-bold tabular-nums", tone.label.includes('High') ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500')}>
                   {score}%
                 </span>
               </div>
-              <div className="mt-4 h-2 w-full bg-glass-border rounded-full overflow-hidden">
+              <div className="mt-4 h-2 w-full bg-muted rounded-full overflow-hidden">
                 <motion.div 
                   initial={{ width: 0 }}
                   animate={{ width: `${score}%` }}
-                  className={cn("h-full", tone.label.includes('High') ? 'bg-emerald-light' : 'bg-amber-400')}
+                  className={cn("h-full", tone.label.includes('High') ? 'bg-emerald-500' : 'bg-amber-500')}
                 />
               </div>
             </Card>
 
             {/* Total Card */}
-            <Card className="rounded-[2rem] border-glass-border bg-champagne p-6">
-              <div className="flex items-center gap-3 mb-4 text-xs font-black uppercase tracking-widest text-obsidian/60">
+            <Card className="rounded-xl border bg-primary/10 p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-4 text-xs font-bold uppercase tracking-widest text-primary/80">
                 <DollarSign className="h-4 w-4" />
                 Gross Total
               </div>
-              <p className="text-4xl font-black text-obsidian tracking-tighter tabular-nums">
+              <p className="text-4xl font-bold tracking-tight tabular-nums text-primary">
                 {formatCurrency(toNumber(receipt.total_amount), receipt.currency ?? 'CAD')}
               </p>
             </Card>
           </div>
 
           {/* Audit Data Fields */}
-          <Card className="rounded-[3rem] border-glass-border bg-surface/50 overflow-hidden shadow-sm">
-            <div className="border-b border-glass-border bg-surface-raised px-6 py-4">
-              <p className="text-xs font-black uppercase tracking-widest text-text-muted">Compliance Records</p>
+          <Card className="rounded-xl border bg-card overflow-hidden shadow-sm">
+            <div className="border-b bg-muted/20 px-6 py-4">
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Compliance Records</p>
             </div>
-            <div className="grid gap-x-8 gap-y-6 p-8 sm:grid-cols-2">
+            <div className="grid gap-x-8 gap-y-6 p-6 sm:grid-cols-2">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1">Vendor Entity</p>
-                <p className="text-sm font-bold text-text-primary">{vendorName || '—'}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Vendor Entity</p>
+                <p className="text-sm font-bold">{vendorName || '—'}</p>
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1">Tax Identification (BN)</p>
-                <p className="text-sm font-bold text-text-primary">{vendorTaxNumber || '—'}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Tax Identification (BN)</p>
+                <p className="text-sm font-bold">{vendorTaxNumber || '—'}</p>
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1">Transaction Node</p>
-                <p className="text-sm font-bold text-text-primary">{formatDate(transactionDate)}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Transaction Date</p>
+                <p className="text-sm font-bold">{formatDate(transactionDate)}</p>
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1">Ledger Category</p>
-                <Badge variant="outline" className={cn("mt-1 rounded-full px-3 py-1 font-black uppercase tracking-widest", categoryColor(category))}>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Ledger Category</p>
+                <Badge variant="outline" className={cn("mt-1 rounded-full px-3 py-1 font-bold uppercase tracking-widest", categoryColor(category))}>
                   {category}
                 </Badge>
+              </div>
+            </div>
+          </Card>
+
+          {/* Clarification Comments Section */}
+          <Card className="rounded-xl border bg-card overflow-hidden shadow-sm">
+            <div className="border-b bg-muted/20 px-6 py-4 flex items-center gap-3">
+              <MessageSquare className="h-4 w-4 text-primary" />
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Clarification & Comments</p>
+            </div>
+            <div className="p-6 flex flex-col gap-4">
+              <div className="space-y-4 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                {comments.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">No comments yet.</p>
+                ) : (
+                  comments.map(c => (
+                    <div key={c.id} className="rounded-lg bg-muted/30 p-3 text-sm">
+                      <p className="text-xs font-bold text-muted-foreground mb-1">{c.user?.email || 'User'} <span className="font-normal opacity-70 ml-2">{new Date(c.created_at).toLocaleString()}</span></p>
+                      <p>{c.comment}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="text"
+                  placeholder="Ask for clarification or add a note..."
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handlePostComment()}
+                  className="flex-1 rounded-lg border bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
+                />
+                <Button
+                  onClick={handlePostComment}
+                  disabled={commentLoading || !commentText.trim()}
+                  size="icon"
+                >
+                  {commentLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                </Button>
               </div>
             </div>
           </Card>

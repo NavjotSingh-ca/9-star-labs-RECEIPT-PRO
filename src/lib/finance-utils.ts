@@ -4,6 +4,14 @@
 import { dinero, add, equal, toDecimal, CAD } from 'dinero.js';
 
 /**
+ * Safely converts a float dollar amount to integer cents, avoiding floating-point edge cases.
+ * Uses Number.EPSILON to handle values like 1.005 where x*100 produces 100.4999 instead of 100.5.
+ */
+function floatToCents(amount: number): number {
+  return Math.round((amount + Number.EPSILON) * 100);
+}
+
+/**
  * Safely converts a float dollar amount into a Dinero v2 object (integer cents).
  * Uses the proper CAD currency object (not a string).
  */
@@ -14,8 +22,8 @@ export function toDinero(amount: number | string | null | undefined) {
   const parsed = typeof amount === 'string' ? parseFloat(amount) : amount;
   if (isNaN(parsed)) return dinero({ amount: 0, currency: CAD });
 
-  // Convert float to smallest unit (cents)
-  return dinero({ amount: Math.round(parsed * 100), currency: CAD });
+  // C9: Use safe float-to-cents conversion
+  return dinero({ amount: floatToCents(parsed), currency: CAD });
 }
 
 /**

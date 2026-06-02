@@ -4,9 +4,10 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, Loader2, Plus, Trash2, Briefcase, X } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getProjects, createProject, deleteProject, getReceipts } from '@/lib/services/receipts';
-import type { Project, ReceiptRow } from '@/lib/types';
-import { formatCurrency, toNumber } from '@/lib/ui-utils';
+import { getProjects, createProject, deleteProject } from '@/lib/services/receipts';
+import { supabase } from '@/lib/supabase';
+import type { Project } from '@/lib/types';
+import { formatCurrency } from '@/lib/ui-utils';
 import { cn } from '@/lib/utils';
 
 export default function ProjectManager() {
@@ -22,20 +23,17 @@ export default function ProjectManager() {
     queryFn: getProjects,
   });
 
-  const { data: receipts = [] } = useQuery({
-    queryKey: ['receipts_all'], // Fetch all for budgeting (or could use summary rpc)
-    queryFn: () => getReceipts('Owner', undefined, 5000), // High limit for budget calc
+  const { data: actuals = [], isLoading: isLoadingActuals } = useQuery({
+    queryKey: ['project_actuals'],
+    queryFn: async () => {
+      const { data: orgData } = await supabase.rpc('get_user_org');
+      const orgId = orgData as unknown as string;
+      if (!orgId) return [];
+      const { data, error } = await supabase.rpc('get_project_actuals', { p_org_id: orgId });
+      if (error) throw error;
+      return data;
+    },
   });
-
-  const projectSpendMap = useMemo(() => {
-    const map = new Map<string, number>();
-    receipts.forEach((r: ReceiptRow) => {
-      if (r.project_id) {
-        map.set(r.project_id, (map.get(r.project_id) ?? 0) + toNumber(r.total_amount));
-      }
-    });
-    return map;
-  }, [receipts]);
 
   const createMutation = useMutation({
     mutationFn: () => createProject(name.trim(), code.trim() || undefined, parseFloat(budget) || undefined),
@@ -69,7 +67,7 @@ export default function ProjectManager() {
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-champagne">Jobs & Sites</p>
         <h2 className="mt-1 text-2xl font-bold tracking-tight text-text-primary">Project Portfolio</h2>
         <p className="mt-1 text-sm text-text-secondary">
-          Track project-wise spend against allocated budgets for construction sites.
+          Track project-wise spend against allocated budgets for jobs and sites.
         </p>
       </div>
 
@@ -138,7 +136,7 @@ export default function ProjectManager() {
 
       {/* Project list */}
       <div className="grid gap-4">
-        {isLoading ? (
+        {isLoading || isLoadingActuals ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-champagne" />
           </div>
@@ -150,10 +148,11 @@ export default function ProjectManager() {
         ) : (
           <AnimatePresence mode="popLayout">
             {projects.map((p: Project) => {
-              const spend = projectSpendMap.get(p.id) || 0;
-              const budget = p.budget_amount || 0;
-              const percent = budget > 0 ? Math.min((spend / budget) * 100, 100) : 0;
-              const isOver = budget > 0 && spend > budget;
+              const actual = actuals.find((a: { project_id: string; total_spent: number }) => a.project_id === p.id);
+              const spend = actual ? Number(actual.total_spent) : 0;
+              const projectBudget = p.budget_amount || 0;
+              const percent = projectBudget > 0 ? Math.min((spend / projectBudget) * 100, 100) : 0;
+              const isOver = projectBudget > 0 && spend > projectBudget;
 
               return (
                 <motion.div
@@ -185,10 +184,10 @@ export default function ProjectManager() {
                         <div>
                           <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mb-1">Budget</p>
                           <p className="text-sm font-bold text-text-secondary">
-                            {budget > 0 ? formatCurrency(budget) : '—'}
+                            {projectBudget > 0 ? formatCurrency(projectBudget) : '—'}
                           </p>
                         </div>
-                        {budget > 0 && (
+                        {projectBudget > 0 && (
                           <div className="col-span-2">
                             <div className="flex justify-between items-center mb-1.5">
                               <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Utilization</p>
@@ -262,7 +261,7 @@ export default function ProjectManager() {
               <div className="mt-6 flex justify-end gap-3">
                 <button
                   onClick={() => setDeleteConfirm(null)}
-                  className="rounded-2rem border border-glass-border bg-surface-raised px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-surface"
+                  className="rounded-[2rem] border border-glass-border bg-surface-raised px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-surface"
                 >
                   Cancel
                 </button>
@@ -272,7 +271,7 @@ export default function ProjectManager() {
                     setDeleteConfirm(null);
                   }}
                   disabled={deleteMutation.isPending}
-                  className="rounded-2rem bg-red-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-600 disabled:opacity-50"
+                  className="rounded-[2rem] bg-red-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-600 disabled:opacity-50"
                 >
                   {deleteMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

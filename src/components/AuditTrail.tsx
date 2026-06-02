@@ -24,8 +24,8 @@ function getActionMeta(action?: string) {
     return {
       label: 'Export',
       icon: <Download className="h-4 w-4" />,
-      pill: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
-      iconWrap: 'bg-blue-500/15 text-blue-400',
+      pill: 'bg-champagne/15 text-champagne border-champagne/20',
+      iconWrap: 'bg-champagne/15 text-champagne',
     };
   }
 
@@ -65,8 +65,8 @@ function getActionMeta(action?: string) {
     return {
       label: 'View',
       icon: <Eye className="h-4 w-4" />,
-      pill: 'bg-violet-500/15 text-violet-400 border-violet-500/20',
-      iconWrap: 'bg-violet-500/15 text-violet-400',
+      pill: 'bg-champagne/15 text-champagne border-champagne/20',
+      iconWrap: 'bg-champagne/15 text-champagne',
     };
   }
 

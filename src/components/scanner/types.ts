@@ -158,6 +158,8 @@ export interface ScannerFormProps {
   saving: boolean;
   onSave: () => void;
   hasAnalyzed?: boolean;
+  vendorPrefillSource?: 'history' | null;
+  onDismissPrefill?: () => void;
 }
 
 export interface CameraEngineProps {

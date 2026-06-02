@@ -1,15 +1,11 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { env } from '@/lib/env';
+import { supabaseAdmin } from '@/lib/supabase-admin';
+import { encryptToken, decryptToken } from '@/lib/encryption';
 
-const QBO_CLIENT_ID = process.env.QBO_CLIENT_ID || '';
-const QBO_CLIENT_SECRET = process.env.QBO_CLIENT_SECRET || '';
+const QBO_CLIENT_ID = env.QBO_CLIENT_ID || '';
+const QBO_CLIENT_SECRET = env.QBO_CLIENT_SECRET || '';
 const QBO_REDIRECT_URI = `${env.NEXT_PUBLIC_SITE_URL}/api/qbo/callback`;
-
-const supabaseAdmin = createClient(
-  env.NEXT_PUBLIC_SUPABASE_URL!,
-  env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export async function GET(request: Request) {
   try {
@@ -34,12 +30,24 @@ export async function GET(request: Request) {
     // Find org by state
     const { data: settingsData } = await supabaseAdmin
       .from('organization_settings')
-      .select('org_id, qbo_auth_state, qbo_auth_nonce')
+      .select('org_id, qbo_auth_state, qbo_auth_nonce, qbo_auth_started_at')
       .eq('qbo_auth_state', state)
       .single();
 
     if (!settingsData) {
       return NextResponse.redirect(`${env.NEXT_PUBLIC_SITE_URL}/settings/org?qbo_error=invalid_state`);
+    }
+
+    // MED-5 / CRIT-6: Validate OAuth state expiry (10 minute window)
+    if (settingsData.qbo_auth_started_at) {
+      const startedAt = new Date(settingsData.qbo_auth_started_at).getTime();
+      const tenMinutesMs = 10 * 60 * 1000;
+      if (Date.now() - startedAt > tenMinutesMs) {
+        return NextResponse.redirect(`${env.NEXT_PUBLIC_SITE_URL}/settings/org?qbo_error=state_expired`);
+      }
+    } else {
+      // If no started_at timestamp, reject as potentially replayed
+      return NextResponse.redirect(`${env.NEXT_PUBLIC_SITE_URL}/settings/org?qbo_error=state_expired`);
     }
 
     const orgId = settingsData.org_id;
@@ -68,13 +76,13 @@ export async function GET(request: Request) {
     const tokenData = await tokenResponse.json();
     const { access_token, refresh_token, expires_in } = tokenData;
 
-    // Store tokens securely (encrypted in the future, for now stored as-is with RLS)
+    // CRIT-6: Encrypt tokens before storing
     await supabaseAdmin
       .from('organization_settings')
       .update({
-        qbo_refresh_token: refresh_token,
+        qbo_refresh_token: encryptToken(refresh_token),
         qbo_realm_id: realmId,
-        qbo_access_token: access_token, // Temporary, should be refreshed
+        qbo_access_token: encryptToken(access_token),
         qbo_token_expires_at: new Date(Date.now() + expires_in * 1000).toISOString(),
         qbo_connected_at: new Date().toISOString(),
         qbo_auth_state: null,

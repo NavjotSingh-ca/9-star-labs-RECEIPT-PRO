@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import type { Plan, PlanGates, Subscription } from '@/lib/services/subscription';
 import { getSubscription, getPlan, getPlanGates, getUsageCount, getTeamSize, checkLimit, formatPlanLabel } from '@/lib/services/subscription';
 
@@ -24,36 +24,39 @@ export function usePlan(): PlanInfo {
   const [teamSize, setTeamSize] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const sub = await getSubscription();
-      setSubscription(sub);
-      const p = await getPlan();
-      setPlan(p);
-
-      // Get current billing period dates
-      const now = new Date();
-      const fromDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      const toDate = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
-
-      const [usage, users] = await Promise.all([
-        getUsageCount(fromDate, toDate),
-        getTeamSize(),
-      ]);
-
-      setReceiptCount(usage);
-      setTeamSize(users);
-    } catch (err) {
-      console.error('usePlan: failed to load', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
+    let active = true;
+    async function load() {
+      setIsLoading(true);
+      try {
+        const sub = await getSubscription();
+        if (!active) return;
+        setSubscription(sub);
+        const p = await getPlan();
+        if (!active) return;
+        setPlan(p);
+
+        const now = new Date();
+        const fromDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const toDate = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+
+        const [usage, users] = await Promise.all([
+          getUsageCount(fromDate, toDate),
+          getTeamSize(),
+        ]);
+        if (!active) return;
+
+        setReceiptCount(usage);
+        setTeamSize(users);
+      } catch (err) {
+        console.error('usePlan: failed to load', err);
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    }
     load();
-  }, [load]);
+    return () => { active = false; };
+  }, []);
 
   const gates = getPlanGates(plan);
   const canScan = checkLimit(plan, receiptCount, 'receipt');

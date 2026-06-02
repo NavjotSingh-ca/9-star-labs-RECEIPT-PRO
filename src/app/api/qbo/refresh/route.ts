@@ -1,14 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { env } from '@/lib/env';
+import { supabaseAdmin } from '@/lib/supabase-admin';
+import { decryptToken, encryptToken } from '@/lib/encryption';
 
-const QBO_CLIENT_ID = process.env.QBO_CLIENT_ID || '';
-const QBO_CLIENT_SECRET = process.env.QBO_CLIENT_SECRET || '';
-
-const supabaseAdmin = createClient(
-  env.NEXT_PUBLIC_SUPABASE_URL!,
-  env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const QBO_CLIENT_ID = env.QBO_CLIENT_ID || '';
+const QBO_CLIENT_SECRET = env.QBO_CLIENT_SECRET || '';
 
 export async function POST(request: Request) {
   try {
@@ -45,10 +41,13 @@ export async function POST(request: Request) {
       .eq('org_id', orgId)
       .single();
 
-    const refreshToken = settings?.qbo_refresh_token;
-    if (!refreshToken) {
+    const encryptedRefreshToken = settings?.qbo_refresh_token;
+    if (!encryptedRefreshToken) {
       return NextResponse.json({ error: 'QBO not connected' }, { status: 400 });
     }
+
+    // C7: Decrypt the stored token before sending to Intuit
+    const refreshToken = decryptToken(encryptedRefreshToken);
 
     // Refresh the token
     const tokenUrl = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer';
@@ -77,8 +76,8 @@ export async function POST(request: Request) {
     await supabaseAdmin
       .from('organization_settings')
       .update({
-        qbo_access_token: access_token,
-        qbo_refresh_token: newRefreshToken || refreshToken, // Use new if provided, else keep old
+        qbo_access_token: encryptToken(access_token),
+        qbo_refresh_token: encryptToken(newRefreshToken || refreshToken),
         qbo_token_expires_at: new Date(Date.now() + expires_in * 1000).toISOString(),
         updated_at: new Date().toISOString(),
       })
@@ -86,8 +85,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Refresh failed';
     console.error('[QBO Refresh]', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Token refresh failed' }, { status: 500 });
   }
 }

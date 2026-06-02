@@ -1,18 +1,13 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { env } from '@/lib/env';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 const stripe = env.STRIPE_SECRET_KEY
-  ? new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2026-04-22.dahlia' as any })
+  ? new Stripe(env.STRIPE_SECRET_KEY)
   : null;
 
 const webhookSecret = env.STRIPE_WEBHOOK_SECRET;
-
-const supabaseAdmin = createClient(
-  env.NEXT_PUBLIC_SUPABASE_URL!,
-  env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export async function POST(request: Request) {
   try {
@@ -31,7 +26,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: msg }, { status: 400 });
     }
 
+    // MED-7: Idempotency — check if we already processed this event
+    const { data: existingEvent } = await supabaseAdmin
+      .from('processed_webhook_events')
+      .select('id')
+      .eq('event_id', event.id)
+      .single();
+
+    if (existingEvent) {
+      return NextResponse.json({ received: true }); // Already processed
+    }
+
     const subscription = event.data.object as Stripe.Subscription;
+    const subAny = subscription as unknown as Record<string, unknown>;
     const orgId = subscription.metadata?.org_id;
     const plan = (subscription.metadata?.plan as 'free' | 'pro' | 'enterprise') || 'pro';
 
@@ -56,8 +63,8 @@ export async function POST(request: Request) {
             status: 'active',
             receipt_limit: plan === 'pro' ? 999999 : 50,
             user_limit: plan === 'pro' ? 5 : 1,
-            current_period_end: (subscription as any).current_period_end
-              ? new Date((subscription as any).current_period_end * 1000).toISOString()
+            current_period_end: subAny.current_period_end
+              ? new Date((subAny.current_period_end as number) * 1000).toISOString()
               : null,
             updated_at: new Date().toISOString(),
           }, { onConflict: 'org_id' });
@@ -69,8 +76,8 @@ export async function POST(request: Request) {
           .from('subscriptions')
           .update({
             status: 'active',
-            current_period_end: (subscription as any).current_period_end
-              ? new Date((subscription as any).current_period_end * 1000).toISOString()
+            current_period_end: subAny.current_period_end
+              ? new Date((subAny.current_period_end as number) * 1000).toISOString()
               : null,
             updated_at: new Date().toISOString(),
           })
@@ -89,8 +96,8 @@ export async function POST(request: Request) {
           .from('subscriptions')
           .update({
             status,
-            current_period_end: (subscription as any).current_period_end
-              ? new Date((subscription as any).current_period_end * 1000).toISOString()
+            current_period_end: subAny.current_period_end
+              ? new Date((subAny.current_period_end as number) * 1000).toISOString()
               : null,
             updated_at: new Date().toISOString(),
           })
@@ -117,10 +124,18 @@ export async function POST(request: Request) {
         console.log(`[Stripe Webhook] Unhandled event: ${event.type}`);
     }
 
+    // MED-7: Record processed event for idempotency
+    try {
+      await supabaseAdmin
+        .from('processed_webhook_events')
+        .insert({ event_id: event.id, event_type: event.type });
+    } catch (err) {
+      console.error('[Stripe Webhook] Failed to record idempotency entry — duplicate events may be processed:', err);
+    }
+
     return NextResponse.json({ received: true });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Webhook processing failed';
     console.error('[Stripe Webhook]', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }

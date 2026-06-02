@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase, getOrgIdString } from '@/lib/supabase';
 import { withRetry } from '@/lib/supabase-error-handler';
 
 export type Plan = 'free' | 'pro' | 'enterprise';
@@ -73,8 +73,7 @@ export const PLAN_GATES: Record<Plan, PlanGates> = {
 
 export async function getSubscription(): Promise<Subscription | null> {
   try {
-    const { data: orgData } = await supabase.rpc('get_user_org');
-    const orgId = orgData as unknown as string;
+    const orgId = await getOrgIdString();
     if (!orgId) return null;
 
     const { data, error } = await withRetry(
@@ -121,8 +120,7 @@ export function getPlanGates(plan: Plan): PlanGates {
 
 export async function getUsageCount(fromDate: string, toDate: string): Promise<number> {
   try {
-    const { data: orgData } = await supabase.rpc('get_user_org');
-    const orgId = orgData as unknown as string;
+    const orgId = await getOrgIdString();
     if (!orgId) return 0;
 
     const { count, error } = await supabase
@@ -146,8 +144,7 @@ export async function getUsageCount(fromDate: string, toDate: string): Promise<n
 
 export async function getTeamSize(): Promise<number> {
   try {
-    const { data: orgData } = await supabase.rpc('get_user_org');
-    const orgId = orgData as unknown as string;
+    const orgId = await getOrgIdString();
     if (!orgId) return 0;
 
     const { count, error } = await supabase

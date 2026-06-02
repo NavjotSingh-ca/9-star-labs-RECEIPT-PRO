@@ -1,15 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { env } from '@/lib/env';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import crypto from 'crypto';
 
-const QBO_CLIENT_ID = process.env.QBO_CLIENT_ID || '';
+const QBO_CLIENT_ID = env.QBO_CLIENT_ID || '';
 const QBO_REDIRECT_URI = `${env.NEXT_PUBLIC_SITE_URL}/api/qbo/callback`;
-
-const supabaseAdmin = createClient(
-  env.NEXT_PUBLIC_SUPABASE_URL!,
-  env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export async function GET(request: Request) {
   try {

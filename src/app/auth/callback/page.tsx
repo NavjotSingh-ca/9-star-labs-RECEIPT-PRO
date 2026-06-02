@@ -74,21 +74,21 @@ export default function AuthCallback() {
   );
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Set New Password</h1>
+    <div className="flex min-h-screen items-center justify-center bg-obsidian p-4">
+      <div className="w-full max-w-md rounded-[3rem] border border-glass-border bg-surface p-8 shadow-2xl">
+        <h1 className="text-2xl font-bold text-text-primary mb-6">Set New Password</h1>
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
         <input
           type="password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
-          placeholder="New password (min 6 characters)"
-          className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm mb-4 outline-none focus:border-blue-500"
+          placeholder="New password (min 8 characters)"
+          className="w-full rounded-[2rem] border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary placeholder:text-text-muted mb-4 outline-none focus:border-champagne/40 focus:ring-2 focus:ring-champagne/15"
         />
         <button
           onClick={handlePasswordReset}
           disabled={loading}
-          className="w-full rounded-xl bg-blue-600 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+          className="w-full rounded-[2rem] bg-champagne hover:bg-champagne-dim py-3 text-sm font-bold text-obsidian transition disabled:opacity-50"
         >
           {loading ? 'Updating...' : 'Update Password'}
         </button>

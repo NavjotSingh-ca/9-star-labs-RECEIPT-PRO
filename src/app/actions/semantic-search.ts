@@ -3,10 +3,11 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { env } from '@/lib/env';
 
-const apiKey = process.env.GOOGLE_AI_KEY;
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const apiKey = env.GOOGLE_AI_KEY;
+const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export async function semanticSearchAction(query: string) {
   if (!apiKey) {
@@ -49,9 +50,6 @@ export async function semanticSearchAction(query: string) {
   });
 
   if (error) {
-    // If the RPC call fails due to missing p_org_id parameter, log it but don't block
-    // TODO: Add p_org_id parameter to match_receipts SQL function for proper tenant isolation
-    console.warn('Semantic search may not have org_id filtering:', error.message);
     throw new Error(`Semantic search failed: ${error.message}`);
   }
 

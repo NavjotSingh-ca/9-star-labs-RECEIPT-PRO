@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabase } from '@/lib/supabase';
 
 export async function GET() {
   try {
     // Ping Supabase to keep the free-tier database from pausing
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = getSupabase();
 
     const start = Date.now();
     const { error } = await supabase
@@ -21,13 +18,12 @@ export async function GET() {
       status: error ? 'degraded' : 'ok',
       timestamp: new Date().toISOString(),
       db_latency_ms: latency,
-      error: error?.message ?? null,
     });
   } catch (err: unknown) {
+    console.error('[Health]', err);
     return NextResponse.json({
       status: 'error',
       timestamp: new Date().toISOString(),
-      error: err instanceof Error ? err.message : 'Unknown error',
     }, { status: 500 });
   }
 }

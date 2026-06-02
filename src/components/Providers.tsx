@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
+import { MotionConfig } from 'framer-motion';
 import { ThemeProvider } from './ThemeProvider';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -32,12 +33,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="light"
-        enableSystem={false}
-      >
-        {children}
+      <ThemeProvider>
+        <MotionConfig reducedMotion="user">
+          {children}
+        </MotionConfig>
       </ThemeProvider>
     </QueryClientProvider>
   );

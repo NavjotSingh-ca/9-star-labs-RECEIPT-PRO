@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle, CheckCircle2, DollarSign, FileText, Hash, Plus, Trash2, Info, Loader2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, DollarSign, FileText, Hash, Plus, Trash2, Info, Loader2, Gauge, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 import type { ReceiptForm, ReceiptLineItem, ScannerFormProps } from './types';
@@ -11,13 +11,8 @@ import { CATEGORIES, PAYMENT_METHODS, USAGE_TYPES } from './types';
 import { shouldGlow, computeLiveCRAScore } from '@/lib/ui-utils';
 import { receiptFormSchema, ReceiptFormValues } from '@/lib/validations';
 import { isMathMismatch } from '@/lib/finance-utils';
-import { dinero, add, equal } from 'dinero.js';
-
-const CAD = {
-  code: 'CAD',
-  base: 10,
-  exponent: 2,
-};
+import { dinero, add, equal, CAD } from 'dinero.js';
+import { usePlan } from '@/hooks/use-plan';
 
 const inputCls =
   'w-full rounded-[2rem] border border-glass-border bg-surface-raised px-3 py-2.5 text-sm text-text-primary outline-none transition placeholder:text-text-muted focus:border-champagne/40 focus:ring-2 focus:ring-champagne/15';
@@ -55,7 +50,9 @@ function CRAScoreRing({ score }: { score: number }) {
   const color = craScoreColor(score);
 
   return (
-    <svg width="88" height="88" viewBox="0 0 88 88" className="flex-shrink-0">
+    <svg width="88" height="88" viewBox="0 0 88 88" className="flex-shrink-0"
+      aria-label={`CRA Readiness Score: ${score} out of 100`} role="img">
+      <title>{`CRA Readiness Score: ${score}/100`}</title>
       <circle cx="44" cy="44" r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
       <motion.circle
         cx="44" cy="44" r={radius} fill="none" stroke={color} strokeWidth="8"
@@ -66,10 +63,55 @@ function CRAScoreRing({ score }: { score: number }) {
         strokeLinecap="round"
         transform="rotate(-90 44 44)"
       />
-      <text x="44" y="49" textAnchor="middle" fill={color} fontSize="14" fontWeight="800">
+      <text x="44" y="49" textAnchor="middle" fill={color} fontSize="14" fontWeight="800" aria-hidden="true">
         {score}
       </text>
     </svg>
+  );
+}
+
+/* ─── Receipt Quota Counter ─── */
+function QuotaBar() {
+  const { plan, receiptCount, isLoading } = usePlan();
+  const limit = plan === 'free' ? 50 : plan === 'pro' ? Infinity : Infinity;
+  
+  if (isLoading || limit === Infinity) return null; // Don't show for unlimited plans
+  
+  const pct = Math.min((receiptCount / limit) * 100, 100);
+  const remaining = Math.max(limit - receiptCount, 0);
+  
+  const barColor = pct >= 100 ? 'bg-red-500' : pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500';
+  const textColor = pct >= 100 ? 'text-red-400' : pct >= 80 ? 'text-amber-400' : 'text-emerald-400';
+  
+  return (
+    <div className="mx-4 mt-3 rounded-[2rem] border border-glass-border bg-surface-raised p-3">
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-2">
+          <Gauge className={`h-3.5 w-3.5 ${textColor}`} />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Monthly Quota</span>
+        </div>
+        <span className={`text-xs font-bold tabular-nums ${textColor}`}>
+          {receiptCount} / {limit}
+        </span>
+      </div>
+      <div className="h-2 rounded-full bg-glass-border overflow-hidden">
+        <motion.div
+          className={`h-full rounded-full ${barColor}`}
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+        />
+      </div>
+      {pct >= 100 ? (
+        <p className="mt-1.5 text-[10px] text-red-400 font-semibold">
+          Limit reached — upgrade to Pro for unlimited scans.
+        </p>
+      ) : pct >= 80 ? (
+        <p className="mt-1.5 text-[10px] text-amber-400 font-medium">
+          {remaining} receipt{remaining === 1 ? '' : 's'} remaining this month.
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -80,6 +122,8 @@ export default function ScannerForm({
   saving,
   onSave,
   hasAnalyzed,
+  vendorPrefillSource,
+  onDismissPrefill,
 }: ScannerFormProps & { hasAnalyzed?: boolean }) {
   const [isConfirmed, setIsConfirmed] = useState(false);
 
@@ -171,23 +215,47 @@ export default function ScannerForm({
       
       <form onSubmit={handleSubmit(performSave)} className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="p-4 border-b bg-surface-raised">
-          <h3 className="text-lg font-bold text-gray-900">Review Data</h3>
-          <p className="text-sm text-gray-500">Verify extracted details.</p>
+        <div className="p-4 border-b border-glass-border bg-surface-raised">
+          <h3 className="text-lg font-bold text-text-primary">Review Data</h3>
+          <p className="text-sm text-text-secondary">Verify extracted details.</p>
         </div>
+
+        {/* Receipt Quota Counter */}
+        <QuotaBar />
 
         {/* Form fields - scrollable */}
         <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-surface">
 
+      {/* Vendor Pre-Fill Banner */}
+      {vendorPrefillSource === 'history' && (
+        <div className="rounded-[2rem] border border-champagne/20 bg-champagne/[0.04] p-4 flex items-start gap-3">
+          <Sparkles className="h-4 w-4 text-champagne shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-bold text-champagne">Pre-filled from your history</p>
+            <p className="text-xs text-text-secondary mt-0.5">Category, job code, and business use % were set from your previous receipts for this vendor. Please confirm or adjust.</p>
+          </div>
+          <button onClick={onDismissPrefill} className="text-text-muted hover:text-text-primary text-xs font-medium shrink-0 mt-0.5">Dismiss</button>
+        </div>
+      )}
+
+      {/* FX Rate Display (non-CAD receipts) */}
+      {isNonCAD && (
+        <div className="rounded-[2rem] border border-champagne/15 bg-champagne/5 p-3">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-champagne mb-1">Auto Exchange Rate</p>
+          <p className="text-xs text-text-secondary">1 <span className="font-bold text-text-primary">{formData.currency}</span> ≈ <span className="font-bold text-emerald-light">${(formData.exchange_rate || 1).toFixed(4)}</span> CAD — fetched from Bank of Canada on save.</p>
+          <p className="text-[10px] text-text-muted mt-1">Final authoritative rate applied server-side for CRA compliance.</p>
+        </div>
+      )}
+
       {/* Warnings & Live Policy Guardrails */}
       <div className="space-y-3">
         {formData.document_type?.toLowerCase() === 'estimate' && (
-          <div className="rounded-[3rem] border border-blue-500/20 bg-blue-500/[0.06] px-4 py-3">
+          <div className="rounded-[3rem] border border-champagne/20 bg-champagne/10 px-4 py-3">
             <div className="flex items-start gap-3">
-              <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-400" />
+              <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-champagne" />
               <div>
-                <p className="text-sm font-bold text-blue-300">Notice: This is an Estimate</p>
-                <p className="mt-1 text-xs leading-relaxed text-blue-400/80">This is not a tax-deductible receipt yet. Ensure you receive a final invoice or receipt upon payment.</p>
+                <p className="text-sm font-bold text-champagne-dim">Notice: This is an Estimate</p>
+                <p className="mt-1 text-xs leading-relaxed text-champagne/80">This is not a tax-deductible receipt yet. Ensure you receive a final invoice or receipt upon payment.</p>
               </div>
             </div>
           </div>
@@ -219,12 +287,12 @@ export default function ScannerForm({
             </div>
           )}
           {isOutOfProvince && (
-            <div className="rounded-[3rem] border border-blue-500/20 bg-blue-500/[0.06] px-4 py-3">
+            <div className="rounded-[3rem] border border-champagne/20 bg-champagne/10 px-4 py-3">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-400" />
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-champagne" />
                 <div>
-                  <p className="text-sm font-bold text-blue-300">Out-of-Province Expense Detected</p>
-                  <p className="mt-1 text-xs leading-relaxed text-blue-400/80">Ensure proper PST/HST rates are applied for non-Alberta transactions.</p>
+                  <p className="text-sm font-bold text-champagne-dim">Out-of-Province Expense Detected</p>
+                  <p className="mt-1 text-xs leading-relaxed text-champagne/80">Ensure proper PST/HST rates are applied for non-Alberta transactions.</p>
                 </div>
               </div>
             </div>
@@ -457,8 +525,8 @@ export default function ScannerForm({
 
           {/* Multi-Currency Exchange Rate */}
           {isNonCAD && (
-            <div className="mt-4 rounded-[3rem] border border-blue-500/20 bg-blue-500/[0.06] p-4">
-              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-blue-400">Non-CAD Currency Detected: {formData.currency}</p>
+            <div className="mt-4 rounded-[3rem] border border-champagne/20 bg-champagne/10 p-4">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-champagne">Non-CAD Currency Detected: {formData.currency}</p>
               <div>
                 <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-muted">Exchange Rate to CAD</label>
                 <input type="number" step="0.0001" min="0" {...register('exchange_rate', { valueAsNumber: true })} className={inputCls} placeholder="1.0000" />
@@ -601,9 +669,9 @@ export default function ScannerForm({
     </div>
 
         {/* Buttons - sticky at bottom */}
-        <div className="sticky bottom-0 bg-surface border-t p-4 space-y-3 z-20">
+        <div className="sticky bottom-0 bg-surface border-t border-glass-border p-4 space-y-3 z-20">
           {!isMathValid && hasAnalyzed && (
-            <div className="flex items-center gap-2 rounded-[2rem] bg-red-50 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-red-600 border border-red-100">
+            <div className="flex items-center gap-2 rounded-[2rem] bg-red-500/10 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-red-400 border border-red-500/20">
               <AlertTriangle className="h-4 w-4" />
               Math Discrepancy
             </div>
@@ -614,17 +682,21 @@ export default function ScannerForm({
               type="button" 
               onClick={() => setIsConfirmed((v) => !v)} 
               className={`flex items-center gap-3 rounded-[2rem] border p-4 text-left transition ${
-                isConfirmed ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                isConfirmed
+                  ? 'border-emerald-light/40 bg-emerald-success/20'
+                  : 'border-glass-border bg-surface-raised hover:bg-surface-hover'
               }`}
             >
               <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-[2rem] border transition-all ${
-                isConfirmed ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white'
+                isConfirmed
+                  ? 'border-emerald-light bg-emerald-light text-obsidian'
+                  : 'border-glass-border bg-surface'
               }`}>
-                {isConfirmed && <CheckCircle2 className="h-4 w-4" />}
+                {isConfirmed && <CheckCircle2 className="h-4 w-4 text-obsidian" />}
               </div>
               <div>
-                <p className="text-sm font-bold text-gray-900">Confirm Accuracy</p>
-                <p className="text-[10px] uppercase tracking-widest text-gray-500">CRA Compliance Lock</p>
+                <p className="text-sm font-bold text-text-primary">Confirm Accuracy</p>
+                <p className="text-[10px] uppercase tracking-widest text-text-muted">CRA Compliance Lock</p>
               </div>
             </button>
 
@@ -632,7 +704,7 @@ export default function ScannerForm({
               <button 
                 type="submit" 
                 disabled={!canSave} 
-                className="w-full h-14 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-bold rounded-[2rem] flex items-center justify-center gap-2 transition shadow-lg"
+                className="w-full h-14 bg-champagne hover:bg-champagne-dim disabled:opacity-40 text-obsidian font-black uppercase tracking-widest rounded-[2rem] flex items-center justify-center gap-2 transition shadow-lg"
               >
                 {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
                 <span>{saving ? 'Saving...' : 'Save Receipt'}</span>

@@ -1,16 +1,11 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { env } from '@/lib/env';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 const stripe = env.STRIPE_SECRET_KEY
-  ? new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2026-04-22.dahlia' as any })
+  ? new Stripe(env.STRIPE_SECRET_KEY)
   : null;
-
-const supabaseAdmin = createClient(
-  env.NEXT_PUBLIC_SUPABASE_URL!,
-  env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export async function POST(request: Request) {
   try {
@@ -18,6 +13,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Stripe is not configured. Set STRIPE_SECRET_KEY in env.' }, { status: 503 });
     }
 
+    // MED-9: Require authenticated session (matches checkout route pattern)
     const authHeader = request.headers.get('authorization') || '';
     const token = authHeader.replace('Bearer ', '');
 
@@ -59,8 +55,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: session.url });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Portal session failed';
     console.error('[Stripe Portal]', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Portal session failed' }, { status: 500 });
   }
 }

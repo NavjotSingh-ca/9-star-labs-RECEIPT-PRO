@@ -4,12 +4,17 @@
 
 :root {
   /* ─── Light Mode (Default) ─── */
-  --obsidian: #fcfcfc;
+  --obsidian: #f5f5f4;
   --surface: #ffffff;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --foreground: #111827;
+  --muted: #f5f5f4;
+  --muted-foreground: #737373;
   --surface-raised: #f9fafb;
   --surface-hover: #f3f4f6;
-  --champagne: #8b7355;
-  --champagne-dim: #6b5a45;
+  --champagne: #7a6447;
+  --champagne-dim: #5e4c35;
   --champagne-glow: rgba(139, 115, 85, 0.08);
   --emerald-success: #0d4c3c;
   --emerald-light: #10b981;
@@ -22,27 +27,37 @@
   --warning: #f59e0b;
   --info: #3b82f6;
 
+  /* ─── Sidebar (always dark) ─── */
+  --sidebar-bg: #000000;
+  --sidebar-surface: #111111;
+  --sidebar-text: #ffffff;
+  --sidebar-text-secondary: #e4e4e7;
+  --sidebar-text-muted: #a1a1aa;
+  --sidebar-hover: rgba(255, 255, 255, 0.08);
+  --sidebar-active: rgba(190, 169, 142, 0.15);
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-accent: #bea98e;
+
   /* ─── Z-Index Scale ─── */
   --z-overlay: 100;
   --z-modal: 200;
   --z-toast: 300;
   --z-command: 400;
 
-  /* ─── Tremor Light Theme Overrides ─── */
-  --tremor-background-subtle: var(--surface-raised);
-  --tremor-border-default: var(--glass-border);
-  --tremor-content-default: var(--text-secondary);
-  --tremor-content-emphasis: var(--text-primary);
-  --tremor-content-strong: var(--text-primary);
 }
 
 .dark {
   /* ─── Obsidian Elegance (Dark Mode) ─── */
-  --obsidian: #0c0c0c;
-  --surface: #1a1a1a;
+  --obsidian: #18181b;
+  --surface: #1f1f23;
+  --card: #1a1a1a;
+  --card-foreground: #f0ede8;
+  --foreground: #f0ede8;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
   --surface-raised: #242424;
   --surface-hover: #2a2a2a;
-  --champagne: #bea98e;
+  --champagne: #cbb69b;
   --champagne-dim: #a0917b;
   --champagne-glow: rgba(190, 169, 142, 0.12);
   --emerald-success: #0d4c3c;
@@ -56,21 +71,24 @@
   --warning: #f59e0b;
   --info: #60a5fa;
 
-  /* ─── Tremor Dark Theme Overrides ─── */
-  --tremor-background-subtle: var(--surface-raised);
-  --tremor-border-default: var(--glass-border);
-  --tremor-content-default: var(--text-secondary);
-  --tremor-content-emphasis: var(--text-primary);
-  --tremor-content-strong: var(--text-primary);
 }
 
-@theme inline {
+@theme {
   --color-obsidian: var(--obsidian);
   --color-surface: var(--surface);
   --color-surface-raised: var(--surface-raised);
   --color-surface-hover: var(--surface-hover);
   --color-champagne: var(--champagne);
   --color-champagne-dim: var(--champagne-dim);
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-surface: var(--sidebar-surface);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-text-secondary: var(--sidebar-text-secondary);
+  --color-sidebar-text-muted: var(--sidebar-text-muted);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent: var(--sidebar-accent);
   --color-emerald-success: var(--emerald-success);
   --color-emerald-light: var(--emerald-light);
   --color-glass-border: var(--glass-border);
@@ -78,7 +96,18 @@
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-champagne-glow: var(--champagne-glow);
+  --color-glass-border: var(--glass-border);
+  --color-glass-border-hover: var(--glass-border-hover);
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --animate-marquee: marquee var(--duration) linear infinite;
   --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
   --animate-aurora: aurora 60s linear infinite;
@@ -97,6 +126,11 @@ body {
   color: var(--text-primary);
   font-family: var(--font-sans);
   letter-spacing: -0.01em;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+:root, .dark {
+  transition: color-scheme 0.3s ease;
 }
 
 /* ─── Tabular Numbers for Currency ─── */
@@ -117,12 +151,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--glass-border);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--glass-border-hover);
 }
 
 /* ─── Dark Inputs ─── */
@@ -180,6 +214,18 @@ body {
   );
   background-size: 200% 100%;
   animation: shimmer 1.8s ease-in-out infinite;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface) 25%,
+    var(--surface-raised) 50%,
+    var(--surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 0.375rem;
 }
 
 /* ─── Glowing Border Animation ─── */
@@ -291,4 +337,58 @@ body {
 /* ─── GPU Acceleration Hint ─── */
 .will-change-transform {
   will-change: transform, opacity;
+}
+
+/* ─── Scan Success Overlay ─── */
+
+@keyframes scanSuccessPop {
+  0% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+.scan-success-overlay {
+  animation: scanSuccessPop 600ms ease-out forwards;
+  pointer-events: none;
+}
+
+/* ─── Shimmer scan button ─── */
+@keyframes shimmerBtn {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer-scan {
+  background: linear-gradient(
+    110deg,
+    var(--emerald-success) 20%,
+    #1a6b54 50%,
+    var(--emerald-success) 80%
+  );
+  background-size: 200% 100%;
+}
+
+.shimmer-scan:hover {
+  animation: shimmerBtn 1.5s ease-in-out infinite;
+}
+
+/* ─── Focus ring ─── */
+*:focus-visible {
+  outline: 2px solid var(--champagne);
+  outline-offset: 2px;
+}
+
+/* ─── Hide scrollbar but keep scrolling ─── */
+.no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
+}
+
+/* ─── Sidebar responsive helpers ─── */
+.sidebar-content {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.08) transparent;
 }

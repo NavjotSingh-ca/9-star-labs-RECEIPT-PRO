@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { ShieldCheck, Loader2, KeyRound, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { AuroraBackground } from '@/components/aceternity/aurora-background';
+import { Loader2, KeyRound, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface MFAFactor {
   id: string;
@@ -97,19 +96,11 @@ export default function SecuritySettings() {
   }
 
   return (
-    <AuroraBackground>
-      <div className="relative mx-auto flex min-h-screen w-full max-w-4xl flex-col items-center justify-center px-4 py-10 z-10">
-        <div className="w-full rounded-3xl border border-glass-border bg-surface/80 p-8 shadow-2xl backdrop-blur-xl sm:p-12">
-          
-          <div className="mb-8 flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-[2rem] bg-emerald-500/15">
-              <ShieldCheck className="h-7 w-7 text-emerald-400" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-text-primary">Security Settings</h1>
-              <p className="text-sm text-text-secondary">Manage Multi-Factor Authentication (MFA)</p>
-            </div>
-          </div>
+    <>
+      <div className="mb-6">
+        <h1 className="text-xl font-bold tracking-tight text-text-primary">Security Settings</h1>
+        <p className="mt-1 text-sm text-text-secondary">Manage Multi-Factor Authentication (MFA)</p>
+      </div>
 
           {error && (
             <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20">
@@ -212,8 +203,6 @@ export default function SecuritySettings() {
 
             </div>
           )}
-        </div>
-      </div>
-    </AuroraBackground>
+    </>
   );
 }

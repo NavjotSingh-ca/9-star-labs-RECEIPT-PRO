@@ -119,8 +119,7 @@ export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) 
         userId,
         true,
         r?.vendor_name ?? 'Unknown',
-        r?.transaction_date ?? '',
-        role
+        r?.transaction_date ?? ''
       );
     },
     onSuccess: invalidate,

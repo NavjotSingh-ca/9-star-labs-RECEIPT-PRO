@@ -4,12 +4,13 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
+import { env } from '@/lib/env';
 import { logError, logInfo } from '@/lib/logger';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-// Input validation schemas
+// CRIT-5: Input validation schema — now enforced at function entry
 const scanReceiptInputSchema = z.object({
   base64Image: z.string().max(6_000_000, 'Image too large. Maximum 4MB after encoding.'),
   captureSource: z.enum(['camera', 'upload', 'screenshot', 'email_screenshot']).default('camera')
@@ -81,13 +82,13 @@ const VALID_CATEGORIES = [
 type ValidCategory = (typeof VALID_CATEGORIES)[number];
 
 const SMART_PURPOSE: Record<ValidCategory, string> = {
-  'Job Materials': 'Construction materials purchased for active job site',
-  'Subcontractors': 'Payment to subcontractor for contracted work on job site',
-  'Site Fuel': 'Fuel purchased for equipment or vehicles used on construction site',
-  'Equipment Rental': 'Equipment rental for construction project operations',
+  'Job Materials': 'Materials purchased for a specific job or project',
+  'Subcontractors': 'Payment to subcontractor for contracted work on a project',
+  'Site Fuel': 'Fuel purchased for equipment or vehicles',
+  'Equipment Rental': 'Equipment rental for project operations',
   'Small Tools': 'Small tools and consumables purchased for field operations',
   'Vehicle Maintenance': 'Vehicle maintenance and repair for company fleet',
-  'Travel/Lodging': 'Business travel and lodging expense for remote job site work',
+  'Travel/Lodging': 'Business travel and lodging expense',
   'Office/Admin': 'Office and administrative expense supporting business operations',
 };
 
@@ -208,7 +209,7 @@ function normalizeDate(raw: string): string {
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
 
   // Try common Canadian formats (MM/DD/YYYY or DD/MM/YYYY)
-  const mdy = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
+  const mdy = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
   if (mdy) {
     const [, m, d, y] = mdy;
     const year = y.length === 2 ? `20${y}` : y;
@@ -276,6 +277,29 @@ function validateProvinceTax(
   };
 }
 
+// LOW-9: Retry helper for Gemini API calls with exponential backoff
+async function withGeminiRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      lastError = err;
+      // Only retry on transient errors (5xx, timeout, rate limit)
+      const isRetryable = err instanceof Error && (
+        err.message.includes('503') ||
+        err.message.includes('429') ||
+        err.message.includes('500') ||
+        err.message.includes('ECONNRESET')
+      );
+      if (!isRetryable || attempt === maxRetries) throw err;
+      // Exponential backoff: 1s, 2s
+      await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+    }
+  }
+  throw lastError;
+}
+
 /** Run a second Gemini pass to self-correct math, dates, and BN format */
 async function selfCorrectExtraction(
   genAI: GoogleGenerativeAI,
@@ -299,9 +323,16 @@ Verify these rules and return ONLY a corrected JSON object:
 
 Return the corrected JSON only. Keep the same schema.`;
 
-    const result = await model.generateContent([validationPrompt]);
-    const corrected = parseSafely(result.response.text());
-    return corrected;
+    // HIGH-7: Add timeout to self-correction pass
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20_000);
+    try {
+      const result = await model.generateContent([validationPrompt], { signal: controller.signal } as any);
+      const corrected = parseSafely(result.response.text());
+      return corrected;
+    } finally {
+      clearTimeout(timeout);
+    }
   } catch {
     // If self-correction fails, return original data unchanged
     return firstPass;
@@ -311,127 +342,163 @@ Return the corrected JSON only. Keep the same schema.`;
 
 
 export async function scanReceipt(base64Image: string, captureSource: string = 'camera'): Promise<ScanReceiptResult> {
-  // Auth is verified client-side before calling this function
-  // Database RLS policies enforce security
+  // CRIT-5: Validate inputs using the schema before anything else
+  const parsed = scanReceiptInputSchema.safeParse({ base64Image, captureSource });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
+  }
+  const { base64Image: validImage, captureSource: validSource } = parsed.data;
 
-  if (!process.env.GOOGLE_AI_KEY) return { success: false, error: 'AI service not configured.' };
+  if (!env.GOOGLE_AI_KEY) return { success: false, error: 'AI service not configured.' };
 
-  // ─── Rate Limiting: max 10 scans per hour per user ───
+  // MED-3: Create a single Supabase client and reuse it
+  const cookieStore = await cookies();
+  const supabaseClient = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll: () => cookieStore.getAll(),
+      setAll: () => {},
+    },
+  });
+
+  const { data: authData } = await supabaseClient.auth.getUser();
+  if (!authData?.user) {
+    return { success: false, error: 'Authentication required.' };
+  }
+  const userId = authData.user.id;
+
+  // ─── HIGH-8: Rate Limiting by scan attempts, not saved receipts ───
+  // CRIT-4: Fail-closed — if rate limit check fails, block the scan
   try {
-    const cookieStore = await cookies();
-    const supabaseClient = createServerClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: () => {},
-      },
-    });
-    const { data: authData } = await supabaseClient.auth.getUser();
-    if (!authData?.user) {
-      return { success: false, error: 'Authentication required.' };
-    }
-    const userId = authData.user.id;
     const oneHourAgo = new Date(Date.now() - 3_600_000).toISOString();
     const { count } = await supabaseClient
-      .from('receipts')
+      .from('scan_attempts')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .gte('created_at', oneHourAgo);
+      .gte('attempted_at', oneHourAgo);
     if ((count ?? 0) >= 10) {
       return { success: false, error: 'Rate limit reached: max 10 scans per hour. Please wait.' };
     }
-  } catch {
-    // If rate limit check fails, allow the scan (don't block users on DB errors)
+  } catch (err) {
+    // CRIT-4: Fail-closed — block if rate limit check fails
+    // Fallback: try counting receipts if scan_attempts table doesn't exist yet
+    try {
+      const oneHourAgo = new Date(Date.now() - 3_600_000).toISOString();
+      const { count } = await supabaseClient
+        .from('receipts')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .gte('created_at', oneHourAgo);
+      if ((count ?? 0) >= 10) {
+        return { success: false, error: 'Rate limit reached: max 10 scans per hour. Please wait.' };
+      }
+    } catch {
+      logError(err, { action: 'rate_limit_check' });
+      return { success: false, error: 'Service temporarily unavailable. Please try again.' };
+    }
   }
 
   // ─── Plan Enforcement: check receipt limits ───
+  // CRIT-4: Fail-closed
   try {
-    const cookieStore = await cookies();
-    const supabaseClient = createServerClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: () => {},
-      },
-    });
-    const { data: authData } = await supabaseClient.auth.getUser();
-    if (authData?.user) {
-      const { data: roleData } = await supabaseClient
-        .from('user_roles')
-        .select('org_id')
-        .eq('user_id', authData.user.id)
+    const { data: roleData } = await supabaseClient
+      .from('user_roles')
+      .select('org_id')
+      .eq('user_id', userId)
+      .single();
+    const orgId = roleData?.org_id;
+    if (orgId) {
+      const { data: subData } = await supabaseClient
+        .from('subscriptions')
+        .select('plan, receipt_limit, status')
+        .eq('org_id', orgId)
         .single();
-      const orgId = roleData?.org_id;
-      if (orgId) {
-        const { data: subData } = await supabaseClient
-          .from('subscriptions')
-          .select('plan, receipt_limit, status')
+      const plan = (subData?.plan || 'free') as 'free' | 'pro' | 'enterprise';
+      const receiptLimit = typeof subData?.receipt_limit === 'number' ? subData.receipt_limit : 50;
+      if (plan === 'free' || receiptLimit !== 999999) {
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+        const { count: monthCount } = await supabaseClient
+          .from('receipts')
+          .select('*', { count: 'exact', head: true })
           .eq('org_id', orgId)
-          .single();
-        const plan = (subData?.plan || 'free') as 'free' | 'pro' | 'enterprise';
-        const receiptLimit = typeof subData?.receipt_limit === 'number' ? subData.receipt_limit : 50;
-        if (plan === 'free' || receiptLimit !== 999999) {
-          const now = new Date();
-          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-          const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
-          const { count: monthCount } = await supabaseClient
-            .from('receipts')
-            .select('*', { count: 'exact', head: true })
-            .eq('org_id', orgId)
-            .eq('is_deleted', false)
-            .gte('created_at', monthStart)
-            .lt('created_at', monthEnd);
-          if ((monthCount ?? 0) >= receiptLimit) {
-            return {
-              success: false,
-              error: `Receipt limit reached: ${receiptLimit} receipts per month on the ${plan} plan. Upgrade to continue scanning.`,
-            };
-          }
+          .eq('is_deleted', false)
+          .gte('created_at', monthStart)
+          .lt('created_at', monthEnd);
+        if ((monthCount ?? 0) >= receiptLimit) {
+          return {
+            success: false,
+            error: `Receipt limit reached: ${receiptLimit} receipts per month on the ${plan} plan. Upgrade to continue scanning.`,
+          };
         }
       }
     }
-  } catch {
-    // If plan enforcement check fails, allow the scan (don't block on DB errors)
+  } catch (err) {
+    // CRIT-4: Fail-closed — block if plan enforcement fails
+    logError(err, { action: 'plan_enforcement_check' });
+    return { success: false, error: 'Service temporarily unavailable. Please try again.' };
   }
 
-  if (base64Image.length > 6_000_000) {
-    return { success: false, error: 'Image too large. Maximum 4MB after encoding.' };
+  // HIGH-8: Record this scan attempt before calling Gemini (M1: use server-side auth userId, not client-supplied)
+  try {
+    await supabaseClient.from('scan_attempts').insert({ user_id: userId });
+  } catch {
+    // If scan_attempts table doesn't exist yet, continue — the rate limit still works via fallback
   }
-  
-  const payload = preparePayload(base64Image);
+
+  const payload = preparePayload(validImage);
 
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
+    const genAI = new GoogleGenerativeAI(env.GOOGLE_AI_KEY);
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
     });
 
-    const result = await model.generateContent([
-      buildPrompt(captureSource),
-      { inlineData: { data: payload.data, mimeType: payload.mimeType } },
-    ]);
+    // HIGH-7: Add timeout via AbortController — timeout is created per-retry inside wrapper
+    let result;
+    try {
+      result = await withGeminiRetry(async () => {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30_000);
+        try {
+          return await model.generateContent([
+            buildPrompt(validSource),
+            { inlineData: { data: payload.data, mimeType: payload.mimeType } },
+          ], { signal: controller.signal } as any);
+        } finally {
+          clearTimeout(timeout);
+        }
+      });
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return { success: false, error: 'Receipt scan timed out. Please try again.' };
+      }
+      throw err;
+    }
 
     const rawParsed = parseSafely(result.response.text());
 
     // AI Self-Correction Pass — only run if confidence is low (< 75) to save API quota
-    const parsed = (rawParsed.confidence_score && Number(rawParsed.confidence_score) < 75)
+    const finalParsed = (rawParsed.confidence_score && Number(rawParsed.confidence_score) < 75)
       ? await selfCorrectExtraction(genAI, rawParsed)
       : rawParsed;
 
     // Basic sanitize (condensed for Godmode build)
-    const vendor_name = toStr(parsed.vendor_name) || 'Unknown Vendor';
-    const subtotal = toNum(parsed.subtotal);
-    const tax_amount = toNum(parsed.tax_amount);
-    const pst_amount = toNum(parsed.pst_amount);
-    const total_amount = toNum(parsed.total_amount);
+    const vendor_name = toStr(finalParsed.vendor_name) || 'Unknown Vendor';
+    const subtotal = toNum(finalParsed.subtotal);
+    const tax_amount = toNum(finalParsed.tax_amount);
+    const pst_amount = toNum(finalParsed.pst_amount);
+    const total_amount = toNum(finalParsed.total_amount);
 
     // Province tax validation
-    const vendorAddr = toStr(parsed.vendor_address);
-    const { province, tax_warning } = validateProvinceTax(vendorAddr, subtotal, tax_amount, pst_amount);
+    const vendorAddr = toStr(finalParsed.vendor_address);
+    const { tax_warning } = validateProvinceTax(vendorAddr, subtotal, tax_amount, pst_amount);
 
     logInfo('Receipt scan completed successfully', {
       vendor_name: vendor_name,
       total_amount,
-      confidence_score: toNum(parsed.confidence_score) || 85
+      confidence_score: toNum(finalParsed.confidence_score) || 85
     });
 
     return {
@@ -439,44 +506,44 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
       data: {
         vendor_name,
         vendor_address: vendorAddr,
-        business_number: toStr(parsed.vendor_tax_number),
+        business_number: toStr(finalParsed.vendor_tax_number),
         total_amount,
         subtotal,
         tax_amount,
         pst_amount,
-        transaction_date: normalizeDate(toStr(parsed.transaction_date)),
-        transaction_time: toStr(parsed.transaction_time),
-        payment_method: toStr(parsed.payment_method),
-        payment_reference: toStr(parsed.payment_reference),
-        card_last_four: toStr(parsed.card_last_four).replace(/\D/g, '').slice(-4),
-        category: toStr(parsed.category),
-        notes: [SMART_PURPOSE[toStr(parsed.category) as ValidCategory] || '', tax_warning ? `⚠️ Tax Alert: ${tax_warning}` : ''].filter(Boolean).join(' — '),
-        currency: toStr(parsed.currency) || 'CAD',
-        confidence_score: toNum(parsed.confidence_score) || 85,
-                cra_readiness_score: computeCRAScoreForSave({
+        transaction_date: normalizeDate(toStr(finalParsed.transaction_date)),
+        transaction_time: toStr(finalParsed.transaction_time),
+        payment_method: toStr(finalParsed.payment_method),
+        payment_reference: toStr(finalParsed.payment_reference),
+        card_last_four: toStr(finalParsed.card_last_four).replace(/\D/g, '').slice(-4),
+        category: toStr(finalParsed.category),
+        notes: [SMART_PURPOSE[toStr(finalParsed.category) as ValidCategory] || '', tax_warning ? `⚠️ Tax Alert: ${tax_warning}` : ''].filter(Boolean).join(' — '),
+        currency: toStr(finalParsed.currency) || 'CAD',
+        confidence_score: toNum(finalParsed.confidence_score) || 85,
+        cra_readiness_score: computeCRAScoreForSave({
           vendor_name,
-          vendor_tax_number: toStr(parsed.vendor_tax_number),
-          transaction_date: normalizeDate(toStr(parsed.transaction_date)),
+          vendor_tax_number: toStr(finalParsed.vendor_tax_number),
+          transaction_date: normalizeDate(toStr(finalParsed.transaction_date)),
           total_amount,
           tax_amount,
-          category: toStr(parsed.category),
+          category: toStr(finalParsed.category),
         }),
-        thermal_warning: Boolean(parsed.thermal_warning),
-        document_type: (toStr(parsed.document_type).toLowerCase() || 'receipt') as 'receipt' | 'invoice' | 'statement' | 'unknown',
+        thermal_warning: Boolean(finalParsed.thermal_warning),
+        document_type: (toStr(finalParsed.document_type).toLowerCase() || 'receipt') as 'receipt' | 'invoice' | 'statement' | 'unknown',
         duplicate_warning: false,
         duplicate_hash: '',
         math_mismatch_warning: Math.abs((subtotal + tax_amount + pst_amount) - total_amount) > 0.05,
-        missing_bn_warning: !toStr(parsed.vendor_tax_number) && tax_amount > 0,
-        fraud_suspicion: Boolean(parsed.fraud_suspicion),
-        fraud_reason: toStr(parsed.fraud_reason),
-        line_items: Array.isArray(parsed.line_items) ? parsed.line_items.map((i: Record<string, unknown>) => ({
+        missing_bn_warning: !toStr(finalParsed.vendor_tax_number) && tax_amount > 0,
+        fraud_suspicion: Boolean(finalParsed.fraud_suspicion),
+        fraud_reason: toStr(finalParsed.fraud_reason),
+        line_items: Array.isArray(finalParsed.line_items) ? finalParsed.line_items.map((i: Record<string, unknown>) => ({
           description: toStr(i.description), quantity: toNum(i.quantity) || 1, unit_price: toNum(i.unit_price), tax_amount: toNum(i.tax_amount), line_total: toNum(i.line_total)
         })) : []
       },
     };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Receipt scan failed.';
-    logError(err, { action: 'scan_receipt', captureSource });
+    logError(err, { action: 'scan_receipt', captureSource: validSource });
     return { success: false, error: message };
   }
 }

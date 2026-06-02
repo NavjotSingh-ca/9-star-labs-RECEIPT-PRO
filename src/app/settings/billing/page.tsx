@@ -2,17 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { CreditCard, Loader2, AlertCircle, CheckCircle2, Crown, Users, Zap, Shield, ArrowLeft } from 'lucide-react';
-import { AuroraBackground } from '@/components/aceternity/aurora-background';
+import { Loader2, AlertCircle, CheckCircle2, Crown, Users, Zap, Shield } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { Plan, Subscription } from '@/lib/services/subscription';
 import { getSubscription, formatPlanLabel, PLAN_GATES } from '@/lib/services/subscription';
-import { loadStripe } from '@stripe/stripe-js';
 import { env } from '@/lib/env';
-
-const stripePromise = env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-  ? loadStripe(env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
-  : null;
 
 export default function BillingSettings() {
   const router = useRouter();
@@ -48,7 +42,7 @@ export default function BillingSettings() {
   }, [loadSub]);
 
   async function startCheckout(priceId: string, plan: Plan) {
-    if (!stripePromise) {
+    if (!env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
       setError('Stripe is not configured. Please contact support.');
       return;
     }
@@ -144,7 +138,7 @@ export default function BillingSettings() {
       price: '$99/mo',
       priceId: 'price_placeholder_enterprise', // Replace with real Stripe Price ID after setup
       description: 'For accounting firms & large orgs.',
-      icon: <Shield className="h-5 w-5 text-purple-400" />,
+      icon: <Shield className="h-5 w-5 text-champagne" />,
       features: [
         'Unlimited everything',
         'Unlimited users',
@@ -157,24 +151,11 @@ export default function BillingSettings() {
   ];
 
   return (
-    <AuroraBackground>
-      <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 py-24 z-10">
-        <div className="mb-6">
-          <button onClick={() => router.push('/')} className="text-sm font-semibold text-text-secondary hover:text-champagne transition flex items-center gap-1">
-            <ArrowLeft className="h-4 w-4" /> Back to Dashboard
-          </button>
-        </div>
-
-        <div className="w-full rounded-3xl border border-glass-border bg-surface/80 p-8 shadow-2xl backdrop-blur-xl sm:p-12">
-          <div className="mb-8 flex items-center gap-4 border-b border-glass-border pb-6">
-            <div className="flex h-14 w-14 items-center justify-center rounded-[2rem] bg-champagne/15">
-              <CreditCard className="h-7 w-7 text-champagne" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-text-primary">Billing & Plan</h1>
-              <p className="text-sm text-text-secondary">Manage your subscription and payment method</p>
-            </div>
-          </div>
+    <>
+      <div className="mb-6">
+        <h1 className="text-xl font-bold tracking-tight text-text-primary">Billing & Plan</h1>
+        <p className="mt-1 text-sm text-text-secondary">Manage your subscription and payment method</p>
+      </div>
 
           {error && (
             <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20">
@@ -202,10 +183,10 @@ export default function BillingSettings() {
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xl font-bold text-champagne">{formatPlanLabel(currentPlan)}</span>
                       {subscription?.status === 'trialing' && (
-                        <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">Trial</span>
+                        <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full font-semibold">Trial</span>
                       )}
                       {subscription?.status === 'past_due' && (
-                        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-semibold">Past Due</span>
+                        <span className="text-xs bg-danger/10 text-danger px-2 py-0.5 rounded-full font-semibold">Past Due</span>
                       )}
                     </div>
                   </div>
@@ -298,8 +279,6 @@ export default function BillingSettings() {
               )}
             </div>
           )}
-        </div>
-      </div>
-    </AuroraBackground>
+    </>
   );
 }

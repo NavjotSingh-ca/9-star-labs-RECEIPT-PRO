@@ -84,7 +84,7 @@ export function approvalBadge(status?: string | null): { cls: string; label: str
   if (s === 'rejected') {
     return { cls: 'bg-red-500/15 text-red-400 border-red-500/20', label: 'Rejected' };
   }
-  return { cls: 'bg-blue-500/15 text-blue-400 border-blue-500/20', label: 'Submitted' };
+  return { cls: 'bg-amber-500/15 text-amber-400 border-amber-500/20', label: 'Pending' };
 }
 
 /* ─── Reimbursement Badge ─── */
