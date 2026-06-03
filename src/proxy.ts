@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import createI18nMiddleware from 'next-intl/middleware';
+import { routing } from '@/lib/i18n/routing';
+
+const i18nMiddleware = createI18nMiddleware(routing);
 
 export function proxy(request: NextRequest) {
   const isDev = process.env.NODE_ENV === 'development';
   const requestHeaders = new Headers(request.headers);
+
+  const i18nResponse = i18nMiddleware(request);
+  if (i18nResponse) return i18nResponse;
 
   if (!isDev) {
     const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
