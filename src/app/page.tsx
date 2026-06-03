@@ -141,7 +141,6 @@ function AppContent() {
   const router = useRouter();
   const [hasMounted, setHasMounted] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
-  const authLoadingRef = useRef(true);
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [activeFilter, setActiveFilter] = useState<string>('all');
@@ -218,14 +217,12 @@ function AppContent() {
         }
         if (active) {
           setRole(finalRole);
-          authLoadingRef.current = false;
           setAuthLoading(false);
         }
       } catch (err) {
         if (active) {
           console.error('Auth failed:', err);
           setRole('Employee');
-          authLoadingRef.current = false;
           setAuthLoading(false);
         }
       }
@@ -236,7 +233,6 @@ function AppContent() {
       if (session?.user) {
         resolveUser(session.user);
       } else {
-        authLoadingRef.current = false;
         setAuthLoading(false);
       }
     });
@@ -247,17 +243,13 @@ function AppContent() {
         resolveUser(session.user);
       } else {
         setUser(null);
-        authLoadingRef.current = false;
         setAuthLoading(false);
       }
     });
 
     const safetyTimeout = setTimeout(() => {
-      if (active && authLoadingRef.current) {
-        authLoadingRef.current = false;
-        setAuthLoading(false);
-      }
-    }, 8000);
+      setAuthLoading(false);
+    }, 4000);
 
     return () => {
       active = false;
