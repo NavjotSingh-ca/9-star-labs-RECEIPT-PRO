@@ -36,6 +36,25 @@ export function ConsentBanner() {
     }
   };
 
+  const handleDecline = async () => {
+    localStorage.setItem(STORAGE_KEY, 'declined');
+    setVisible(false);
+
+    try {
+      const supabase = getSupabase();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('audit_logs').insert({
+          user_id: user.id,
+          action: 'privacy_consent',
+          details: 'Declined privacy and data processing notice',
+        });
+      }
+    } catch {
+      // Consent recorded client-side; server backup is best-effort
+    }
+  };
+
   return (
     <AnimatePresence>
       {visible && (
@@ -67,6 +86,14 @@ export function ConsentBanner() {
                     className="rounded-xl bg-champagne px-5 text-xs font-bold text-black hover:opacity-90 transition-opacity"
                   >
                     I Understand
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleDecline}
+                    className="rounded-xl px-4 text-xs font-medium text-text-muted hover:text-text-primary transition-colors"
+                  >
+                    Decline
                   </Button>
                   <Link
                     href="/privacy"

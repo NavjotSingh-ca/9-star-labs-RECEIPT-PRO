@@ -1,0 +1,33 @@
+{
+  "nav": {
+    "overview": "Aperçu",
+    "scan": "Numériser",
+    "history": "Registres",
+    "banking": "Banque",
+    "tax": "Exportation fiscale",
+    "business": "Affaires",
+    "audit": "Vérification",
+    "auditHistory": "Historique de vérification",
+    "alerts": "Alertes et risques",
+    "payables": "Comptes fournisseurs",
+    "settings": "Paramètres",
+    "billing": "Facturation",
+    "organization": "Organisation",
+    "security": "Sécurité"
+  },
+  "dashboard": {
+    "thisMonthSpend": "Dépenses du mois",
+    "pendingReview": "En attente de révision",
+    "totalReceipts": "Total des reçus",
+    "noReceipts": "Votre portrait financier commence ici",
+    "scanFirstCta": "Numériser votre premier reçu"
+  },
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "search": "Rechercher",
+    "loading": "Chargement..."
+  }
+}

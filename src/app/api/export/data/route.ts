@@ -24,7 +24,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userOrgId = user.user_metadata?.org_id || null;
+    const { data: orgRows } = await supabase
+      .from('user_roles')
+      .select('org_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    const userOrgId = (orgRows as { org_id: string } | null)?.org_id ?? null;
 
     const [receiptsResult, unitsResult, auditResult, mileageResult, vehiclesResult, projectsResult, commentsResult, subscriptionsResult] = await Promise.all([
       supabase.from('receipts').select('*').eq('user_id', user.id),

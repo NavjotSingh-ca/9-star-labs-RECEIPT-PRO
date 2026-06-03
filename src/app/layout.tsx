@@ -5,6 +5,7 @@ import NextTopLoader from 'nextjs-toploader';
 import './globals.css';
 import SmoothScroll from '@/components/SmoothScroll';
 import Providers from '@/components/Providers';
+import { PostHogProvider } from '@/lib/posthog';
 
 const geist = localFont({
   src: '../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2',
@@ -74,12 +75,14 @@ export default function RootLayout({
           Skip to main content
         </a>
         <NextTopLoader color="#bea98e" height={2} showSpinner={false} />
-        <SmoothScroll>
-          <Providers>
-            {children}
-            <Toaster position="top-center" richColors />
-          </Providers>
-        </SmoothScroll>
+        <PostHogProvider>
+          <SmoothScroll>
+            <Providers>
+              {children}
+              <Toaster position="top-center" richColors />
+            </Providers>
+          </SmoothScroll>
+        </PostHogProvider>
       </body>
     </html>
   );

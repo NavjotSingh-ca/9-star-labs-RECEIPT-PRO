@@ -24,7 +24,6 @@ export async function GET(request: Request) {
     return NextResponse.json({
       status: error ? 'degraded' : 'ok',
       timestamp: new Date().toISOString(),
-      db_latency_ms: latency,
     });
   } catch (err: unknown) {
     logError(err, { action: 'health_check' });

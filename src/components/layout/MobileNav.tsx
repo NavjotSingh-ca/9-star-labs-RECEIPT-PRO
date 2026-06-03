@@ -72,33 +72,29 @@ export default function MobileNav({ activeTab, onTabChange, role, noReceipts }: 
                 </span>
               </div>
             ) : (
-              <motion.button
-                key={item.id}
-                type="button"
-                onClick={() => onTabChange(item.id)}
-                aria-label={item.label}
-                aria-current={isActive ? 'page' : undefined}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.88 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                className={`relative flex min-w-[64px] flex-col items-center gap-1 rounded-[3rem] px-3 py-2 ${
-                  isActive ? 'text-sidebar-accent' : 'text-sidebar-text-muted hover:text-sidebar-text-secondary'
-                }`}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="active-pill"
-                    className="absolute inset-0 bg-sidebar-accent/10 rounded-[3rem]"
-                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                  />
-                )}
-                <div className="relative z-10 flex flex-col items-center gap-1">
+                <motion.button
+                  id="scan-fab"
+                  key={item.id}
+                  type="button"
+                  onClick={() => onTabChange(item.id)}
+                  aria-label={item.label}
+                  aria-current={isActive ? 'page' : undefined}
+                  animate={noReceipts ? {
+                    boxShadow: [
+                      '0 4px 14px 0 rgba(16,185,129,0.2)',
+                      '0 4px 28px 0 rgba(16,185,129,0.6)',
+                      '0 4px 14px 0 rgba(16,185,129,0.2)',
+                    ],
+                    scale: [1, 1.06, 1],
+                  } : {}}
+                  transition={noReceipts
+                    ? { repeat: Infinity, duration: 2, ease: 'easeInOut' }
+                    : { type: 'spring', stiffness: 400, damping: 15 }
+                  }
+                  className="flex h-14 w-14 items-center justify-center rounded-full shadow-xl shimmer-scan text-white/90 shadow-emerald-success/20"
+                >
                   {item.icon}
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">
-                    {item.label}
-                  </span>
-                </div>
-              </motion.button>
+                </motion.button>
             );
           })}
         </LayoutGroup>

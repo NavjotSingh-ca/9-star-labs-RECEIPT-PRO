@@ -54,6 +54,22 @@ interface ProfessionalLedgerProps {
 export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data, onSelect, onDelete }: ProfessionalLedgerProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [unitMap, setUnitMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const ids = [...new Set(data.map(r => r.business_unit_id).filter(Boolean))] as string[];
+    if (ids.length === 0) return;
+    let active = true;
+    import('@/lib/supabase').then(({ supabase }) => {
+      supabase.from('business_units').select('id, name').in('id', ids).then(({ data: units }) => {
+        if (!active) return;
+        const map: Record<string, string> = {};
+        (units || []).forEach(u => { map[u.id] = u.name; });
+        setUnitMap(map);
+      });
+    });
+    return () => { active = false; };
+  }, [data]);
 
   const columns: ColumnDef<ReceiptRow>[] = [
     {
@@ -71,7 +87,7 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
       cell: ({ row }) => (
         <div className="flex flex-col">
           <span className="font-bold text-foreground">{row.getValue('vendor_name') || 'Unknown Vendor'}</span>
-          <span className="text-[10px] text-muted-foreground">{row.original.business_unit_id || 'Main Unit'}</span>
+          <span className="text-[10px] text-muted-foreground">{row.original.business_unit_id ? (unitMap[row.original.business_unit_id] || row.original.business_unit_id.slice(0, 8) + '...') : 'Main Unit'}</span>
         </div>
       ),
     },

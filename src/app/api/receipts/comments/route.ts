@@ -79,11 +79,17 @@ export async function POST(request: Request) {
   }
 }
 
+const receiptIdParamSchema = z.object({
+  receiptId: z.string().uuid(),
+});
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const receiptId = searchParams.get('receiptId');
-    if (!receiptId) return NextResponse.json({ error: 'Missing receiptId' }, { status: 400 });
+    const rawId = searchParams.get('receiptId');
+    const parsed = receiptIdParamSchema.safeParse({ receiptId: rawId });
+    if (!parsed.success) return NextResponse.json({ error: 'Invalid receiptId' }, { status: 400 });
+    const { receiptId } = parsed.data;
 
     const cookieStore = await cookies();
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -92,6 +98,18 @@ export async function GET(request: Request) {
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { data: orgData } = await supabase.rpc('get_user_org');
+    const orgId = orgData as unknown as string;
+    if (!orgId) return NextResponse.json({ error: 'No org found' }, { status: 403 });
+
+    const { data: receipt } = await supabase
+      .from('receipts')
+      .select('org_id')
+      .eq('id', receiptId)
+      .single();
+    if (!receipt) return NextResponse.json({ error: 'Receipt not found' }, { status: 404 });
+    if (receipt.org_id !== orgId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { data, error } = await supabase
       .from('receipt_comments')

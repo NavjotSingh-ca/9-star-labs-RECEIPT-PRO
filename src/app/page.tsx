@@ -49,6 +49,7 @@ import OfflineIndicator from '@/components/OfflineIndicator';
 import SwUpdateBanner from '@/components/SwUpdateBanner';
 import { UpgradePrompt } from '@/components/upgrade-prompt';
 import AuthScreen from '@/components/AuthScreen';
+import { OnboardingTour } from '@/components/OnboardingTour';
 import Sidebar from '@/components/layout/Sidebar';
 import MobileNav from '@/components/layout/MobileNav';
 import TopBar from '@/components/layout/TopBar';
@@ -369,7 +370,9 @@ function AppContent() {
         case 'dashboard':
           return (
             <ErrorBoundary componentName="Dashboard">
-              <Dashboard onFilterClick={handleFilterClick} onScan={() => setTabWithUrl('scan')} role={role} userId={userId} />
+              <div id="dashboard-kpis">
+                <Dashboard onFilterClick={handleFilterClick} onScan={() => setTabWithUrl('scan')} role={role} userId={userId} />
+              </div>
             </ErrorBoundary>
           );
         case 'receipts':
@@ -478,7 +481,8 @@ function AppContent() {
       <OfflineIndicator />
       <SwUpdateBanner />
 
-      {/* Desktop sidebar */}
+        <OnboardingTour />
+        {/* Desktop sidebar */}
       <Sidebar
         activeTab={activeTab}
         onTabChange={setTabWithUrl}

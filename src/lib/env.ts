@@ -24,6 +24,11 @@ const envSchema = z.object({
   TOKEN_ENCRYPTION_KEY: z.string().min(1).optional(),
   // Site URL for redirects
   NEXT_PUBLIC_SITE_URL: z.string().url().optional().default('http://localhost:3000'),
+  // Sentry
+  NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
+  // PostHog
+  NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1).optional(),
+  NEXT_PUBLIC_POSTHOG_HOST: z.string().url().optional().default('https://app.posthog.com'),
 });
 
 function parseEnv() {
@@ -44,6 +49,9 @@ function parseEnv() {
     QBO_CLIENT_SECRET: process.env.QBO_CLIENT_SECRET,
     TOKEN_ENCRYPTION_KEY: process.env.TOKEN_ENCRYPTION_KEY,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'),
+    NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
+    NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST || (typeof window !== 'undefined' ? 'https://app.posthog.com' : 'https://app.posthog.com'),
   });
 
   if (!parsed.success) {

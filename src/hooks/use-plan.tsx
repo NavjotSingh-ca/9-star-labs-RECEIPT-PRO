@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { Plan, PlanGates, Subscription } from '@/lib/services/subscription';
-import { getSubscription, getPlan, getPlanGates, getUsageCount, getTeamSize, checkLimit, formatPlanLabel } from '@/lib/services/subscription';
+import { getSubscription, getPlanGates, getUsageCount, getTeamSize, checkLimit, formatPlanLabel } from '@/lib/services/subscription';
 
 export interface PlanInfo {
   plan: Plan;
@@ -32,7 +32,7 @@ export function usePlan(): PlanInfo {
         const sub = await getSubscription();
         if (!active) return;
         setSubscription(sub);
-        const p = await getPlan();
+        const p = !sub ? 'free' as Plan : sub.status === 'trialing' ? 'pro' as Plan : sub.plan as Plan;
         if (!active) return;
         setPlan(p);
 

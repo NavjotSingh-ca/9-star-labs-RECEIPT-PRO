@@ -87,7 +87,7 @@ async function getOrgId(): Promise<{ id: string } | null> {
   return id ? { id } : null;
 }
 
-export async function getReceipts(role: UserRole, userId?: string, limit = 100, offset = 0): Promise<ReceiptRow[]> {
+export async function getReceipts(role: UserRole, userId?: string, limit = 1000, offset = 0): Promise<ReceiptRow[]> {
   if (!userId) return [];
 
   try {
