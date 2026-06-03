@@ -191,11 +191,11 @@ export default function Dashboard({
         transition={{ duration: 0.3, ease: 'easeOut' }}
         className="flex flex-col items-center justify-center py-16 text-center"
       >
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5">
-          <Receipt className="h-6 w-6 text-white/60" />
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-raised">
+          <Receipt className="h-6 w-6 text-text-muted" />
         </div>
-        <h2 className="mt-4 text-base font-medium text-white">No receipts yet</h2>
-        <p className="mt-1 max-w-sm text-sm text-white/50">
+        <h2 className="mt-4 text-base font-medium text-text-primary">No receipts yet</h2>
+        <p className="mt-1 max-w-sm text-sm text-text-secondary">
           Scan a receipt or forward one from email, and we&rsquo;ll extract every line item automatically.
         </p>
         <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -211,7 +211,7 @@ export default function Dashboard({
           )}
           <button
             type="button"
-            className="text-sm text-white/50 underline underline-offset-4 transition hover:text-white/80"
+            className="text-sm text-text-muted underline underline-offset-4 transition hover:text-text-secondary"
           >
             Forward an email
           </button>
@@ -242,7 +242,7 @@ export default function Dashboard({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25, ease: 'easeOut' }}
-        className="rounded-xl border border-white/5 bg-card p-8 relative overflow-hidden"
+        className="rounded-xl border border-glass-border bg-card p-8 relative overflow-hidden"
       >
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-champagne/[0.03] to-transparent" />
         <div className="relative flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
@@ -339,7 +339,7 @@ export default function Dashboard({
         </div>
         <div className="lg:col-span-1 space-y-4">
           {mileageTotalKm > 0 && (
-            <div className="rounded-xl border border-white/5 bg-card p-5 flex items-start gap-4">
+            <div className="rounded-xl border border-glass-border bg-card p-5 flex items-start gap-4">
               <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-light shrink-0">
                 <Gauge className="h-5 w-5" />
               </div>
@@ -352,7 +352,7 @@ export default function Dashboard({
             </div>
           )}
           {unmatchedBankCount > 0 && (
-            <div className="rounded-xl border border-white/5 bg-card p-5 flex items-start gap-4">
+            <div className="rounded-xl border border-glass-border bg-card p-5 flex items-start gap-4">
               <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0">
                 <Landmark className="h-5 w-5" />
               </div>
@@ -365,7 +365,7 @@ export default function Dashboard({
             </div>
           )}
           {duplicatesBlockedCount > 0 && (
-            <div className="rounded-xl border border-white/5 bg-card p-5 flex items-start gap-4">
+            <div className="rounded-xl border border-glass-border bg-card p-5 flex items-start gap-4">
               <div className="h-10 w-10 rounded-xl bg-champagne/10 flex items-center justify-center text-champagne shrink-0">
                 <Lock className="h-5 w-5" />
               </div>
@@ -434,7 +434,7 @@ function StatCard({ label, value, helper, icon, className = "", trend = null, sp
       className="h-full"
     >
       <ShadcnCard className={cn(
-        "rounded-xl border border-white/5 bg-card text-card-foreground transition-all duration-200 relative overflow-hidden group h-full hover:-translate-y-[1px] hover:border-white/10 hover:shadow-[0_0_24px_-4px_var(--champagne-glow)]",
+        "rounded-xl border border-glass-border bg-card text-card-foreground transition-all duration-200 relative overflow-hidden group h-full hover:-translate-y-[1px] hover:border-glass-border-hover hover:shadow-[0_0_24px_-4px_var(--champagne-glow)]",
         className
       )}>
         <div className="relative z-10 flex flex-col h-full justify-between p-6">

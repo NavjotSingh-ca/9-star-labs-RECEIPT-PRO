@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import Image from 'next/image';
 import {
   ChevronDown,
   DollarSign,
@@ -585,11 +586,14 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
 
         <div className="flex-1 overflow-y-auto px-5 space-y-8">
           {imageUrl && (
-            <div className="relative rounded-[3rem] border border-glass-border bg-obsidian/20 overflow-hidden shadow-2xl">
-              <img 
-                src={imageUrl} 
-                alt="Receipt" 
-                className="max-h-[60vh] w-full object-contain" 
+            <div className="relative rounded-[3rem] border border-glass-border bg-obsidian/20 overflow-hidden shadow-2xl" style={{ minHeight: '300px' }}>
+              <Image
+                src={imageUrl}
+                alt="Receipt"
+                fill
+                className="object-contain"
+                unoptimized
+                sizes="(max-width: 768px) 100vw, 50vw"
               />
             </div>
           )}

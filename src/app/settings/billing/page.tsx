@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -176,7 +176,7 @@ export default function BillingSettings() {
           ) : (
             <div className="space-y-10">
               {/* Current Plan Card */}
-              <div className="rounded-[3rem] border border-glass-border bg-black/20 p-6">
+              <div className="rounded-[3rem] border border-glass-border bg-surface-raised p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h2 className="text-lg font-bold text-text-primary">Current Plan</h2>
@@ -192,7 +192,7 @@ export default function BillingSettings() {
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-text-muted">Receipts</p>
-                    <p className="text-sm font-bold text-white">
+                    <p className="text-sm font-bold text-text-primary">
                       {gates.receiptLimit === Infinity ? 'Unlimited' : gates.receiptLimit}
                     </p>
                   </div>
@@ -213,7 +213,7 @@ export default function BillingSettings() {
                   <button
                     onClick={openCustomerPortal}
                     disabled={checkoutLoading === 'portal'}
-                    className="rounded-[2rem] border border-glass-border bg-white/5 px-4 py-2 text-sm font-semibold text-text-primary transition hover:bg-white/10 disabled:opacity-50"
+                    className="rounded-[2rem] border border-glass-border bg-surface-raised px-4 py-2 text-sm font-semibold text-text-primary transition hover:bg-surface-hover disabled:opacity-50"
                   >
                     {checkoutLoading === 'portal' ? <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> : null}
                     Manage Payment Method / Cancel
@@ -233,7 +233,7 @@ export default function BillingSettings() {
                         className={`rounded-[2rem] border p-6 transition ${
                           isCurrent
                             ? 'border-champagne bg-champagne/5'
-                            : 'border-glass-border bg-black/20 hover:border-white/20'
+                            : 'border-glass-border bg-surface-raised hover:border-glass-border-hover'
                         }`}
                       >
                         <div className="flex items-center gap-2 mb-3">
@@ -243,7 +243,7 @@ export default function BillingSettings() {
                             <span className="ml-auto text-[10px] bg-champagne text-black px-2 py-0.5 rounded-full font-bold">ACTIVE</span>
                           )}
                         </div>
-                        <p className="text-2xl font-bold text-white mb-1">{p.price}</p>
+                        <p className="text-2xl font-bold text-text-primary mb-1">{p.price}</p>
                         <p className="text-xs text-text-muted mb-4">{p.description}</p>
                         <ul className="space-y-2 mb-6">
                           {p.features.map((f, i) => (

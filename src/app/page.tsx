@@ -24,7 +24,7 @@ import {
   X,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import dynamic from 'next/dynamic';
@@ -498,6 +498,7 @@ function AppContent() {
 
         {/* Main content */}
         <main
+          id="main-content"
           className="flex-1 overflow-y-auto px-4 pb-28 pt-16 sm:px-6 lg:pb-8 lg:pt-6 xl:px-8 relative"
           role="main"
           onTouchStart={handleTouchStart}

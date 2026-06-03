@@ -37,19 +37,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true }); // Already processed
     }
 
-    const subscription = event.data.object as Stripe.Subscription;
-    const subAny = subscription as unknown as Record<string, unknown>;
-    const orgId = subscription.metadata?.org_id;
-    const plan = (subscription.metadata?.plan as 'free' | 'pro' | 'enterprise') || 'pro';
-
-    if (!orgId) {
-      console.warn('[Stripe Webhook] No org_id in subscription metadata');
-      return NextResponse.json({ received: true });
-    }
-
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
+        const orgId = session.metadata?.org_id;
+        const plan = (session.metadata?.plan as 'free' | 'pro' | 'enterprise') || 'pro';
+
+        if (!orgId) {
+          console.warn('[Stripe Webhook] No org_id in session metadata');
+          return NextResponse.json({ received: true });
+        }
+
         const subId = session.subscription as string;
         const custId = session.customer as string;
 
@@ -63,33 +61,73 @@ export async function POST(request: Request) {
             status: 'active',
             receipt_limit: plan === 'pro' ? 999999 : 50,
             user_limit: plan === 'pro' ? 5 : 1,
-            current_period_end: subAny.current_period_end
-              ? new Date((subAny.current_period_end as number) * 1000).toISOString()
-              : null,
+            current_period_end: null,
             updated_at: new Date().toISOString(),
           }, { onConflict: 'org_id' });
         break;
       }
 
       case 'invoice.paid': {
+        const invoice = event.data.object as Stripe.Invoice;
+        const invAny = invoice as unknown as { subscription: string; period_end: number };
+        const subId = invAny.subscription;
+        if (!subId) break;
+
+        const { data: localSub } = await supabaseAdmin
+          .from('subscriptions')
+          .select('org_id')
+          .eq('stripe_subscription_id', subId)
+          .maybeSingle();
+        if (!localSub) break;
+
         await supabaseAdmin
           .from('subscriptions')
           .update({
             status: 'active',
-            current_period_end: subAny.current_period_end
-              ? new Date((subAny.current_period_end as number) * 1000).toISOString()
+            current_period_end: invAny.period_end
+              ? new Date(invAny.period_end * 1000).toISOString()
               : null,
             updated_at: new Date().toISOString(),
           })
-          .eq('org_id', orgId);
+          .eq('org_id', localSub.org_id);
         break;
       }
 
-      case 'invoice.payment_failed':
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice;
+        const invAny = invoice as unknown as { subscription: string; period_end: number };
+        const subId = invAny.subscription;
+        if (!subId) break;
+
+        const { data: localSub } = await supabaseAdmin
+          .from('subscriptions')
+          .select('org_id')
+          .eq('stripe_subscription_id', subId)
+          .maybeSingle();
+        if (!localSub) break;
+
+        await supabaseAdmin
+          .from('subscriptions')
+          .update({
+            status: 'past_due',
+            current_period_end: invAny.period_end
+              ? new Date(invAny.period_end * 1000).toISOString()
+              : null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('org_id', localSub.org_id);
+        break;
+      }
+
       case 'customer.subscription.updated': {
-        const status = subscription.status === 'canceled' ? 'canceled'
-          : subscription.status === 'past_due' ? 'past_due'
-          : subscription.status === 'trialing' ? 'trialing'
+        const sub = event.data.object as Stripe.Subscription;
+        const subAny = sub as unknown as { current_period_end: number };
+        const orgId = sub.metadata?.org_id;
+        if (!orgId) break;
+
+        const status = sub.status === 'canceled' ? 'canceled'
+          : sub.status === 'past_due' ? 'past_due'
+          : sub.status === 'trialing' ? 'trialing'
           : 'active';
 
         await supabaseAdmin
@@ -97,7 +135,7 @@ export async function POST(request: Request) {
           .update({
             status,
             current_period_end: subAny.current_period_end
-              ? new Date((subAny.current_period_end as number) * 1000).toISOString()
+              ? new Date(subAny.current_period_end * 1000).toISOString()
               : null,
             updated_at: new Date().toISOString(),
           })
@@ -106,6 +144,11 @@ export async function POST(request: Request) {
       }
 
       case 'customer.subscription.deleted': {
+        const sub = event.data.object as Stripe.Subscription;
+        const subAny = sub as unknown as { current_period_end: number };
+        const orgId = sub.metadata?.org_id;
+        if (!orgId) break;
+
         await supabaseAdmin
           .from('subscriptions')
           .update({

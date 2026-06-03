@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
 import { getSupabase } from '@/lib/supabase';
+import { env } from '@/lib/env';
+import { logError } from '@/lib/logger';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = env.CRON_SECRET;
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    // Ping Supabase to keep the free-tier database from pausing
     const supabase = getSupabase();
 
     const start = Date.now();
@@ -20,7 +27,7 @@ export async function GET() {
       db_latency_ms: latency,
     });
   } catch (err: unknown) {
-    console.error('[Health]', err);
+    logError(err, { action: 'health_check' });
     return NextResponse.json({
       status: 'error',
       timestamp: new Date().toISOString(),

@@ -281,7 +281,7 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
                     </div>
                   </div>
 
-                  <div className="md:w-[50%] rounded-[2rem] border border-white/5 bg-black/20 p-3">
+                  <div className="md:w-[50%] rounded-[2rem] border border-glass-border bg-surface-raised p-3">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted flex justify-between">
                       <span>Receipt Match</span>
                       {m.bankRow.is_reconciled && <span className="text-emerald-400">Reconciled</span>}
@@ -304,7 +304,7 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
                             <button 
                               onClick={() => handleConfirmMatch(m.bankRow.id, m.receipt!.id, false, m.score)}
                               disabled={confirmingId === m.bankRow.id}
-                              className="text-[10px] font-bold uppercase tracking-wider text-champagne hover:text-white transition flex items-center gap-1 bg-surface rounded-full px-2 py-1 border border-glass-border"
+                              className="text-[10px] font-bold uppercase tracking-wider text-champagne hover:text-champagne-dim transition flex items-center gap-1 bg-surface rounded-full px-2 py-1 border border-glass-border"
                             >
                               {confirmingId === m.bankRow.id ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
                               Confirm Match

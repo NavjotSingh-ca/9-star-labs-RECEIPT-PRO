@@ -54,7 +54,7 @@ export function UpgradePrompt({ plan, receiptCount, teamSize, isTrialing, daysLe
           </div>
           <Link
             href="/settings/billing"
-            className="flex-shrink-0 rounded-[2rem] bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/20"
+            className="flex-shrink-0 rounded-[2rem] bg-surface-raised px-3 py-1.5 text-xs font-semibold text-text-primary transition hover:bg-surface-hover"
           >
             Upgrade
           </Link>
@@ -70,7 +70,7 @@ export function UpgradePrompt({ plan, receiptCount, teamSize, isTrialing, daysLe
           </div>
           <Link
             href="/settings/billing"
-            className="flex-shrink-0 rounded-[2rem] bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/20"
+            className="flex-shrink-0 rounded-[2rem] bg-surface-raised px-3 py-1.5 text-xs font-semibold text-text-primary transition hover:bg-surface-hover"
           >
             Upgrade
           </Link>
@@ -95,3 +95,4 @@ export function UpgradePrompt({ plan, receiptCount, teamSize, isTrialing, daysLe
     </div>
   );
 }
+

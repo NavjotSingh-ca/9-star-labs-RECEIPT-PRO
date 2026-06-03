@@ -5,7 +5,7 @@ const ENCRYPTION_KEY = env.TOKEN_ENCRYPTION_KEY || '';
 
 export function encryptToken(plaintext: string): string {
   if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length < 32) {
-    console.warn('[Encryption] TOKEN_ENCRYPTION_KEY not configured — storing token in plaintext');
+    console.error('[Encryption] TOKEN_ENCRYPTION_KEY not configured — storing token in plaintext');
     return plaintext;
   }
   const key = Buffer.from(ENCRYPTION_KEY.slice(0, 32), 'utf-8');

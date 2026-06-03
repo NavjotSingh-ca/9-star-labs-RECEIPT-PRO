@@ -1,10 +1,13 @@
 {
-  "name": "Leduc Receipt Pro",
-  "short_name": "Leduc Receipts",
-  "description": "Receipt management for Canadian small businesses",
+  "name": "9 Star Labs Receipt Pro",
+  "short_name": "9SL Receipts",
+  "description": "CRA-ready receipt intelligence for Canadian businesses",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f0f0f",
   "theme_color": "#bea98e",
-  "icons": []
+  "icons": [
+    { "src": "/web-app-manifest-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable any" },
+    { "src": "/web-app-manifest-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable any" }
+  ]
 }

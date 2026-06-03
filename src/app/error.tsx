@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect } from 'react';
 import { AlertTriangle, RefreshCcw, Home } from 'lucide-react';
@@ -27,20 +27,20 @@ export default function Error({
           <AlertTriangle className="h-10 w-10" />
         </div>
         
-        <h1 className="text-2xl font-bold tracking-tight text-white">Something went wrong</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-text-primary">Something went wrong</h1>
         <p className="mt-4 text-sm leading-relaxed text-text-secondary">
           We encountered a critical error while loading the workspace. This is often due to a database synchronization issue or a temporary connection failure.
         </p>
 
         <div className="mt-6 rounded-[3rem] bg-black/40 p-4 text-left font-mono text-[10px] text-red-400/80 border border-red-500/10 overflow-auto max-h-32">
           {process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'}
-          {error.digest && <div className="mt-2 text-white/20">Digest: {error.digest}</div>}
+          {error.digest && <div className="mt-2 text-text-muted/20">Digest: {error.digest}</div>}
         </div>
 
         <div className="mt-10 grid grid-cols-2 gap-4">
           <button
             onClick={() => reset()}
-            className="flex items-center justify-center gap-2 rounded-[3rem] bg-white/5 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+            className="flex items-center justify-center gap-2 rounded-[3rem] bg-surface-raised px-4 py-3 text-sm font-bold text-text-primary transition hover:bg-surface-hover"
           >
             <RefreshCcw className="h-4 w-4" />
             Try again

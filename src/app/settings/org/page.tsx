@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Loader2, Save, AlertCircle, CheckCircle2, Link2, RefreshCw } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-export default function OrgSettings() {
+function OrgSettings() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -136,7 +136,7 @@ export default function OrgSettings() {
       <p className="mt-1 text-sm text-text-secondary">Manage global policies and configuration</p>
     </div>
 
-        <Card className="w-full shadow-sm overflow-hidden bg-card border border-white/5">
+        <Card className="w-full shadow-sm overflow-hidden bg-card border border-glass-border">
           <CardContent className="p-6">
 
           {error && (
@@ -298,5 +298,13 @@ export default function OrgSettings() {
         </CardContent>
         </Card>
     </>
+  );
+}
+
+export default function OrgSettingsPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin text-champagne" /></div>}>
+      <OrgSettings />
+    </Suspense>
   );
 }

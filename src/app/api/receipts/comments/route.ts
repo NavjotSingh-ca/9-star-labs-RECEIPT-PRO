@@ -60,8 +60,8 @@ export async function POST(request: Request) {
 
     if (receipt?.user_id && receipt.user_id !== user.id) {
       const { data: uploader } = await supabase.rpc('get_user_email', { p_user_id: receipt.user_id });
-      const uploaderEmail = (uploader as any)?.[0]?.email;
-      
+      const uploaderEmail = Array.isArray(uploader) ? (uploader as { email: string }[])[0]?.email : null;
+
       if (uploaderEmail && resend) {
         await resend.emails.send({
           from: 'Leduc Receipt Pro <noreply@9starlabs.ca>',

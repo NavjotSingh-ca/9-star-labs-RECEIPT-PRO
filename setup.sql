@@ -420,6 +420,7 @@ DELETE FROM receipts WHERE id IN (
     ) AS rn FROM receipts WHERE duplicate_hash IS NOT NULL AND duplicate_hash <> ''
   ) dupe WHERE dupe.rn > 1
 );
+ALTER TABLE receipts DROP CONSTRAINT IF EXISTS uniq_org_duplicate_hash;
 ALTER TABLE receipts ADD CONSTRAINT uniq_org_duplicate_hash UNIQUE (org_id, duplicate_hash);
 
 -- ─── Trigger: Protect approved receipts within 7 years ───
@@ -427,7 +428,7 @@ CREATE OR REPLACE FUNCTION protect_approved_receipt()
 RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   IF OLD.approval_status = 'approved' AND OLD.transaction_date IS NOT NULL THEN
-    IF OLD.transaction_date >= (now() - interval '7 years')::date THEN
+    IF OLD.transaction_date::date >= (now() - interval '7 years')::date THEN
       RAISE EXCEPTION 'Cannot delete approved receipts from the last 7 years';
     END IF;
   END IF;
@@ -541,8 +542,8 @@ BEGIN
   WHERE org_id = p_org_id AND is_deleted = false
     AND (v_is_elevated OR user_id = p_user_id)
     AND (p_category IS NULL OR category = p_category)
-    AND (p_from_date IS NULL OR transaction_date >= p_from_date::date)
-    AND (p_to_date IS NULL OR transaction_date <= p_to_date::date)
+    AND (p_from_date IS NULL OR transaction_date::date >= p_from_date::date)
+    AND (p_to_date IS NULL OR transaction_date::date <= p_to_date::date)
     AND (p_approval_status IS NULL OR approval_status = p_approval_status)
     AND (p_search IS NULL OR vendor_name ILIKE '%' || p_search || '%' OR notes ILIKE '%' || p_search || '%')
     AND (p_semantic_ids IS NULL OR id = ANY(p_semantic_ids));
@@ -553,8 +554,8 @@ BEGIN
     WHERE org_id = p_org_id AND is_deleted = false
       AND (v_is_elevated OR user_id = p_user_id)
       AND (p_category IS NULL OR category = p_category)
-      AND (p_from_date IS NULL OR transaction_date >= p_from_date::date)
-      AND (p_to_date IS NULL OR transaction_date <= p_to_date::date)
+      AND (p_from_date IS NULL OR transaction_date::date >= p_from_date::date)
+      AND (p_to_date IS NULL OR transaction_date::date <= p_to_date::date)
       AND (p_approval_status IS NULL OR approval_status = p_approval_status)
       AND (p_search IS NULL OR vendor_name ILIKE '%' || p_search || '%' OR notes ILIKE '%' || p_search || '%')
       AND (p_semantic_ids IS NULL OR id = ANY(p_semantic_ids))
@@ -735,4 +736,5 @@ CREATE INDEX IF NOT EXISTS idx_receipts_duplicate_warning ON receipts(org_id) WH
 CREATE INDEX IF NOT EXISTS idx_receipts_high_confidence ON receipts(org_id) WHERE confidence_score >= 80 AND is_deleted = false;
 CREATE INDEX IF NOT EXISTS idx_receipts_missing_bn ON receipts(org_id) WHERE vendor_tax_number IS NULL AND is_deleted = false;
 CREATE INDEX IF NOT EXISTS idx_receipts_reimbursement ON receipts(org_id) WHERE paid_by = 'employee_cash' AND needs_reimbursement = true AND is_deleted = false;
+CREATE INDEX IF NOT EXISTS idx_receipts_vendor_fts ON receipts USING gin(to_tsvector('english', coalesce(vendor_name, '')));
 NOTIFY pgrst, 'reload schema';

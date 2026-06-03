@@ -352,12 +352,13 @@ export default function AuthScreen() {
                       )}
 
                       <div className="space-y-1.5">
-                        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-champagne-dim">
+                        <label htmlFor="signin-email" className="text-xs font-semibold uppercase tracking-[0.12em] text-champagne-dim">
                           Email
                         </label>
                         <div className="relative">
                           <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted pointer-events-none" />
                           <input
+                            id="signin-email"
                             {...signinForm.register('email')}
                             type="email"
                             autoComplete="email"
@@ -377,12 +378,13 @@ export default function AuthScreen() {
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-champagne-dim">
+                        <label htmlFor="signin-password" className="text-xs font-semibold uppercase tracking-[0.12em] text-champagne-dim">
                           Password
                         </label>
                         <div className="relative">
                           <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted pointer-events-none" />
                           <input
+                            id="signin-password"
                             {...signinForm.register('password')}
                             type={showPassword ? 'text' : 'password'}
                             autoComplete="current-password"
@@ -446,12 +448,13 @@ export default function AuthScreen() {
                   ) : (
                     <form onSubmit={signupForm.handleSubmit(handleSignUp)} className="space-y-4">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-champagne-dim">
+                        <label htmlFor="signup-email" className="text-xs font-semibold uppercase tracking-[0.12em] text-champagne-dim">
                           Email
                         </label>
                         <div className="relative">
                           <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted pointer-events-none" />
                           <input
+                            id="signup-email"
                             {...signupForm.register('email')}
                             type="email"
                             autoComplete="email"
@@ -471,12 +474,13 @@ export default function AuthScreen() {
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-champagne-dim">
+                        <label htmlFor="signup-password" className="text-xs font-semibold uppercase tracking-[0.12em] text-champagne-dim">
                           Create password
                         </label>
                         <div className="relative">
                           <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted pointer-events-none" />
                           <input
+                            id="signup-password"
                             {...signupForm.register('password')}
                             type={showPassword ? 'text' : 'password'}
                             autoComplete="new-password"
@@ -540,10 +544,11 @@ export default function AuthScreen() {
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-champagne-dim">
+                        <label htmlFor="signup-invite" className="text-xs font-semibold uppercase tracking-[0.12em] text-champagne-dim">
                           Invite code <span className="text-white/20 normal-case font-normal">(optional)</span>
                         </label>
                         <input
+                          id="signup-invite"
                           type="text"
                           value={inviteCode}
                           onChange={(e) => setInviteCode(e.target.value.replace(/\D/g, '').slice(0, 6))}

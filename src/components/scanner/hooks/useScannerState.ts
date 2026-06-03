@@ -199,7 +199,7 @@ export function useScannerState(
           particleCount: 150,
           spread: 80,
           origin: { y: 0.6 },
-          colors: ['#bea98e', '#10b981', '#3b82f6'],
+          colors: ['#bea98e', '#d4c5a9', '#10b981'],
           ticks: 200,
           gravity: 1.2,
         });

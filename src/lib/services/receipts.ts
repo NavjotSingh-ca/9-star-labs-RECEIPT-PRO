@@ -122,7 +122,7 @@ export async function getReceipts(role: UserRole, userId?: string, limit = 100, 
     return (data || []).map((row) => receiptSchema.parse(row) as ReceiptRow);
   } catch (error) {
     const supabaseError = handleSupabaseError(error);
-    console.error('Error fetching receipts:', supabaseError);
+    logError(supabaseError, { action: 'fetch_receipts' });
     throw supabaseError;
   }
 }
@@ -162,7 +162,7 @@ export async function getReceiptsPaginated(params: {
 
   if (error) {
     const supabaseError = handleSupabaseError(error);
-    console.error('Error fetching paginated receipts:', supabaseError);
+    logError(supabaseError, { action: 'fetch_receipts_paginated' });
     throw supabaseError;
   }
 
@@ -198,7 +198,7 @@ export const getReceiptsPendingApproval = async (): Promise<ReceiptRow[]> => {
     return (data || []).map((row) => receiptSchema.parse(row) as ReceiptRow);
   } catch (error) {
     const supabaseError = handleSupabaseError(error);
-    console.error('Error fetching pending receipts:', supabaseError);
+    logError(supabaseError, { action: 'fetch_pending_receipts' });
     throw supabaseError;
   }
 };
@@ -265,21 +265,21 @@ export const getDashboardSummary = async (role: UserRole, userId: string): Promi
     const result = await supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).or('vendor_tax_number.is.null,vendor_tax_number.eq.');
     missingBN = result.count || 0;
   } catch (e) {
-    console.error('Error fetching missing BN count:', e);
+    logError(e, { action: 'dashboard_missing_bn_count' });
   }
 
   try {
     const result = await supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).eq('approval_status', 'submitted');
     pendingReview = result.count || 0;
   } catch (e) {
-    console.error('Error fetching pending review count:', e);
+    logError(e, { action: 'dashboard_pending_review_count' });
   }
 
   try {
     const result = await supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).eq('flagged_for_audit', true);
     flaggedAudit = result.count || 0;
   } catch (e) {
-    console.error('Error fetching flagged audit count:', e);
+    logError(e, { action: 'dashboard_flagged_audit_count' });
   }
 
   // 4. Fetch Reimbursement Queue
@@ -428,7 +428,7 @@ export const getReimbursementsPending = async (userId: string): Promise<ReceiptR
     if (error) throw error;
     return (data || []).map((row) => receiptSchema.parse(row) as ReceiptRow);
   } catch (error) {
-    console.error('Error fetching pending reimbursements:', error);
+    logError(error, { action: 'fetch_pending_reimbursements' });
     return [];
   }
 };
@@ -443,7 +443,7 @@ export const getBusinessUnits = async () => {
     return data || [];
   } catch (error) {
     const supabaseError = handleSupabaseError(error);
-    console.error('Error fetching business units:', supabaseError);
+    logError(supabaseError, { action: 'fetch_business_units' });
     throw supabaseError;
   }
 };
@@ -468,7 +468,7 @@ export const createAuditLog = async (userId: string, action: string, details: st
     );
   } catch (error) {
     const supabaseError = handleSupabaseError(error);
-    console.error('Error creating audit log:', supabaseError);
+    logError(supabaseError, { action: 'create_audit_log' });
     // Audit log failures should not block the main operation
   }
 };
@@ -487,10 +487,10 @@ export const deleteReceipt = async (receiptId: string, userId: string): Promise<
 
   if (receipt?.approval_status === 'approved' && receipt.transaction_date) {
     const txDate = new Date(receipt.transaction_date);
-    const sixYearsAgo = new Date();
-    sixYearsAgo.setFullYear(sixYearsAgo.getFullYear() - 6);
-    if (txDate >= sixYearsAgo) {
-      throw new Error('Cannot delete approved receipts within the 6-year CRA retention period. Contact support if you have CRA authorization for early destruction.');
+    const sevenYearsAgo = new Date();
+    sevenYearsAgo.setFullYear(sevenYearsAgo.getFullYear() - 7);
+    if (txDate >= sevenYearsAgo) {
+      throw new Error('Cannot delete approved receipts within the 7-year CRA retention period. Contact support if you have CRA authorization for early destruction.');
     }
   }
 
@@ -536,7 +536,7 @@ export const getAuditLogs = async (limit = 50) => {
     return data || [];
   } catch (error) {
     const supabaseError = handleSupabaseError(error);
-    console.error('Error fetching audit logs:', supabaseError);
+    logError(supabaseError, { action: 'fetch_audit_logs' });
     throw supabaseError;
   }
 };
@@ -555,7 +555,7 @@ export const getProjects = async (): Promise<Project[]> => {
     if (error) throw error;
     return (data || []) as Project[];
   } catch (error) {
-    console.error('Error fetching projects:', error);
+    logError(error, { action: 'fetch_projects' });
     return [];
   }
 };
@@ -577,7 +577,7 @@ export const createProject = async (name: string, code?: string, budgetAmount?: 
     return data as Project;
   } catch (error) {
     const supabaseError = handleSupabaseError(error);
-    console.error('Error creating project:', supabaseError);
+    logError(supabaseError, { action: 'create_project' });
     throw supabaseError;
   }
 };
@@ -599,7 +599,7 @@ export const deleteProject = async (projectId: string): Promise<void> => {
     if (error) throw handleSupabaseError(error);
   } catch (error) {
     const supabaseError = handleSupabaseError(error);
-    console.error('Error deleting project:', supabaseError);
+    logError(supabaseError, { action: 'delete_project' });
     throw supabaseError;
   }
 };
@@ -634,7 +634,7 @@ export const redeemAccessCode = async (code: string, userId: string): Promise<{ 
     return result;
   } catch (error) {
     const supabaseError = handleSupabaseError(error);
-    console.error('Error redeeming access code:', supabaseError);
+    logError(supabaseError, { action: 'redeem_access_code' });
     return { success: false, error: supabaseError.userMessage };
   }
 };
@@ -657,7 +657,7 @@ export const getMyAccessCodes = async (): Promise<AccessCode[]> => {
     return (data || []) as AccessCode[];
   } catch (error) {
     const supabaseError = handleSupabaseError(error);
-    console.error('Error fetching access codes:', supabaseError);
+    logError(supabaseError, { action: 'fetch_access_codes' });
     throw supabaseError;
   }
 };
@@ -743,7 +743,7 @@ export const bulkUpdateApproval = async (
     });
   } catch (error) {
     const supabaseError = handleSupabaseError(error);
-    console.error('Error bulk updating approval:', supabaseError);
+    logError(supabaseError, { action: 'bulk_update_approval' });
     throw supabaseError;
   }
 };
@@ -1101,7 +1101,7 @@ export async function getCRAFormData(taxYear: number): Promise<CRAFormData> {
   const { data: mileageLogs } = await supabase
     .from('mileage_logs')
     .select('distance_km, total_amount, vehicle_id')
-    .eq('org_id', orgId)
+    .eq('org_id', orgId.id)
     .gte('trip_date', fromDate)
     .lte('trip_date', toDate);
 

@@ -60,13 +60,17 @@ export async function POST(request: Request) {
 
       if (!owners || owners.length === 0) continue;
 
-      // Get owner email addresses from auth.users
+      // Get owner email addresses from auth.users (batched query)
       const ownerIds = owners.map(o => o.user_id);
       const emails: string[] = [];
-      for (const ownerId of ownerIds) {
-        const { data: userData } = await supabaseAdmin.auth.admin.getUserById(ownerId);
-        if (userData?.user?.email) {
-          emails.push(userData.user.email);
+      const { data: authUsers } = await supabaseAdmin
+        .schema('auth')
+        .from('users')
+        .select('id, email')
+        .in('id', ownerIds);
+      if (authUsers) {
+        for (const u of authUsers) {
+          if (u.email) emails.push(u.email);
         }
       }
 

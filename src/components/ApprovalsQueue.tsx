@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertCircle,
@@ -37,8 +38,11 @@ const ReceiptThumbnail = React.memo(function ReceiptThumbnail({ imageUrl, vendor
       </div>
     );
   }
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt={vendorName ?? 'Receipt'} className="h-full w-full object-cover" />;
+  return (
+    <div className="relative h-full w-full">
+      <Image src={src} alt={vendorName ?? 'Receipt'} fill className="object-cover" unoptimized sizes="200px" />
+    </div>
+  );
 });
 
 const ApprovalCard = React.memo(function ApprovalCard({

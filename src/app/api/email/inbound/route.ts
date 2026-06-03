@@ -65,6 +65,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
 
+    // Resolve sender email to user_id for referential integrity
+    const fromStr = email.from || email.fromEmail || '';
+    const senderMatch = fromStr.match(/<?([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})>?/);
+    const senderEmail = senderMatch ? senderMatch[1].toLowerCase() : '';
+    let userId: string | null = null;
+    if (senderEmail) {
+      const { data: authUser } = await supabaseServiceRole
+        .schema('auth')
+        .from('users')
+        .select('id')
+        .eq('email', senderEmail)
+        .maybeSingle();
+      if (authUser) userId = authUser.id;
+    }
+
     // Process attachments
     const attachments = email.attachments || [];
     const validAttachments = attachments.filter((a: any) => 
@@ -96,11 +111,11 @@ export async function POST(request: Request) {
       // Create a pending receipt record
       await supabaseServiceRole.from('receipts').insert({
         org_id: org.id,
+        user_id: userId,
         image_url: filename,
         vendor_name: email.subject || 'Email Receipt',
         approval_status: 'submitted',
         notes: `Received via email from ${email.from}`,
-        // Set an AI processing flag or handle via trigger/cron later
       });
     }
 

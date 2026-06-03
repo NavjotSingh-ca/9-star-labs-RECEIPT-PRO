@@ -70,6 +70,9 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://*.supabase.co" />
       </head>
       <body className="font-sans antialiased selection:bg-champagne/30" suppressHydrationWarning>
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-champagne focus:text-black focus:rounded-lg focus:font-semibold focus:shadow-lg focus:outline-none">
+          Skip to main content
+        </a>
         <NextTopLoader color="#bea98e" height={2} showSpinner={false} />
         <SmoothScroll>
           <Providers>

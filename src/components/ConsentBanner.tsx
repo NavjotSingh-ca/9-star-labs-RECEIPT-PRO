@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, X } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { getSupabase } from '@/lib/supabase';
 
 const STORAGE_KEY = '9sl-privacy-consent';
 
@@ -16,9 +17,23 @@ export function ConsentBanner() {
     if (!existing) setVisible(true);
   }, []);
 
-  const handleAccept = () => {
+  const handleAccept = async () => {
     localStorage.setItem(STORAGE_KEY, new Date().toISOString());
     setVisible(false);
+
+    try {
+      const supabase = getSupabase();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('audit_logs').insert({
+          user_id: user.id,
+          action: 'privacy_consent',
+          details: 'Accepted privacy and data processing notice',
+        });
+      }
+    } catch {
+      // Consent recorded client-side; server backup is best-effort
+    }
   };
 
   return (
@@ -31,7 +46,7 @@ export function ConsentBanner() {
           transition={{ duration: 0.3, ease: 'easeOut' }}
           className="fixed bottom-6 left-4 right-4 z-[200] mx-auto max-w-lg"
         >
-          <div className="rounded-2xl border border-white/10 bg-card p-5 shadow-2xl backdrop-blur-xl">
+          <div className="rounded-2xl border border-glass-border bg-card p-5 shadow-2xl backdrop-blur-xl">
             <div className="flex items-start gap-3">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-champagne/15">
                 <ShieldCheck className="h-4 w-4 text-champagne" />
@@ -61,14 +76,6 @@ export function ConsentBanner() {
                   </Link>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setVisible(false)}
-                className="shrink-0 text-text-muted hover:text-text-secondary transition-colors"
-                aria-label="Dismiss"
-              >
-                <X className="h-4 w-4" />
-              </button>
             </div>
           </div>
         </motion.div>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { ReactNode } from 'react';
 import type { Plan } from '@/lib/services/subscription';
@@ -21,7 +21,7 @@ export function PlanGate({ plan, feature, children, fallback }: PlanGateProps) {
   if (fallback) return <>{fallback}</>;
 
   return (
-    <div className="rounded-[2rem] border border-glass-border bg-black/20 p-6 text-center">
+    <div className="rounded-[2rem] border border-glass-border bg-surface-raised p-6 text-center">
       <Lock className="h-8 w-8 text-text-muted mx-auto mb-3" />
       <p className="text-sm font-semibold text-text-primary mb-1">This feature requires an upgrade.</p>
       <p className="text-xs text-text-muted mb-4">Your current plan does not include this feature.</p>

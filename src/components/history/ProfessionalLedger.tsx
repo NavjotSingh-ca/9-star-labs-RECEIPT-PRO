@@ -179,7 +179,7 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
             placeholder="Search vendor, category, or amount..."
             value={globalFilter ?? ''}
             onChange={(event) => setGlobalFilter(event.target.value)}
-            className="pl-10 rounded-xl bg-background"
+            className="pl-10 rounded-xl bg-surface"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -217,7 +217,7 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
                   transition={{ delay: i * 0.03 }}
                   whileHover={{ scale: 1.005, backgroundColor: 'rgba(190, 169, 142, 0.04)' }}
                   onClick={() => onSelect(row.original)}
-                  className={`group cursor-pointer transition-colors border-b border-white/5 ${i % 2 === 0 ? 'bg-black/30' : 'bg-white/[0.03]'} hover:bg-white/5`}
+                  className={`group cursor-pointer transition-colors border-b border-glass-border ${i % 2 === 0 ? 'bg-surface-raised/50' : 'bg-surface-raised/30'} hover:bg-champagne/5`}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="px-6 py-3">

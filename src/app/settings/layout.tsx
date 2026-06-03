@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -36,7 +36,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
                   isActive
                     ? 'bg-champagne/10 text-champagne'
-                    : 'text-text-secondary hover:bg-white/5 hover:text-text-primary'
+                    : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
                 }`}
               >
                 <item.icon className="h-4 w-4" />
@@ -48,7 +48,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
       </nav>
 
       {/* Mobile nav tabs */}
-      <div className="mb-4 flex gap-1 border-b border-white/5 pb-1 lg:hidden">
+      <div className="mb-4 flex gap-1 border-b border-glass-border pb-1 lg:hidden">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (

@@ -121,7 +121,7 @@ export default function SecuritySettings() {
           ) : (
             <div className="space-y-8">
               
-              <div className="rounded-[3rem] border border-glass-border bg-black/20 p-6">
+              <div className="rounded-[3rem] border border-glass-border bg-surface-raised p-6">
                 <h2 className="text-lg font-semibold text-text-primary mb-4">Authenticator App (TOTP)</h2>
                 
                 {factors.length > 0 ? (
@@ -130,7 +130,7 @@ export default function SecuritySettings() {
                       <CheckCircle2 className="h-4 w-4" /> MFA is currently enabled.
                     </p>
                     {factors.map(f => (
-                      <div key={f.id} className="flex items-center justify-between rounded-[2rem] bg-white/5 p-4 border border-white/10">
+                      <div key={f.id} className="flex items-center justify-between rounded-[2rem] bg-surface-raised p-4 border border-glass-border">
                         <div className="flex items-center gap-3">
                           <KeyRound className="h-5 w-5 text-text-muted" />
                           <div>
@@ -173,7 +173,7 @@ export default function SecuritySettings() {
                             type="text"
                             value={verifyCode}
                             onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                            className="w-full rounded-[2rem] border border-glass-border bg-black/40 px-4 py-3 text-center text-lg tracking-[0.5em] text-white outline-none focus:border-champagne/40"
+                            className="w-full rounded-[2rem] border border-glass-border bg-surface-hover px-4 py-3 text-center text-lg tracking-[0.5em] text-text-primary outline-none focus:border-champagne/40"
                             placeholder="000000"
                             maxLength={6}
                           />
@@ -190,7 +190,7 @@ export default function SecuritySettings() {
                           </button>
                           <button
                             onClick={() => { setIsEnrolling(false); setQrCode(''); }}
-                            className="rounded-[2rem] border border-glass-border px-4 py-3 text-sm font-medium text-text-secondary hover:bg-white/5"
+                            className="rounded-[2rem] border border-glass-border px-4 py-3 text-sm font-medium text-text-secondary hover:bg-surface-raised"
                           >
                             Cancel
                           </button>

@@ -97,52 +97,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Offline Scan Queue — Background Sync
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-receipts') {
-    event.waitUntil(syncPendingReceipts());
-  }
-});
-
-function openOfflineDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open('9sl-offline', 1);
-    req.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains('pending_scans')) {
-        db.createObjectStore('pending_scans', { keyPath: 'id' });
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function syncPendingReceipts() {
-  try {
-    const db = await openOfflineDB();
-    const tx = db.transaction('pending_scans', 'readonly');
-    const store = tx.objectStore('pending_scans');
-    const allItems = await new Promise((resolve) => {
-      const req = store.getAll();
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => resolve([]);
-    });
-
-    if (!Array.isArray(allItems) || allItems.length === 0) {
-      self.clients.matchAll().then(clients => {
-        clients.forEach(client => client.postMessage({ type: 'SYNC_COMPLETE', count: 0 }));
-      });
-      return;
-    }
-
-    self.clients.matchAll().then(clients => {
-      clients.forEach(client => client.postMessage({
-        type: 'PROCESS_OFFLINE_QUEUE',
-        items: allItems
-      }));
-    });
-  } catch (err) {
-    console.error('[SW] syncPendingReceipts failed:', err);
-  }
-}
+// Offline sync is handled by the client-side online detection
+// in useScannerState.ts. Background Sync in the SW cannot process
+// receipts without auth context, so we rely on the app's own
+// reconnection logic instead.

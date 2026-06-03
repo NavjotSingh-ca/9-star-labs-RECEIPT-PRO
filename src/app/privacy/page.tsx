@@ -24,7 +24,7 @@ function A({ href, children }: { href: string; children: React.ReactNode }) {
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
     <section id={id} className="scroll-mt-24">
-      <h2 className="mt-10 mb-4 text-xl font-bold text-text-primary border-b border-white/10 pb-3">
+      <h2 className="mt-10 mb-4 text-xl font-bold text-text-primary border-b border-glass-border pb-3">
         {title}
       </h2>
       <div className="space-y-4 text-sm leading-7 text-text-secondary">{children}</div>
@@ -60,10 +60,10 @@ export default function PrivacyPage() {
           Return to App
         </Link>
 
-        <div className="rounded-[2.5rem] border border-white/5 bg-card p-8 sm:p-14">
+        <div className="rounded-[2.5rem] border border-glass-border bg-card p-8 sm:p-14">
 
           {/* Header */}
-          <div className="mb-10 flex items-start gap-5 border-b border-white/10 pb-10">
+          <div className="mb-10 flex items-start gap-5 border-b border-glass-border pb-10">
             <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-[2rem] bg-champagne/15 champagne-glow">
               <ShieldCheck className="h-8 w-8 text-champagne" />
             </div>

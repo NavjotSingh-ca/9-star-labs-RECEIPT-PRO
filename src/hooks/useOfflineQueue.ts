@@ -37,7 +37,9 @@ export function useOfflineQueue(dbName = '9sl-offline', storeName = 'pending_sca
 
   async function enqueue(item: Omit<QueueItem, 'id' | 'timestamp'>) {
     if (!db) return;
-    const id = crypto.randomUUID();
+    const id = typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     await db.put(storeName, {
       ...item,
       id,
@@ -82,6 +84,24 @@ export function useOfflineQueue(dbName = '9sl-offline', storeName = 'pending_sca
     await updateQueueCount();
   }
 
+  async function processChunked(callback: (chunk: QueueItem[]) => Promise<void>, chunkSize = 5) {
+    if (!db) return;
+    const tx = db.transaction(storeName, 'readonly');
+    let cursor = await tx.store.openCursor();
+    let chunk: QueueItem[] = [];
+    while (cursor) {
+      chunk.push(cursor.value);
+      if (chunk.length >= chunkSize) {
+        await callback(chunk);
+        chunk = [];
+      }
+      cursor = await cursor.continue();
+    }
+    if (chunk.length > 0) {
+      await callback(chunk);
+    }
+  }
+
   return {
     queueCount,
     enqueue,
@@ -90,5 +110,6 @@ export function useOfflineQueue(dbName = '9sl-offline', storeName = 'pending_sca
     tryAcquireLock,
     releaseLock,
     clearProcessed,
+    processChunked,
   };
 }

@@ -314,7 +314,7 @@ export default function MileageTracker() {
                     <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{log.trip_date}</span>
                     <span className="flex items-center gap-1"><Gauge className="h-3 w-3" />{Number(log.distance_km)} km</span>
                     {log.start_location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{log.start_location} → {log.end_location || '...'}</span>}
-                    {(log as any).vehicle && <span className="flex items-center gap-1"><Car className="h-3 w-3" />{(log as any).vehicle.nickname}</span>}
+                    {false && <span className="flex items-center gap-1"><Car className="h-3 w-3" />vehicle</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">

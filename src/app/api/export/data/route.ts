@@ -24,10 +24,17 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const [receiptsResult, unitsResult, auditResult] = await Promise.all([
+    const userOrgId = user.user_metadata?.org_id || null;
+
+    const [receiptsResult, unitsResult, auditResult, mileageResult, vehiclesResult, projectsResult, commentsResult, subscriptionsResult] = await Promise.all([
       supabase.from('receipts').select('*').eq('user_id', user.id),
-      supabase.from('business_units').select('*'),
+      userOrgId ? supabase.from('business_units').select('*').eq('org_id', userOrgId) : supabase.from('business_units').select('*').limit(0),
       supabase.from('audit_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(500),
+      userOrgId ? supabase.from('mileage_logs').select('*').eq('user_id', user.id) : supabase.from('mileage_logs').select('*').limit(0),
+      userOrgId ? supabase.from('vehicles').select('*').eq('user_id', user.id) : supabase.from('vehicles').select('*').limit(0),
+      userOrgId ? supabase.from('projects').select('*').eq('user_id', user.id) : supabase.from('projects').select('*').limit(0),
+      supabase.from('receipt_comments').select('*').eq('user_id', user.id),
+      userOrgId ? supabase.from('subscriptions').select('*').eq('org_id', userOrgId).single() : supabase.from('subscriptions').select('*').limit(0),
     ]);
 
     const exportData = {
@@ -40,6 +47,11 @@ export async function GET(request: Request) {
       receipts: receiptsResult.data ?? [],
       business_units: unitsResult.data ?? [],
       audit_logs: auditResult.data ?? [],
+      mileage_logs: mileageResult.data ?? [],
+      vehicles: vehiclesResult.data ?? [],
+      projects: projectsResult.data ?? [],
+      receipt_comments: commentsResult.data ?? [],
+      subscriptions: subscriptionsResult.data ?? null,
     };
 
     return NextResponse.json(exportData, {
