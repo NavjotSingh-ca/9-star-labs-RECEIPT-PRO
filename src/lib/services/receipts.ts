@@ -236,123 +236,108 @@ export const getDashboardSummary = async (role: UserRole, userId: string): Promi
   if (statsError) throw statsError;
   const mainStats = stats[0] || {};
 
-  // 2. Fetch Category Breakdown
-  let categoryQuery = supabase
-    .from('receipts')
-    .select('category, total_amount')
-    .eq('org_id', orgId)
-    .eq('is_deleted', false);
-  
-  if (role === 'Employee') categoryQuery = categoryQuery.eq('user_id', userId);
-  
-  const { data: categoryData } = await categoryQuery;
-  const categoryMap = new Map<string, number>();
-  (categoryData || []).forEach(r => {
-    const cat = r.category || 'Uncategorized';
-    categoryMap.set(cat, (categoryMap.get(cat) ?? 0) + Number(r.total_amount || 0));
-  });
+  // 2-9: Fetch all remaining dashboard data in parallel
+  const [categoryResult, missingBNResult, pendingReviewResult, flaggedAuditResult,
+    reimbursementsResult, trendResult, confidenceResult, bankResult, mileageResult] = await Promise.all([
+    // 2. Category Breakdown
+    (async () => {
+      let q = supabase.from('receipts').select('category, total_amount').eq('org_id', orgId).eq('is_deleted', false);
+      if (role === 'Employee') q = q.eq('user_id', userId);
+      const { data } = await q;
+      const map = new Map<string, number>();
+      (data || []).forEach(r => {
+        const cat = r.category || 'Uncategorized';
+        map.set(cat, (map.get(cat) ?? 0) + Number(r.total_amount || 0));
+      });
+      return Array.from(map.entries()).map(([name, amount]) => ({ name, amount })).sort((a, b) => b.amount - a.amount);
+    })(),
 
-  const spendingByCategory = Array.from(categoryMap.entries())
-    .map(([name, amount]) => ({ name, amount }))
-    .sort((a, b) => b.amount - a.amount);
+    // 3. Missing BN count
+    (async () => {
+      try {
+        const { count } = await supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).or('vendor_tax_number.is.null,vendor_tax_number.eq.');
+        return count || 0;
+      } catch (e) { logError(e, { action: 'dashboard_missing_bn_count' }); return 0; }
+    })(),
 
-  // 3. Fetch Alert Counts with error handling
-  let missingBN = 0;
-  let pendingReview = 0;
-  let flaggedAudit = 0;
+    // 4. Pending review count
+    (async () => {
+      try {
+        const { count } = await supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).eq('approval_status', 'submitted');
+        return count || 0;
+      } catch (e) { logError(e, { action: 'dashboard_pending_review_count' }); return 0; }
+    })(),
 
-  try {
-    const result = await supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).or('vendor_tax_number.is.null,vendor_tax_number.eq.');
-    missingBN = result.count || 0;
-  } catch (e) {
-    logError(e, { action: 'dashboard_missing_bn_count' });
-  }
+    // 5. Flagged audit count
+    (async () => {
+      try {
+        const { count } = await supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).eq('flagged_for_audit', true);
+        return count || 0;
+      } catch (e) { logError(e, { action: 'dashboard_flagged_audit_count' }); return 0; }
+    })(),
 
-  try {
-    const result = await supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).eq('approval_status', 'submitted');
-    pendingReview = result.count || 0;
-  } catch (e) {
-    logError(e, { action: 'dashboard_pending_review_count' });
-  }
+    // 6. Reimbursement Queue
+    (async () => {
+      const { data } = await supabase.from('receipts').select('*').eq('org_id', orgId).eq('is_deleted', false).eq('paid_by', 'employee_cash').eq('reimbursement_status', 'pending').limit(5);
+      return data || [];
+    })(),
 
-  try {
-    const result = await supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).eq('flagged_for_audit', true);
-    flaggedAudit = result.count || 0;
-  } catch (e) {
-    logError(e, { action: 'dashboard_flagged_audit_count' });
-  }
+    // 7. Monthly Trend (last 6 months)
+    (async () => {
+      try {
+        const sixMonthsAgo = new Date(); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        let q = supabase.from('receipts').select('transaction_date, total_amount').eq('org_id', orgId).eq('is_deleted', false).gte('created_at', sixMonthsAgo.toISOString());
+        if (role === 'Employee') q = q.eq('user_id', userId);
+        const { data } = await q;
+        const map = new Map<string, number>();
+        (data || []).forEach(r => {
+          const d = String(r.transaction_date || '').slice(0, 7);
+          if (d) map.set(d, (map.get(d) ?? 0) + Number(r.total_amount || 0));
+        });
+        return Array.from(map.entries()).map(([month, amount]) => ({ month, amount: Math.round(amount * 100) / 100 })).sort((a, b) => a.month.localeCompare(b.month)).slice(-6);
+      } catch (e) { logError(e, { action: 'dashboard_monthly_trend' }); return []; }
+    })(),
 
-  // 4. Fetch Reimbursement Queue
-  const { data: reimbursements } = await supabase
-    .from('receipts')
-    .select('*')
-    .eq('org_id', orgId)
-    .eq('is_deleted', false)
-    .eq('paid_by', 'employee_cash')
-    .eq('reimbursement_status', 'pending')
-    .limit(5);
+    // 8. High confidence + duplicate counts (already parallelized internally)
+    (async () => {
+      try {
+        const [hc, db] = await Promise.all([
+          supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).gte('confidence_score', 80),
+          supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).eq('duplicate_warning', true),
+        ]);
+        return { highConfidenceCount: hc.count || 0, duplicatesBlockedCount: db.count || 0 };
+      } catch (e) { logError(e, { action: 'dashboard_confidence_counts' }); return { highConfidenceCount: 0, duplicatesBlockedCount: 0 }; }
+    })(),
 
-  // MED-4: Fetch real monthly trend data (last 6 months)
-  let monthlyTrend: { month: string; amount: number }[] = [];
-  try {
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    let trendQuery = supabase
-      .from('receipts')
-      .select('transaction_date, total_amount')
-      .eq('org_id', orgId)
-      .eq('is_deleted', false)
-      .gte('created_at', sixMonthsAgo.toISOString());
-    if (role === 'Employee') trendQuery = trendQuery.eq('user_id', userId);
-    const { data: trendData } = await trendQuery;
-    const monthMap = new Map<string, number>();
-    (trendData || []).forEach(r => {
-      const d = String(r.transaction_date || '').slice(0, 7); // YYYY-MM
-      if (d) monthMap.set(d, (monthMap.get(d) ?? 0) + Number(r.total_amount || 0));
-    });
-    monthlyTrend = Array.from(monthMap.entries())
-      .map(([month, amount]) => ({ month, amount: Math.round(amount * 100) / 100 }))
-      .sort((a, b) => a.month.localeCompare(b.month))
-      .slice(-6);
-  } catch (e) { logError(e, { action: 'dashboard_monthly_trend' }); }
-  
-  // MED-4: Fetch real high-confidence and duplicate-blocked counts
-  let highConfidenceCount = 0;
-  let duplicatesBlockedCount = 0;
-  try {
-    const [hcResult, dbResult] = await Promise.all([
-      supabase.from('receipts').select('*', { count: 'exact', head: true })
-        .eq('org_id', orgId).eq('is_deleted', false).gte('confidence_score', 80),
-      supabase.from('receipts').select('*', { count: 'exact', head: true })
-        .eq('org_id', orgId).eq('is_deleted', false).eq('duplicate_warning', true),
-    ]);
-    highConfidenceCount = hcResult.count || 0;
-    duplicatesBlockedCount = dbResult.count || 0;
-  } catch (e) { logError(e, { action: 'dashboard_confidence_counts' }); }
+    // 9. Unmatched bank count
+    (async () => {
+      try {
+        const { count } = await supabase.from('bank_transactions').select('*', { count: 'exact', head: true }).eq('org_id', orgId).is('matched_receipt_id', null).eq('is_reconciled', false);
+        return count || 0;
+      } catch (e) { logError(e, { action: 'dashboard_unmatched_bank' }); return 0; }
+    })(),
 
-  // Fetch unmatched bank transaction count
-  let unmatchedBankCount = 0;
-  try {
-    const { count } = await supabase
-      .from('bank_transactions')
-      .select('*', { count: 'exact', head: true })
-      .eq('org_id', orgId)
-      .is('matched_receipt_id', null)
-      .eq('is_reconciled', false);
-    unmatchedBankCount = count || 0;
-  } catch (e) { logError(e, { action: 'dashboard_unmatched_bank' }); }
+    // 10. Mileage totals
+    (async () => {
+      try {
+        const { data } = await supabase.from('mileage_logs').select('distance_km, total_amount').eq('org_id', orgId);
+        return {
+          mileageTotalAmount: (data || []).reduce((s, r) => s + Number(r.total_amount), 0),
+          mileageTotalKm: (data || []).reduce((s, r) => s + Number(r.distance_km), 0),
+        };
+      } catch (e) { logError(e, { action: 'dashboard_mileage' }); return { mileageTotalAmount: 0, mileageTotalKm: 0 }; }
+    })(),
+  ]);
 
-  // Fetch mileage totals
-  let mileageTotalAmount = 0;
-  let mileageTotalKm = 0;
-  try {
-    const { data: mileageData } = await supabase
-      .from('mileage_logs')
-      .select('distance_km, total_amount')
-      .eq('org_id', orgId);
-    mileageTotalAmount = (mileageData || []).reduce((s, r) => s + Number(r.total_amount), 0);
-    mileageTotalKm = (mileageData || []).reduce((s, r) => s + Number(r.distance_km), 0);
-  } catch (e) { logError(e, { action: 'dashboard_mileage' }); }
+  const spendingByCategory = categoryResult;
+  const missingBN = missingBNResult;
+  const pendingReview = pendingReviewResult;
+  const flaggedAudit = flaggedAuditResult;
+  const reimbursements = reimbursementsResult;
+  const monthlyTrend = trendResult;
+  const { highConfidenceCount, duplicatesBlockedCount } = confidenceResult;
+  const unmatchedBankCount = bankResult;
+  const { mileageTotalAmount, mileageTotalKm } = mileageResult;
 
   return {
     totalSpent: Number(mainStats.total_spent || 0) + mileageTotalAmount,
