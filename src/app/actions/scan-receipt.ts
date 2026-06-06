@@ -374,26 +374,48 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
   // ─── HIGH-8: Rate Limiting by scan attempts, not saved receipts ───
   // CRIT-4: Fail-closed — if rate limit check fails, block the scan
   try {
-    const oneHourAgo = new Date(Date.now() - 3_600_000).toISOString();
-    const { count } = await supabaseClient
+    const now = new Date();
+    const oneMinuteAgo = new Date(now.getTime() - 60_000).toISOString();
+    const { count: minuteCount } = await supabaseClient
+      .from('scan_attempts')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('attempted_at', oneMinuteAgo);
+    if ((minuteCount ?? 0) >= 3) {
+      return { success: false, error: 'Rate limit reached: max 3 scans per minute. Please wait.' };
+    }
+
+    const oneHourAgo = new Date(now.getTime() - 3_600_000).toISOString();
+    const { count: hourCount } = await supabaseClient
       .from('scan_attempts')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte('attempted_at', oneHourAgo);
-    if ((count ?? 0) >= 10) {
+    if ((hourCount ?? 0) >= 10) {
       return { success: false, error: 'Rate limit reached: max 10 scans per hour. Please wait.' };
     }
   } catch (err) {
     // CRIT-4: Fail-closed — block if rate limit check fails
     // Fallback: try counting receipts if scan_attempts table doesn't exist yet
     try {
-      const oneHourAgo = new Date(Date.now() - 3_600_000).toISOString();
-      const { count } = await supabaseClient
+      const now = new Date();
+      const oneMinuteAgo = new Date(now.getTime() - 60_000).toISOString();
+      const { count: minuteFallback } = await supabaseClient
+        .from('receipts')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .gte('created_at', oneMinuteAgo);
+      if ((minuteFallback ?? 0) >= 3) {
+        return { success: false, error: 'Rate limit reached: max 3 scans per minute. Please wait.' };
+      }
+
+      const oneHourAgo = new Date(now.getTime() - 3_600_000).toISOString();
+      const { count: hourFallback } = await supabaseClient
         .from('receipts')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
         .gte('created_at', oneHourAgo);
-      if ((count ?? 0) >= 10) {
+      if ((hourFallback ?? 0) >= 10) {
         return { success: false, error: 'Rate limit reached: max 10 scans per hour. Please wait.' };
       }
     } catch {
