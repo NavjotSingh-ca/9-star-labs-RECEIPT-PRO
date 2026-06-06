@@ -1,6 +1,8 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { useState, useEffect } from 'react';
 import { MotionConfig } from 'framer-motion';
 import { ThemeProvider } from './ThemeProvider';
@@ -11,7 +13,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').catch((err) => {
-          console.error('Service Worker registration failed:', err);
+          console.warn('SW registration skipped — offline queuing unavailable:', err?.message || err);
         });
       });
     }
@@ -33,11 +35,14 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <MotionConfig reducedMotion="user">
-          {children}
-        </MotionConfig>
-      </ThemeProvider>
+      <NuqsAdapter>
+        <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+        <ThemeProvider>
+          <MotionConfig reducedMotion="user">
+            {children}
+          </MotionConfig>
+        </ThemeProvider>
+      </NuqsAdapter>
     </QueryClientProvider>
   );
 }

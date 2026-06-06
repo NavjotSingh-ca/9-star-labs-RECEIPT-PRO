@@ -3,11 +3,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { handleSupabaseError } from '@/lib/supabase-error-handler';
-import { AlertTriangle, TrendingUp, SearchX, Calculator, CopySlash, Loader2, FileWarning } from 'lucide-react';
+import { TrendingUp, SearchX, Calculator, CopySlash, Loader2, FileWarning } from 'lucide-react';
 import { formatDineroIntl } from '@/lib/finance-utils';
 import type { ReceiptRow } from '@/lib/types';
 import { toNumber } from '@/lib/ui-utils';
-import { format } from 'date-fns';
 
 interface SpendAnomaly {
   vendor_name: string;
@@ -97,7 +96,7 @@ export default function AnomalyDashboard() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
+      <div className="flex h-64 items-center justify-center" role="status" aria-live="polite" aria-label="Loading anomaly data">
         <Loader2 className="h-8 w-8 animate-spin text-champagne" />
       </div>
     );
@@ -108,7 +107,7 @@ export default function AnomalyDashboard() {
   return (
     <div className="space-y-6 fade-in">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-red-400">Security & Compliance</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-danger">Security & Compliance</p>
         <h2 className="mt-1 text-2xl font-bold tracking-tight text-text-primary">AI Anomaly Detection</h2>
         <p className="mt-2 text-sm text-text-secondary">
           {totalAnomalies > 0 
@@ -118,7 +117,7 @@ export default function AnomalyDashboard() {
       </div>
 
       {error && (
-        <div className="rounded-[2rem] bg-red-500/10 p-4 text-sm text-red-400 border border-red-500/20">
+        <div className="rounded-[2rem] bg-danger/10 p-4 text-sm text-danger border border-danger/20" role="alert">
           {error}
         </div>
       )}
@@ -126,9 +125,9 @@ export default function AnomalyDashboard() {
       <div className="grid gap-6 md:grid-cols-2">
         
         {/* Fraud Suspicion */}
-        <div className="rounded-[2rem] border border-red-500/20 bg-surface p-5 shadow-sm">
+        <div className="rounded-[2rem] border border-danger/20 bg-surface p-5 shadow-sm">
           <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-red-500/10 text-red-500">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-danger/10 text-danger">
               <FileWarning className="h-5 w-5" />
             </div>
             <div>
@@ -149,7 +148,7 @@ export default function AnomalyDashboard() {
                     <span>{r.vendor_name || 'Unknown'}</span>
                     <span>{formatDineroIntl(toNumber(r.total_amount))}</span>
                   </div>
-                  <p className="text-xs text-red-400 mt-1">{r.fraud_reason}</p>
+                  <p className="text-xs text-danger mt-1">{r.fraud_reason}</p>
                 </div>
               ))
             )}
@@ -157,9 +156,9 @@ export default function AnomalyDashboard() {
         </div>
 
         {/* Spend Anomalies */}
-        <div className="rounded-[2rem] border border-amber-500/20 bg-surface p-5 shadow-sm">
+        <div className="rounded-[2rem] border border-warning/20 bg-surface p-5 shadow-sm">
           <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-warning/10 text-warning">
               <TrendingUp className="h-5 w-5" />
             </div>
             <div>
@@ -178,7 +177,7 @@ export default function AnomalyDashboard() {
                 <div key={s.receipt_id} className="rounded-xl bg-surface-raised p-3 text-sm">
                   <div className="flex justify-between font-medium">
                     <span>{s.vendor_name}</span>
-                    <span className="text-amber-400">{formatDineroIntl(toNumber(s.latest_amount))}</span>
+                    <span className="text-warning">{formatDineroIntl(toNumber(s.latest_amount))}</span>
                   </div>
                   <p className="text-xs text-text-secondary mt-1">
                     Normal avg: {formatDineroIntl(toNumber(s.avg_amount))} ({toNumber(s.ratio).toFixed(1)}x higher)

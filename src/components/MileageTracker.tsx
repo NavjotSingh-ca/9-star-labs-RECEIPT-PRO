@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Car, Trash2, MapPin, Calendar, Gauge, DollarSign, Loader2, ChevronDown } from 'lucide-react';
+import { Plus, Car, Trash2, MapPin, Calendar, Gauge, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/ui-utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -18,6 +18,7 @@ export default function MileageTracker() {
   const [logs, setLogs] = useState<MileageLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [showAddTrip, setShowAddTrip] = useState(false);
@@ -70,7 +71,8 @@ export default function MileageTracker() {
         setYtdKm(ytd);
       }
     } catch (err) {
-      setError('Failed to load mileage data.');
+      console.error('Mileage data load failed:', err);
+      setError('Failed to load mileage data. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -92,7 +94,8 @@ export default function MileageTracker() {
       setShowAddVehicle(false);
       setVNickname(''); setVPlate(''); setVMake(''); setVModel(''); setVYear('');
     } catch (err) {
-      setError('Failed to add vehicle.');
+      console.error('Add vehicle failed:', err);
+      setError('Failed to add vehicle. The database may be unavailable.');
     } finally {
       setSaving(false);
     }
@@ -121,18 +124,23 @@ export default function MileageTracker() {
       setShowAddTrip(false);
       setTripPurpose(''); setTripStart(''); setTripEnd(''); setTripKm(''); setTripVehicle(''); setTripNotes('');
     } catch (err) {
-      setError('Failed to log trip.');
+      console.error('Log trip failed:', err);
+      setError('Failed to log trip. The database may be unavailable.');
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDeleteLog(id: string) {
+    setDeletingId(id);
     try {
       await deleteMileageLog(id);
       setLogs(prev => prev.filter(l => l.id !== id));
-    } catch {
+    } catch (err) {
+      console.error('Delete trip failed:', err);
       setError('Failed to delete trip.');
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -146,7 +154,7 @@ export default function MileageTracker() {
 
   if (loading) {
     return (
-      <div className="space-y-4 pb-10">
+      <div className="space-y-4 pb-10" role="status" aria-live="polite" aria-label="Loading mileage data">
         <Skeleton className="h-8 w-64 rounded-[2rem]" />
         <Skeleton className="h-5 w-48 rounded-[2rem]" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -169,13 +177,15 @@ export default function MileageTracker() {
         <div className="flex gap-2">
           <button
             onClick={() => { setShowAddVehicle(true); setShowAddTrip(false); }}
+            type="button"
             className="flex items-center gap-1.5 rounded-full border border-glass-border bg-surface px-3 py-2 text-xs font-semibold text-text-primary hover:bg-surface-raised transition"
           >
             <Car className="h-3.5 w-3.5" /> Add Vehicle
           </button>
           <button
             onClick={() => { setShowAddTrip(true); setShowAddVehicle(false); }}
-            className="flex items-center gap-1.5 rounded-full bg-gradient-to-b from-[#dfcaaa] to-champagne px-4 py-2 text-xs font-bold text-black shadow-lg hover:opacity-90 transition"
+            type="button"
+            className="flex items-center gap-1.5 rounded-full bg-gradient-to-b from-champagne-dim to-champagne px-4 py-2 text-xs font-bold text-black shadow-lg hover:opacity-90 transition"
           >
             <Plus className="h-3.5 w-3.5" /> Log Trip
           </button>
@@ -183,7 +193,7 @@ export default function MileageTracker() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-3xl border border-glass-border bg-surface p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Total Distance</p>
           <p className="mt-2 text-2xl font-bold tabular-nums text-text-primary">{summary.totalKm.toLocaleString()} km</p>
@@ -206,7 +216,7 @@ export default function MileageTracker() {
       </div>
 
       {error && (
-        <div className="rounded-[2rem] border border-red-500/20 bg-red-500/[0.06] p-3 text-sm text-red-400">{error}</div>
+        <div className="rounded-[2rem] border border-danger/20 bg-danger/[0.06] p-3 text-sm text-danger" role="alert">{error}</div>
       )}
 
       {/* Add Vehicle Form */}
@@ -216,15 +226,30 @@ export default function MileageTracker() {
             <div className="rounded-3xl border border-glass-border bg-surface p-5 space-y-4 shadow-sm">
               <h3 className="text-sm font-bold text-text-primary">New Vehicle</h3>
               <div className="grid grid-cols-2 gap-3">
-                <input value={vNickname} onChange={e => setVNickname(e.target.value)} placeholder="Nickname *" className={inputCls} />
-                <input value={vPlate} onChange={e => setVPlate(e.target.value)} placeholder="License plate" className={inputCls} />
-                <input value={vMake} onChange={e => setVMake(e.target.value)} placeholder="Make" className={inputCls} />
-                <input value={vModel} onChange={e => setVModel(e.target.value)} placeholder="Model" className={inputCls} />
-                <input value={vYear} onChange={e => setVYear(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="Year" className={inputCls} />
+                <div>
+                  <label htmlFor="v-nickname" className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Nickname *</label>
+                  <input id="v-nickname" value={vNickname} onChange={e => setVNickname(e.target.value)} placeholder="e.g. Work Truck" className={inputCls} />
+                </div>
+                <div>
+                  <label htmlFor="v-plate" className="text-[10px] font-bold uppercase tracking-wider text-text-muted">License plate</label>
+                  <input id="v-plate" value={vPlate} onChange={e => setVPlate(e.target.value)} placeholder="ABC-123" className={inputCls} />
+                </div>
+                <div>
+                  <label htmlFor="v-make" className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Make</label>
+                  <input id="v-make" value={vMake} onChange={e => setVMake(e.target.value)} placeholder="Ford" className={inputCls} />
+                </div>
+                <div>
+                  <label htmlFor="v-model" className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Model</label>
+                  <input id="v-model" value={vModel} onChange={e => setVModel(e.target.value)} placeholder="F-150" className={inputCls} />
+                </div>
+                <div>
+                  <label htmlFor="v-year" className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Year</label>
+                  <input id="v-year" value={vYear} onChange={e => setVYear(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="2024" className={inputCls} />
+                </div>
               </div>
               <div className="flex gap-2 justify-end">
-                <button onClick={() => setShowAddVehicle(false)} className="px-4 py-2 text-xs font-semibold text-text-secondary rounded-full border border-glass-border hover:bg-surface-raised transition">Cancel</button>
-                <button onClick={handleAddVehicle} disabled={saving} className="px-4 py-2 text-xs font-bold text-black bg-champagne rounded-full hover:opacity-90 transition disabled:opacity-50">
+                <button type="button" onClick={() => setShowAddVehicle(false)} className="px-4 py-2 text-xs font-semibold text-text-secondary rounded-full border border-glass-border hover:bg-surface-raised transition">Cancel</button>
+                <button type="button" onClick={handleAddVehicle} disabled={saving} className="px-4 py-2 text-xs font-bold text-black bg-champagne rounded-full hover:opacity-90 transition disabled:opacity-50">
                   {saving ? <Loader2 className="h-3 w-3 animate-spin inline" /> : 'Save Vehicle'}
                 </button>
               </div>
@@ -252,8 +277,14 @@ export default function MileageTracker() {
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Purpose *</label>
                   <input value={tripPurpose} onChange={e => setTripPurpose(e.target.value)} placeholder="e.g. Client meeting at Leduc site" className={inputCls} />
                 </div>
-                <input value={tripStart} onChange={e => setTripStart(e.target.value)} placeholder="Start location" className={inputCls} />
-                <input value={tripEnd} onChange={e => setTripEnd(e.target.value)} placeholder="End location" className={inputCls} />
+                <div>
+                  <label htmlFor="trip-start" className="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Start location</label>
+                  <input id="trip-start" value={tripStart} onChange={e => setTripStart(e.target.value)} placeholder="123 Main St" className={inputCls} />
+                </div>
+                <div>
+                  <label htmlFor="trip-end" className="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">End location</label>
+                  <input id="trip-end" value={tripEnd} onChange={e => setTripEnd(e.target.value)} placeholder="456 Oak Ave" className={inputCls} />
+                </div>
                 {vehicles.length > 0 && (
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Vehicle</label>
@@ -273,15 +304,15 @@ export default function MileageTracker() {
 
               {/* Live preview */}
               {previewAmount !== null && (
-                <div className="rounded-[2rem] bg-emerald-500/[0.06] border border-emerald-500/20 p-3 flex items-center justify-between">
-                  <span className="text-xs text-emerald-400 font-bold">CRA Deduction Preview</span>
-                  <span className="text-lg font-black tabular-nums text-emerald-400">{formatCurrency(previewAmount)}</span>
+                <div className="rounded-[2rem] bg-emerald-success/[0.06] border border-emerald-success/20 p-3 flex items-center justify-between" aria-live="polite">
+                  <span className="text-xs text-emerald-light font-bold">CRA Deduction Preview</span>
+                  <span className="text-lg font-black tabular-nums text-emerald-light">{formatCurrency(previewAmount)}</span>
                 </div>
               )}
 
               <div className="flex gap-2 justify-end">
-                <button onClick={() => setShowAddTrip(false)} className="px-4 py-2 text-xs font-semibold text-text-secondary rounded-full border border-glass-border hover:bg-surface-raised transition">Cancel</button>
-                <button onClick={handleAddTrip} disabled={saving} className="px-4 py-2 text-xs font-bold text-black bg-champagne rounded-full hover:opacity-90 transition disabled:opacity-50">
+                <button type="button" onClick={() => setShowAddTrip(false)} className="px-4 py-2 text-xs font-semibold text-text-secondary rounded-full border border-glass-border hover:bg-surface-raised transition">Cancel</button>
+                <button type="button" onClick={handleAddTrip} disabled={saving} className="px-4 py-2 text-xs font-bold text-black bg-champagne rounded-full hover:opacity-90 transition disabled:opacity-50">
                   {saving ? <Loader2 className="h-3 w-3 animate-spin inline" /> : 'Save Trip'}
                 </button>
               </div>
@@ -292,10 +323,9 @@ export default function MileageTracker() {
 
       {/* Trip Log */}
       {logs.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-glass-border bg-surface p-12 text-center">
-          <Gauge className="mx-auto mb-3 h-12 w-12 text-text-muted/30" />
-          <p className="text-sm font-semibold text-text-primary">No trips logged yet.</p>
-          <p className="mt-1 text-xs text-text-secondary">Tap "Log Trip" above to start tracking mileage.</p>
+        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-glass-border bg-surface/30 py-16 text-center" role="status" aria-live="polite">
+          <Gauge className="h-10 w-10 text-text-muted opacity-30" />
+          <p className="text-sm text-text-muted">No trips logged yet. Tap &quot;Log Trip&quot; to start tracking mileage.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -323,11 +353,13 @@ export default function MileageTracker() {
                     <p className="text-[10px] text-text-muted">${Number(log.rate_per_km).toFixed(2)}/km</p>
                   </div>
                   <button
+                    type="button"
                     onClick={() => handleDeleteLog(log.id)}
-                    className="opacity-0 group-hover:opacity-100 transition p-1.5 rounded-full text-text-muted hover:text-red-400 hover:bg-red-500/10"
+                    disabled={deletingId === log.id}
+                    className="opacity-0 group-hover:opacity-100 transition p-1.5 rounded-full text-text-muted hover:text-danger hover:bg-danger/10 disabled:opacity-30"
                     aria-label="Delete trip"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    {deletingId === log.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                   </button>
                 </div>
               </div>
@@ -351,11 +383,23 @@ export default function MileageTracker() {
                   </p>
                 </div>
                 <button
-                  onClick={async () => { await deleteVehicle(v.id); setVehicles(prev => prev.filter(x => x.id !== v.id)); }}
-                  className="opacity-0 group-hover:opacity-100 transition p-1.5 rounded-full text-text-muted hover:text-red-400 hover:bg-red-500/10"
+                  onClick={async () => {
+                    setDeletingId(v.id);
+                    try {
+                      await deleteVehicle(v.id);
+                      setVehicles(prev => prev.filter(x => x.id !== v.id));
+                    } catch (err) {
+                      console.error('Delete vehicle failed:', err);
+                      setError('Failed to delete vehicle.');
+                    } finally {
+                      setDeletingId(null);
+                    }
+                  }}
+                  disabled={deletingId === v.id}
+                  className="opacity-0 group-hover:opacity-100 transition p-1.5 rounded-full text-text-muted hover:text-danger hover:bg-danger/10 disabled:opacity-30"
                   aria-label="Delete vehicle"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  {deletingId === v.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                 </button>
               </div>
             ))}

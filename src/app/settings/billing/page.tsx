@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import type { Plan, Subscription } from '@/lib/services/subscription';
 import { getSubscription, formatPlanLabel, PLAN_GATES } from '@/lib/services/subscription';
 import { env } from '@/lib/env';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function BillingSettings() {
   const router = useRouter();
@@ -106,9 +107,9 @@ export default function BillingSettings() {
       name: 'Free',
       price: '$0/mo',
       description: 'For individuals just getting started.',
-      icon: <Zap className="h-5 w-5 text-emerald-400" />,
+      icon: <Zap className="h-5 w-5 text-emerald-light" />,
       features: [
-        '50 receipts per month',
+        '25 receipts per month',
         '1 user',
         'Basic CRA compliance',
         'AI receipt scanning',
@@ -116,36 +117,70 @@ export default function BillingSettings() {
       ],
     },
     {
+      id: 'starter',
+      name: 'Starter',
+      price: '$19/mo',
+      priceId: 'price_placeholder_starter',
+      description: 'For growing businesses with moderate volume.',
+      icon: <Zap className="h-5 w-5 text-champagne" />,
+      features: [
+        '200 receipts per month',
+        'Up to 3 users',
+        'QBO sync',
+        'CSV & Excel exports',
+        'Basic CRA compliance',
+      ],
+    },
+    {
       id: 'pro',
       name: 'Pro',
-      price: '$29/mo',
-      priceId: 'price_placeholder_pro', // Replace with real Stripe Price ID after setup
+      price: '$35/mo',
+      priceId: 'price_placeholder_pro',
       description: 'For small teams and growing businesses.',
-      icon: <Crown className="h-5 w-5 text-amber-400" />,
+      icon: <Crown className="h-5 w-5 text-warning" />,
       features: [
         'Unlimited receipts',
-        'Up to 5 users',
+        'Up to 10 users',
         'QBO & Xero sync',
         'All exports (PDF, CSV, Excel)',
         'Approval & reimbursement workflows',
         'Bank reconciliation (CSV upload)',
+        'Advanced CRA scoring',
         '14-day free trial',
+      ],
+    },
+    {
+      id: 'business',
+      name: 'Business',
+      price: '$79/mo',
+      priceId: 'price_placeholder_business',
+      description: 'For larger organizations with advanced needs.',
+      icon: <Users className="h-5 w-5 text-champagne" />,
+      features: [
+        'Unlimited receipts',
+        'Up to 15 users',
+        'QBO & Xero sync',
+        'All exports & reports',
+        'Custom fields',
+        'Priority support',
+        'Advanced approval workflows',
       ],
     },
     {
       id: 'enterprise',
       name: 'Enterprise',
-      price: '$99/mo',
-      priceId: 'price_placeholder_enterprise', // Replace with real Stripe Price ID after setup
+      price: 'Custom',
+      priceId: '',
       description: 'For accounting firms & large orgs.',
       icon: <Shield className="h-5 w-5 text-champagne" />,
       features: [
         'Unlimited everything',
         'Unlimited users',
         'SSO / SAML',
-        'Custom fields & API access',
+        'API access',
         'White-label options',
-        'Dedicated support',
+        'Dedicated account manager',
+        'Custom integrations',
       ],
     },
   ];
@@ -158,22 +193,23 @@ export default function BillingSettings() {
       </div>
 
           {error && (
-            <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20">
+            <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-danger/10 px-4 py-3 text-sm text-danger border border-danger/20" role="alert">
               <AlertCircle className="h-4 w-4" />
               <span>{error}</span>
             </div>
           )}
 
           {success && (
-            <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400 border border-emerald-500/20">
+            <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-emerald-success/10 px-4 py-3 text-sm text-emerald-light border border-emerald-success/20" role="status" aria-live="polite">
               <CheckCircle2 className="h-4 w-4" />
               <span>{success}</span>
             </div>
           )}
 
           {loading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-champagne" /></div>
+            <div className="flex justify-center py-12" role="status" aria-live="polite" aria-label="Loading billing"><Loader2 className="h-8 w-8 animate-spin text-champagne" /></div>
           ) : (
+            <ErrorBoundary componentName="BillingSettings">
             <div className="space-y-10">
               {/* Current Plan Card */}
               <div className="rounded-[3rem] border border-glass-border bg-surface-raised p-6">
@@ -224,7 +260,7 @@ export default function BillingSettings() {
               {/* Plan Selection */}
               <div>
                 <h2 className="text-lg font-bold text-text-primary mb-4">Choose Your Plan</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                   {plans.map((p) => {
                     const isCurrent = currentPlan === p.id;
                     return (
@@ -248,7 +284,7 @@ export default function BillingSettings() {
                         <ul className="space-y-2 mb-6">
                           {p.features.map((f, i) => (
                             <li key={i} className="flex items-start gap-2 text-xs text-text-secondary">
-                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-light mt-0.5 flex-shrink-0" />
                               {f}
                             </li>
                           ))}
@@ -263,7 +299,7 @@ export default function BillingSettings() {
                             {checkoutLoading === p.priceId ? (
                               <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
                             ) : null}
-                            {currentPlan === 'free' && p.id === 'pro' ? 'Start Free Trial' : 'Upgrade'}
+                            {currentPlan === 'free' && p.id === 'pro' ? 'Start Free Trial' : p.id === 'enterprise' ? 'Contact Us' : 'Upgrade'}
                           </button>
                         )}
                       </div>
@@ -273,11 +309,12 @@ export default function BillingSettings() {
               </div>
 
               {!env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && (
-                <div className="rounded-[2rem] border border-amber-500/20 bg-amber-500/5 p-4 text-xs text-amber-300">
+                <div className="rounded-[2rem] border border-warning/20 bg-warning/5 p-4 text-xs text-warning">
                   <strong>Stripe is not configured.</strong> Add <code>NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code> and <code>STRIPE_SECRET_KEY</code> to your environment variables to enable billing.
                 </div>
               )}
             </div>
+            </ErrorBoundary>
           )}
     </>
   );

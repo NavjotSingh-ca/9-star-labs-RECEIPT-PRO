@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import {
   flexRender,
@@ -13,7 +13,6 @@ import {
 } from '@tanstack/react-table';
 import {
   ArrowUpDown,
-  ChevronDown,
   Eye,
   FileDown,
   MoreHorizontal,
@@ -43,6 +42,7 @@ import {
 
 import { ReceiptRow } from '@/lib/types';
 import { formatCurrency, formatDate, categoryColor, approvalBadge } from '@/lib/ui-utils';
+import { exportReceiptPdf } from '@/lib/export-receipt-pdf';
 import { motion } from 'framer-motion';
 
 interface ProfessionalLedgerProps {
@@ -124,7 +124,7 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
         const config = approvalBadge(status);
         return (
           <div className="flex items-center gap-2">
-            <div className={`h-2 w-2 rounded-full ${config.cls.includes('emerald') ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
+            <div className={`h-2 w-2 rounded-full ${config.cls.includes('emerald') ? 'bg-emerald-success' : 'bg-warning animate-pulse'}`} />
             <span className="text-[10px] font-bold uppercase tracking-wider">{status}</span>
           </div>
         );
@@ -150,7 +150,7 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
                   <Eye className="h-4 w-4" /> View Details
                 </DropdownMenuItem>
                 <DropdownMenuItem 
-                  onClick={(e) => { e.stopPropagation(); }}
+                  onClick={(e) => { e.stopPropagation(); exportReceiptPdf(receipt); }}
                   className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition cursor-pointer"
                 >
                   <FileDown className="h-4 w-4" /> Export PDF
@@ -199,9 +199,7 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="rounded-xl font-bold">
-            Filters <ChevronDown className="ml-2 h-4 w-4" />
-          </Button>
+          <p className="text-xs text-text-muted font-medium">{data.length} records</p>
         </div>
       </div>
 
@@ -226,15 +224,18 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row, i) => (
-                <motion.tr
-                  key={row.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                  whileHover={{ scale: 1.005, backgroundColor: 'rgba(190, 169, 142, 0.04)' }}
-                  onClick={() => onSelect(row.original)}
-                  className={`group cursor-pointer transition-colors border-b border-glass-border ${i % 2 === 0 ? 'bg-surface-raised/50' : 'bg-surface-raised/30'} hover:bg-champagne/5`}
-                >
+                  <motion.tr
+                    key={row.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    whileHover={{ scale: 1.005, backgroundColor: 'rgba(190, 169, 142, 0.04)' }}
+                    onClick={() => onSelect(row.original)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(row.original); } }}
+                    tabIndex={0}
+                    role="button"
+                    className={`group cursor-pointer transition-colors border-b border-glass-border ${i % 2 === 0 ? 'bg-surface-raised/50' : 'bg-surface-raised/30'} hover:bg-champagne/5 focus-visible:outline-2 focus-visible:outline-champagne/60 focus-visible:outline-offset-[-2px]`}
+                  >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="px-6 py-3">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}

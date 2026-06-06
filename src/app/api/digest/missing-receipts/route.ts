@@ -114,7 +114,7 @@ export async function POST(request: Request) {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              from: env.RESEND_FROM_EMAIL || 'alerts@9starlabs.ca',
+              from: env.RESEND_FROM_EMAIL || '9starlaba@gmail.com',
               to: emails,
               subject: `⚠️ ${transactions.length} bank transaction${transactions.length === 1 ? '' : 's'} missing receipts`,
               html: emailBody,

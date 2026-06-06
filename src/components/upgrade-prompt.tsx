@@ -30,7 +30,7 @@ export function UpgradePrompt({ plan, receiptCount, teamSize, isTrialing, daysLe
   return (
     <div className="space-y-2">
       {showReceiptBlock && (
-        <div className="flex items-center gap-3 rounded-[2rem] bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">
+        <div className="flex items-center gap-3 rounded-[2rem] bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger">
           <AlertTriangle className="h-5 w-5 flex-shrink-0" />
           <div className="flex-1">
             <p className="font-semibold">Receipt limit reached</p>
@@ -46,7 +46,7 @@ export function UpgradePrompt({ plan, receiptCount, teamSize, isTrialing, daysLe
       )}
 
       {showReceiptWarning && (
-        <div className="flex items-center gap-3 rounded-[2rem] bg-amber-500/10 border border-amber-500/20 px-4 py-3 text-sm text-amber-200">
+        <div className="flex items-center gap-3 rounded-[2rem] bg-warning/10 border border-warning/20 px-4 py-3 text-sm text-warning">
           <AlertTriangle className="h-5 w-5 flex-shrink-0" />
           <div className="flex-1">
             <p className="font-semibold">Low on receipts</p>
@@ -62,7 +62,7 @@ export function UpgradePrompt({ plan, receiptCount, teamSize, isTrialing, daysLe
       )}
 
       {showUserWarning && (
-        <div className="flex items-center gap-3 rounded-[2rem] bg-amber-500/10 border border-amber-500/20 px-4 py-3 text-sm text-amber-200">
+        <div className="flex items-center gap-3 rounded-[2rem] bg-warning/10 border border-warning/20 px-4 py-3 text-sm text-warning">
           <Crown className="h-5 w-5 flex-shrink-0" />
           <div className="flex-1">
             <p className="font-semibold">User limit reached</p>

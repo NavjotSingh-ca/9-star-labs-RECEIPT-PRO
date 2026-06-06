@@ -18,7 +18,7 @@ export const lineItemSchema = z.object({
   tax_amount: z.number().nullish().transform((val) => val ?? 0),
   line_total: z.number().nullish().transform((val) => val ?? 0),
   category: z.string().nullish().transform((val) => val ?? ''),
-}).catchall(z.any());
+}).catchall(z.unknown());
 
 export const receiptSchema = z.object({
   id: z.string().nullish().transform((val) => val ?? ''),
@@ -47,7 +47,7 @@ export const receiptSchema = z.object({
   vehicle_id: z.string().nullish().transform((val) => val ?? ''),
   usage_type: z.enum(['business', 'personal', 'mixed']).nullish().transform((val) => val ?? 'business'),
   business_use_percent: z.number().nullish().transform((val) => val ?? 0),
-  line_items: z.any().transform((val) => {
+  line_items: z.unknown().transform((val) => {
     if (!val) return null;
     if (typeof val === 'string') {
       try { return JSON.parse(val); } catch { return null; }
@@ -76,7 +76,7 @@ export const receiptSchema = z.object({
   high_audit_risk: z.boolean().optional(),
   fraud_suspicion: z.boolean().optional(),
   fraud_reason: z.string().nullish().transform((val) => val ?? ''),
-}).catchall(z.any());
+}).catchall(z.unknown());
 
 // ─── Receipt Queries ───
 
@@ -450,16 +450,12 @@ export const getBusinessUnits = async () => {
 
 export const createAuditLog = async (userId: string, action: string, details: string) => {
   try {
-    const { data: orgData } = await withRetry(
-      () => supabase.rpc('get_user_org'),
-      { maxRetries: 2, delayMs: 500 }
-    );
-    const orgId = orgData as unknown as string;
+    const orgId = await getOrgIdString();
 
     await withRetry(
       () => supabase.from('audit_logs').insert({
         user_id: userId,
-        org_id: orgId || null,
+        org_id: orgId,
         action,
         details,
         created_at: new Date().toISOString()
@@ -469,7 +465,7 @@ export const createAuditLog = async (userId: string, action: string, details: st
   } catch (error) {
     const supabaseError = handleSupabaseError(error);
     logError(supabaseError, { action: 'create_audit_log' });
-    // Audit log failures should not block the main operation
+    // Audit log failures should not block the main operation — logged above for diagnostics
   }
 };
 
@@ -516,11 +512,7 @@ export const getAuditLogs = async (limit = 50) => {
     if (!user) return [];
 
     // Get user's org
-    const { data: orgData } = await withRetry(
-      () => supabase.rpc('get_user_org'),
-      { maxRetries: 2, delayMs: 500 }
-    );
-    const orgId = orgData as unknown as string;
+    const orgId = await getOrgIdString();
     if (!orgId) return [];
 
     const { data, error } = await withRetry(
@@ -885,6 +877,7 @@ export const saveReceipt = async (
       .single();
     previousHash = lastLog?.event_hash ?? null;
   } catch {
+    console.warn('Previous hash lookup failed — starting fresh Merkle chain');
     previousHash = null;
   }
 

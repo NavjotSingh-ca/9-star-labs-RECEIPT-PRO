@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, RefreshCw, Check } from 'lucide-react';
 import type { ReceiptRow } from '@/lib/types';
 import { toNumber, formatCurrency } from '@/lib/ui-utils';
@@ -79,6 +80,7 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
         }
       } catch (err) {
         console.error('Failed to load bank transactions:', err);
+        setError('Could not load bank transactions. The database may be unavailable.');
       } finally {
         setLoading(false);
       }
@@ -223,11 +225,10 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
       </div>
 
       {bankData.length === 0 && !loading && (
-        <div className="rounded-[3rem] border border-dashed border-glass-border bg-surface p-12 text-center transition hover:bg-surface-raised">
-          <FileSpreadsheet className="mx-auto mb-3 h-12 w-12 text-text-muted/30" />
-          <p className="text-sm font-semibold text-text-primary">No bank transactions found.</p>
-          <p className="mt-1 text-xs text-text-secondary mb-4">PDF, OFX, QFX, or CSV — supports TD, RBC, BMO, CIBC, Scotiabank</p>
-          <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-[2rem] bg-gradient-to-b from-[#dfcaaa] to-champagne px-4 py-3 text-sm font-bold text-black shadow-lg transition hover:opacity-90">
+        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-glass-border bg-surface/30 py-16 text-center" role="status" aria-live="polite">
+          <FileSpreadsheet className="h-10 w-10 text-text-muted opacity-30" />
+          <p className="text-sm text-text-muted">No bank transactions found. Upload a statement (PDF, OFX, QFX, or CSV).</p>
+          <label className="mt-2 inline-flex cursor-pointer items-center justify-center gap-2 rounded-[2rem] bg-gradient-to-b from-[#dfcaaa] to-champagne px-4 py-3 text-sm font-bold text-black shadow-lg transition hover:opacity-90">
             <Upload className="h-4 w-4" />
             Upload File
             <input type="file" accept=".csv,.ofx,.qfx,application/pdf" className="hidden" onChange={handleFileUpload} />
@@ -236,13 +237,13 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
       )}
 
       {loading && (
-        <div className="flex justify-center p-8">
+        <div className="flex justify-center p-8" role="status" aria-live="polite" aria-label="Loading bank transactions">
           <RefreshCw className="h-8 w-8 animate-spin text-champagne" />
         </div>
       )}
 
       {error && (
-        <div className="rounded-[2rem] border border-red-500/20 bg-red-500/[0.06] p-4 text-sm text-red-400">
+        <div className="rounded-[2rem] border border-danger/20 bg-danger/[0.06] p-4 text-sm text-danger" role="alert">
           <AlertCircle className="inline h-4 w-4 mr-2 mb-0.5" />
           {error}
         </div>
@@ -250,7 +251,7 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
 
       {bankData.length > 0 && !loading && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between rounded-[3rem] border border-glass-border bg-surface p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3 flex-wrap rounded-[3rem] border border-glass-border bg-surface p-4 shadow-sm">
             <div>
               <p className="text-sm font-bold text-text-primary">Match Results</p>
               <p className="text-xs text-text-secondary">Found receipts for {matchedCount} out of {bankData.length} transactions.</p>
@@ -284,7 +285,7 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
                   <div className="md:w-[50%] rounded-[2rem] border border-glass-border bg-surface-raised p-3">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted flex justify-between">
                       <span>Receipt Match</span>
-                      {m.bankRow.is_reconciled && <span className="text-emerald-400">Reconciled</span>}
+                      {m.bankRow.is_reconciled && <span className="text-emerald-light">Reconciled</span>}
                     </p>
                     {m.receipt ? (
                       <div className="mt-1">
@@ -301,7 +302,8 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
                           </div>
                           
                           {!m.bankRow.is_reconciled && !m.bankRow.id.startsWith('csv-') && (
-                            <button 
+                            <button
+                              type="button"
                               onClick={() => handleConfirmMatch(m.bankRow.id, m.receipt!.id, false, m.score)}
                               disabled={confirmingId === m.bankRow.id}
                               className="text-[10px] font-bold uppercase tracking-wider text-champagne hover:text-champagne-dim transition flex items-center gap-1 bg-surface rounded-full px-2 py-1 border border-glass-border"
@@ -315,8 +317,8 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
                     ) : (
                       <div className="mt-2 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4 text-amber-400" />
-                          <span className="text-xs text-amber-400">No matching receipt found.</span>
+                          <AlertCircle className="h-4 w-4 text-warning" />
+                          <span className="text-xs text-warning">No matching receipt found.</span>
                         </div>
                       </div>
                     )}

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import JSZip from 'jszip';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
@@ -162,10 +161,11 @@ export function useScannerState(
             const error = handleSupabaseError(uploadError);
             console.warn('Failed to upload image:', error.userMessage);
           }
-        } catch (err) {
-          const error = handleSupabaseError(err);
-          console.warn('Image upload failed:', error.userMessage);
-        }
+          } catch (err) {
+            const error = handleSupabaseError(err);
+            console.warn('Image upload failed:', error.userMessage);
+            toast.warning('Receipt image upload failed. The receipt will be saved without an image. Upload the image again later.');
+          }
       }
 
       if (!integrityHash) {
@@ -272,6 +272,7 @@ export function useScannerState(
               successCount++;
             } catch (err) {
               console.error('Failed to sync offline receipt', err);
+              toast.error('Failed to sync an offline receipt. It will be retried on next sync.');
             }
           }
           if (processedIds.length > 0) {
@@ -486,7 +487,9 @@ export function useScannerState(
             }));
             setVendorPrefillSource('history');
           }
-        }).catch(() => {});
+        }).catch(() => {
+          console.warn('Vendor defaults lookup failed — using AI result as-is');
+        });
       }
 
       setTimeout(() => {
@@ -587,6 +590,7 @@ export function useScannerState(
       const file = filesList[i];
       if (file.name.toLowerCase().endsWith('.zip')) {
         try {
+          const JSZip = (await import('jszip')).default;
           const zip = new JSZip();
           const contents = await zip.loadAsync(file);
           for (const [relativePath, zipEntry] of Object.entries(contents.files)) {

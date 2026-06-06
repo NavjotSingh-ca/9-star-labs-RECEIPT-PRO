@@ -59,23 +59,26 @@ export default function SwUpdateBanner() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
-          className="fixed bottom-20 left-1/2 z-[100] -translate-x-1/2 lg:bottom-6"
+          className="fixed bottom-20 left-1/2 z-[120] -translate-x-1/2 lg:bottom-6"
         >
-          <div className="flex items-center gap-3 rounded-full border border-glass-border bg-surface px-5 py-3 shadow-xl backdrop-blur-md">
+          <div className="flex items-center gap-3 rounded-full border border-glass-border bg-surface px-5 py-3 shadow-xl backdrop-blur-md" role="status" aria-live="polite">
             <RefreshCw className="h-4 w-4 shrink-0 text-champagne" />
             <p className="whitespace-nowrap text-sm font-medium text-text-primary">
               A new version is available
             </p>
             <button
+              type="button"
               onClick={handleUpdate}
               className="rounded-full bg-champagne px-3 py-1 text-xs font-semibold text-black transition-colors hover:bg-champagne-dim"
             >
               Update
             </button>
             <button
+              type="button"
               onClick={handleDismiss}
               className="flex h-6 w-6 items-center justify-center rounded-full text-text-muted hover:text-text-primary"
               title="Dismiss"
+              aria-label="Dismiss update notification"
             >
               <X className="h-3.5 w-3.5" />
             </button>

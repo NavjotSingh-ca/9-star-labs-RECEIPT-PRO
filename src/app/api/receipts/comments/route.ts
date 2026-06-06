@@ -64,7 +64,7 @@ export async function POST(request: Request) {
 
       if (uploaderEmail && resend) {
         await resend.emails.send({
-          from: 'Leduc Receipt Pro <noreply@9starlabs.ca>',
+          from: 'Leduc Receipt Pro <9starlaba@gmail.com>',
           to: uploaderEmail,
           subject: `Clarification needed: ${receipt.vendor_name} receipt`,
           text: `Your accountant has requested clarification on a receipt.\n\nVendor: ${receipt.vendor_name}\nAmount: ${receipt.total_amount} ${receipt.currency}\n\nComment:\n"${comment}"\n\nPlease log in to Leduc Receipt Pro to provide details.`,

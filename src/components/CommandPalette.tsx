@@ -59,7 +59,7 @@ export default function CommandPalette({ onAction }: CommandPaletteProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh] bg-black/60 backdrop-blur-2xl"
+            className="fixed inset-0 z-[110] flex items-start justify-center pt-[15vh] bg-black/60 backdrop-blur-2xl"
             onClick={() => setOpen(false)}
           >
             <motion.div
@@ -76,6 +76,7 @@ export default function CommandPalette({ onAction }: CommandPaletteProps) {
                   type="text"
                   autoFocus
                   placeholder="Search 9 Star Labs — Type a command..."
+                  aria-label="Search commands"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full bg-transparent text-lg font-medium text-text-primary outline-none placeholder:text-text-muted"

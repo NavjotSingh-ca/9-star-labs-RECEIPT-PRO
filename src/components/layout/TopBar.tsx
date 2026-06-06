@@ -34,8 +34,8 @@ export default function TopBar({ planLabel, plan, planLoading, children }: TopBa
             href="/settings/billing"
             className="flex items-center gap-1 sm:gap-1.5 rounded-full border border-sidebar-border bg-sidebar-surface px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs font-semibold transition hover:bg-sidebar-hover"
           >
-            <Crown className="h-4 w-4 text-amber-400" />
-            <span className={`${plan === 'pro' || plan === 'enterprise' ? 'text-amber-300' : 'text-sidebar-text-muted'} hidden sm:inline`}>
+            <Crown className="h-4 w-4 text-warning" />
+            <span className={`${plan === 'pro' || plan === 'enterprise' ? 'text-warning' : 'text-sidebar-text-muted'} hidden sm:inline`}>
               {planLoading ? '...' : planLabel}
             </span>
           </Link>

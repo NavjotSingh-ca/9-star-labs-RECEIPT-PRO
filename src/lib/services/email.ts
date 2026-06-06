@@ -4,7 +4,7 @@ import { escapeHtml } from '@/lib/html-escape';
 
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 
-const FROM_EMAIL = 'Receipt Pro <receipts@9starlabs.ca>'; // Update after domain verification in Resend
+const FROM_EMAIL = 'Receipt Pro <9starlaba@gmail.com>';
 
 interface SendEmailParams {
   to: string;

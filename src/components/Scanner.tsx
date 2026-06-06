@@ -27,6 +27,8 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
         accept="image/*"
         capture="environment"
         className="hidden"
+        tabIndex={-1}
+        aria-hidden="true"
         onChange={async (event) => {
           await s.handleFilesSelected(event.target.files);
           if (s.cameraInputRef.current) s.cameraInputRef.current.value = '';
@@ -38,6 +40,8 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
         multiple
         accept="image/*,.zip,application/pdf"
         className="hidden"
+        tabIndex={-1}
+        aria-hidden="true"
         onChange={async (event) => {
           await s.handleFilesSelected(event.target.files);
           if (s.galleryInputRef.current) s.galleryInputRef.current.value = '';
@@ -48,6 +52,8 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
         type="file"
         accept="image/*"
         className="hidden"
+        tabIndex={-1}
+        aria-hidden="true"
         onChange={async (event) => {
           const file = event.target.files?.[0];
           if (file) {
@@ -109,7 +115,7 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
                     <button
                       type="button"
                       onClick={s.cancelProcessing}
-                      className="rounded-full border border-red-500/30 bg-red-500/10 px-4 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/20"
+                      className="rounded-full border border-danger/30 bg-danger/10 px-4 py-1.5 text-xs font-semibold text-danger transition hover:bg-danger/20"
                     >
                       Cancel Processing
                     </button>

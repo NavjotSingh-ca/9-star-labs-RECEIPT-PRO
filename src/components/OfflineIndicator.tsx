@@ -16,7 +16,7 @@ export default function OfflineIndicator() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          className="fixed left-1/2 top-4 z-[90] flex -translate-x-1/2 items-center gap-2 rounded-full bg-amber-500/90 px-4 py-2 text-xs font-semibold text-white shadow-xl backdrop-blur-md"
+          className="fixed left-1/2 top-4 z-[90] flex -translate-x-1/2 items-center gap-2 rounded-full bg-warning/90 px-4 py-2 text-xs font-semibold text-white shadow-xl backdrop-blur-md"
           role="status"
           aria-live="polite"
         >

@@ -1,7 +1,7 @@
 import { supabase, getOrgIdString } from '@/lib/supabase';
 import { withRetry } from '@/lib/supabase-error-handler';
 
-export type Plan = 'free' | 'pro' | 'enterprise';
+export type Plan = 'free' | 'starter' | 'pro' | 'business' | 'enterprise';
 
 export interface Subscription {
   org_id: string;
@@ -32,7 +32,7 @@ export interface PlanGates {
 export const PLAN_GATES: Record<Plan, PlanGates> = {
   free: {
     name: 'free',
-    receiptLimit: 50,
+    receiptLimit: 25,
     userLimit: 1,
     hasExports: false,
     hasQBO: false,
@@ -43,10 +43,23 @@ export const PLAN_GATES: Record<Plan, PlanGates> = {
     hasCustomFields: false,
     hasPrioritySupport: false,
   },
+  starter: {
+    name: 'starter',
+    receiptLimit: 200,
+    userLimit: 3,
+    hasExports: true,
+    hasQBO: true,
+    hasXero: false,
+    hasApprovalWorkflow: false,
+    hasBankReconciliation: false,
+    hasAdvancedReports: false,
+    hasCustomFields: false,
+    hasPrioritySupport: false,
+  },
   pro: {
     name: 'pro',
     receiptLimit: Infinity,
-    userLimit: 5,
+    userLimit: 10,
     hasExports: true,
     hasQBO: true,
     hasXero: true,
@@ -55,6 +68,19 @@ export const PLAN_GATES: Record<Plan, PlanGates> = {
     hasAdvancedReports: true,
     hasCustomFields: false,
     hasPrioritySupport: false,
+  },
+  business: {
+    name: 'business',
+    receiptLimit: Infinity,
+    userLimit: 15,
+    hasExports: true,
+    hasQBO: true,
+    hasXero: true,
+    hasApprovalWorkflow: true,
+    hasBankReconciliation: true,
+    hasAdvancedReports: true,
+    hasCustomFields: true,
+    hasPrioritySupport: true,
   },
   enterprise: {
     name: 'enterprise',
@@ -92,7 +118,7 @@ export async function getSubscription(): Promise<Subscription | null> {
 
     return data as Subscription | null;
   } catch (err) {
-    console.error('Failed to get subscription:', err);
+    console.error('getSubscription failed — using free plan fallback:', err);
     return null;
   }
 }
@@ -137,7 +163,7 @@ export async function getUsageCount(fromDate: string, toDate: string): Promise<n
     }
     return count || 0;
   } catch (err) {
-    console.error('Failed to get usage count:', err);
+    console.error('getUsageCount failed — returning 0:', err);
     return 0;
   }
 }
@@ -158,7 +184,7 @@ export async function getTeamSize(): Promise<number> {
     }
     return count || 0;
   } catch (err) {
-    console.error('Failed to get team size:', err);
+    console.error('getTeamSize failed — returning 0:', err);
     return 0;
   }
 }
@@ -166,7 +192,9 @@ export async function getTeamSize(): Promise<number> {
 export function formatPlanLabel(plan: Plan): string {
   switch (plan) {
     case 'free': return 'Free';
+    case 'starter': return 'Starter';
     case 'pro': return 'Pro';
+    case 'business': return 'Business';
     case 'enterprise': return 'Enterprise';
     default: return 'Free';
   }

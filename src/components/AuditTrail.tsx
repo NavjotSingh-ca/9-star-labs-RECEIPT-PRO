@@ -38,8 +38,8 @@ function getActionMeta(action?: string) {
     return {
       label: 'Create',
       icon: <FilePlus2 className="h-4 w-4" />,
-      pill: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
-      iconWrap: 'bg-emerald-500/15 text-emerald-400',
+      pill: 'bg-emerald-success/15 text-emerald-light border-emerald-success/20',
+      iconWrap: 'bg-emerald-success/15 text-emerald-light',
     };
   }
 
@@ -47,8 +47,8 @@ function getActionMeta(action?: string) {
     return {
       label: 'Edit',
       icon: <Edit3 className="h-4 w-4" />,
-      pill: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
-      iconWrap: 'bg-amber-500/15 text-amber-400',
+      pill: 'bg-warning/15 text-warning border-warning/20',
+      iconWrap: 'bg-warning/15 text-warning',
     };
   }
 
@@ -56,8 +56,8 @@ function getActionMeta(action?: string) {
     return {
       label: 'Delete',
       icon: <Trash2 className="h-4 w-4" />,
-      pill: 'bg-red-500/15 text-red-400 border-red-500/20',
-      iconWrap: 'bg-red-500/15 text-red-400',
+      pill: 'bg-danger/15 text-danger border-danger/20',
+      iconWrap: 'bg-danger/15 text-danger',
     };
   }
 
@@ -73,8 +73,8 @@ function getActionMeta(action?: string) {
   return {
     label: 'Integrity',
     icon: <Fingerprint className="h-4 w-4" />,
-    pill: 'bg-white/5 text-text-secondary border-glass-border',
-    iconWrap: 'bg-white/5 text-text-secondary',
+    pill: 'bg-surface-raised text-text-secondary border-glass-border',
+    iconWrap: 'bg-surface-raised text-text-secondary',
   };
 }
 
@@ -159,21 +159,19 @@ export default function AuditTrail() {
           <p className="text-sm font-medium text-text-secondary">Loading audit events…</p>
         </div>
       ) : error ? (
-        <div className="rounded-3xl border border-red-500/20 bg-red-500/[0.06] p-6">
+        <div className="rounded-3xl border border-danger/20 bg-danger/[0.06] p-6">
           <div className="flex items-start gap-3">
-            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-400" />
+            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-danger" />
             <div>
-              <p className="text-sm font-semibold text-red-300">Could not load audit trail</p>
-              <p className="mt-1 text-sm text-red-400">{error}</p>
+              <p className="text-sm font-semibold text-danger">Could not load audit trail</p>
+              <p className="mt-1 text-sm text-danger">{error}</p>
             </div>
           </div>
         </div>
       ) : logs.length === 0 ? (
-        <div className="rounded-[3rem] border border-glass-border bg-surface p-12 text-center shadow-sm">
-          <ShieldCheck className="mx-auto mb-3 h-12 w-12 text-text-muted/30" />
-          <p className="text-sm font-medium text-text-secondary">
-            No audit events yet. Actions like saving or exporting receipts will appear here.
-          </p>
+        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-glass-border bg-surface/30 py-16 text-center" role="status" aria-live="polite">
+          <ShieldCheck className="h-10 w-10 text-text-muted opacity-30" />
+          <p className="text-sm text-text-muted">No audit events yet. Actions like saving or exporting receipts will appear here.</p>
         </div>
       ) : (
         <div className="space-y-3">

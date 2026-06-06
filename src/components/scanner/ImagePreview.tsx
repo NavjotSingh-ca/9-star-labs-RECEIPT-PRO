@@ -46,7 +46,7 @@ export default function ImagePreview({
               <Button variant="outline" size="sm" onClick={onCrop} className="text-xs font-bold">
                 Crop
               </Button>
-              <Button variant="outline" size="icon" onClick={onReset} className="h-9 w-9 text-muted-foreground hover:text-destructive">
+              <Button variant="outline" size="icon" onClick={onReset} className="h-9 w-9 text-muted-foreground hover:text-destructive" aria-label="Reset image">
                 <RefreshCw className="h-4 w-4" />
               </Button>
             </div>
@@ -64,9 +64,9 @@ export default function ImagePreview({
                   initial={{ top: '0%' }}
                   animate={{ top: '100%' }}
                   transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
-                  className="absolute left-0 right-0 h-1 bg-emerald-400 shadow-[0_0_20px_rgba(52,211,153,1)] z-20"
+                  className="absolute left-0 right-0 h-1 bg-emerald-light shadow-[0_0_20px_rgba(16,185,129,0.8)] z-20"
                 />
-                <div className="absolute inset-0 bg-emerald-500/10 animate-pulse z-10 pointer-events-none" />
+                <div className="absolute inset-0 bg-emerald-success/10 animate-pulse z-10 pointer-events-none" />
               </>
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />

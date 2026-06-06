@@ -140,21 +140,21 @@ function OrgSettings() {
           <CardContent className="p-6">
 
           {error && (
-            <div className="mb-6 flex items-center gap-2 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive border border-destructive/20">
+            <div className="mb-6 flex items-center gap-2 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive border border-destructive/20" role="alert">
               <AlertCircle className="h-4 w-4" />
               <span>{error}</span>
             </div>
           )}
 
           {success && (
-            <div className="mb-6 flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <div className="mb-6 flex items-center gap-2 rounded-xl bg-emerald-success/10 px-4 py-3 text-sm text-emerald-light dark:text-emerald-light border border-emerald-success/20" role="status" aria-live="polite">
               <CheckCircle2 className="h-4 w-4" />
               <span>{success}</span>
             </div>
           )}
 
           {loading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-champagne" /></div>
+            <div className="flex justify-center py-12" role="status" aria-live="polite" aria-label="Loading organization settings"><Loader2 className="h-8 w-8 animate-spin text-champagne" /></div>
           ) : (
             <div className="space-y-8">
               
@@ -220,7 +220,7 @@ function OrgSettings() {
                       </div>
                       <div>
                         <p className="text-sm font-bold">QuickBooks Online</p>
-                        <p className={`text-[10px] uppercase tracking-wider font-bold ${qboConnected ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                        <p className={`text-[10px] uppercase tracking-wider font-bold ${qboConnected ? 'text-emerald-success' : 'text-muted-foreground'}`}>
                           {qboConnected ? `Connected ${qboConnectedAt ? `• ${new Date(qboConnectedAt).toLocaleDateString('en-CA')}` : ''}` : 'Not Connected'}
                         </p>
                       </div>
@@ -262,7 +262,7 @@ function OrgSettings() {
                       className="rounded-lg font-bold opacity-50 cursor-not-allowed"
                     >
                       Connect
-                      <span className="ml-2 text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md">Coming Soon</span>
+                      <span className="ml-2 text-[10px] bg-warning/10 text-warning dark:text-warning px-2 py-0.5 rounded-md">Coming Soon</span>
                     </Button>
                   </div>
                 </div>

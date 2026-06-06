@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Crop, RotateCcw, X } from 'lucide-react';
 
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import type { CropRect, ManualCropperProps } from './types';
 
 type DragMode = 'new' | 'move' | null;
 
 export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }: ManualCropperProps) {
+  const trapRef = useFocusTrap(true);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
@@ -188,8 +190,10 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
 
   return (
     <div
+      ref={trapRef}
       className="fixed inset-0 z-[200] h-[100dvh] w-screen flex flex-col bg-black overflow-hidden select-none"
       onClick={onCancel}
+      onKeyDown={(e) => { if (e.key === 'Escape') onCancel?.(); }}
     >
       {/* Header (Fixed) */}
       <div className="flex-none border-b border-glass-border bg-surface px-5 py-4 z-10" onClick={(e) => e.stopPropagation()}>
@@ -199,8 +203,10 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
             <p className="mt-1 truncate text-[10px] uppercase tracking-widest text-text-muted opacity-60">{fileName}</p>
           </div>
           <button 
+            type="button"
             onClick={onCancel} 
             className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-raised text-text-muted transition hover:bg-surface-hover hover:text-text-primary shadow-sm"
+            aria-label="Close crop tool"
           >
             <X className="h-6 w-6" />
           </button>
@@ -267,6 +273,7 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
             onClick={() => setCrop(null)}
             className="flex h-[3.5rem] w-[3.5rem] items-center justify-center rounded-[2rem] border border-glass-border bg-surface text-text-secondary transition hover:bg-surface-hover hover:scale-105 active:scale-95"
             title="Reset Crop"
+            aria-label="Reset crop"
           >
             <RotateCcw className="h-6 w-6" />
           </button>

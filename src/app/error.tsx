@@ -17,13 +17,13 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-obsidian p-6 text-center">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-obsidian p-6 text-center" role="alert" aria-live="assertive">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-md rounded-[2.5rem] border border-red-500/20 bg-red-500/[0.03] p-10 shadow-2xl backdrop-blur-xl"
+        className="max-w-md rounded-[2.5rem] border border-danger/20 bg-danger/[0.03] p-10 shadow-2xl backdrop-blur-xl"
       >
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-red-500/10 text-red-400 mb-8">
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-danger/10 text-danger mb-8">
           <AlertTriangle className="h-10 w-10" />
         </div>
         
@@ -32,7 +32,7 @@ export default function Error({
           We encountered a critical error while loading the workspace. This is often due to a database synchronization issue or a temporary connection failure.
         </p>
 
-        <div className="mt-6 rounded-[3rem] bg-black/40 p-4 text-left font-mono text-[10px] text-red-400/80 border border-red-500/10 overflow-auto max-h-32">
+        <div className="mt-6 rounded-[3rem] bg-black/40 p-4 text-left font-mono text-[10px] text-danger/80 border border-danger/10 overflow-auto max-h-32">
           {process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'}
           {error.digest && <div className="mt-2 text-text-muted/20">Digest: {error.digest}</div>}
         </div>

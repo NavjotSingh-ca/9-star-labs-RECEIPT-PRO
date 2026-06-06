@@ -49,7 +49,8 @@ export function usePlan(): PlanInfo {
         setReceiptCount(usage);
         setTeamSize(users);
       } catch (err) {
-        console.error('usePlan: failed to load', err);
+        console.error('loadPlan failed:', err);
+        // Silently degrade to free plan — plan info is not critical for core functionality
       } finally {
         if (active) setIsLoading(false);
       }

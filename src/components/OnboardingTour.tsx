@@ -1,52 +1,69 @@
 'use client';
 
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { ACTIONS, EVENTS, useJoyride } from 'react-joyride';
+
+const steps = [
+  {
+    target: '#scan-fab',
+    content: 'Tap the Scan button to capture any receipt with your camera or upload from gallery.',
+    title: 'Scan a receipt',
+    placement: 'top' as const,
+    disableBeacon: true,
+  },
+  {
+    target: '#dashboard-kpis',
+    content: 'Your spending overview, CRA readiness scores, and key metrics live here.',
+    title: 'Dashboard overview',
+    placement: 'bottom' as const,
+  },
+  {
+    target: '#main-content',
+    content: 'AI extracts vendor, amount, and tax automatically. Review and save with one tap.',
+    title: 'Review & approve',
+    placement: 'center' as const,
+  },
+];
 
 export function OnboardingTour() {
-  const [show, setShow] = useState(false);
+  const [run, setRun] = useState(false);
 
   useEffect(() => {
     const seen = localStorage.getItem('9sl-onboarding-seen');
     if (!seen) {
-      const timer = setTimeout(() => setShow(true), 1500);
+      const timer = setTimeout(() => setRun(true), 2000);
       return () => clearTimeout(timer);
     }
   }, []);
 
-  const dismiss = () => {
-    setShow(false);
-    localStorage.setItem('9sl-onboarding-seen', 'true');
-  };
+  const handleJoyrideCallback = useCallback((data: { action?: string; type?: string }) => {
+    if (data.action === 'close' || data.action === 'skip' || data.type === 'tour_end') {
+      localStorage.setItem('9sl-onboarding-seen', 'true');
+      setRun(false);
+    }
+  }, []);
 
-  if (!show) return null;
+  const { Tour } = useJoyride({
+    steps,
+    run,
+    onEvent: handleJoyrideCallback,
+    continuous: true,
+    options: {
+      arrowColor: 'var(--surface)',
+      backgroundColor: 'var(--surface)',
+      overlayColor: 'rgba(0,0,0,0.5)',
+      primaryColor: 'var(--champagne)',
+      textColor: 'var(--text-secondary)',
+      showProgress: true,
+      buttons: ['skip', 'back', 'primary'],
+    },
+    locale: {
+      last: 'Done',
+      skip: 'Skip tour',
+      next: 'Next',
+      back: 'Back',
+    },
+  });
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="relative max-w-sm w-full bg-surface rounded-2xl border border-glass-border shadow-xl p-6 space-y-4">
-        <h2 className="text-lg font-bold tracking-tight text-foreground">Welcome to Leduc Receipt Pro</h2>
-        <div className="space-y-3 text-sm text-text-secondary">
-          <p className="flex items-start gap-2">
-            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-champagne/20 text-[10px] font-bold text-champagne">1</span>
-            <span><strong className="text-foreground">Scan a receipt</strong> — Tap the green Scan button to capture any receipt with your camera or upload from gallery.</span>
-          </p>
-          <p className="flex items-start gap-2">
-            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-champagne/20 text-[10px] font-bold text-champagne">2</span>
-            <span><strong className="text-foreground">Review & approve</strong> — AI extracts vendor, amount, and tax for CRA compliance. Review and save.</span>
-          </p>
-          <p className="flex items-start gap-2">
-            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-champagne/20 text-[10px] font-bold text-champagne">3</span>
-            <span><strong className="text-foreground">Export for CRA</strong> — One-click audit package with integrity hashes and GST/HST recovery report.</span>
-          </p>
-        </div>
-        <div className="flex gap-3 pt-2">
-          <button
-            onClick={dismiss}
-            className="flex-1 rounded-xl bg-champagne px-4 py-2.5 text-sm font-bold text-black transition hover:bg-champagne/90"
-          >
-            Got it, let&apos;s go
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  return Tour;
 }

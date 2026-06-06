@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { Copy as CopyIcon } from 'lucide-react';
 import {
   AlertCircle,
   BadgeAlert,
@@ -30,6 +31,8 @@ import { DashboardSkeleton } from '@/components/ui/PremiumSkeletons';
 import AnimatedCounter from '@/components/ui/AnimatedCounter';
 
 import type { UserRole } from '@/lib/types';
+import { supabase, getOrgIdString } from '@/lib/supabase';
+import { toast } from 'sonner';
 import { getDashboardSummary, getDailySpend } from '@/lib/services/receipts';
 import {
   toNumber,
@@ -86,7 +89,9 @@ export default function Dashboard({
   role = 'Owner',
   userId,
 }: DashboardProps) {
-  const { data: summary, isLoading, error } = useQuery({
+  const [forwardingEmail, setForwardingEmail] = useState(false);
+
+  const { data: summary, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboard_summary', role, userId],
     queryFn: () => getDashboardSummary(role, userId!),
     enabled: !!userId,
@@ -139,12 +144,35 @@ export default function Dashboard({
     return dailySpend.slice(-7);
   }, [dailySpend]);
 
-  if (isLoading) return <DashboardSkeleton />;
+  const handleForwardEmail = async () => {
+    setForwardingEmail(true);
+    try {
+      const orgId = await getOrgIdString();
+      if (!orgId) { toast.error('No organization found'); return; }
+      const { data } = await supabase
+        .from('organizations')
+        .select('receipt_email')
+        .eq('id', orgId)
+        .single();
+      if (data?.receipt_email) {
+        await navigator.clipboard.writeText(data.receipt_email);
+        toast.success(`Receipt email copied! Send receipts to ${data.receipt_email}`);
+      } else {
+        toast.error('No receipt email configured for your organization');
+      }
+    } catch {
+      toast.error('Failed to look up receipt email');
+    } finally {
+      setForwardingEmail(false);
+    }
+  };
+
+  if (isLoading) return <div role="status" aria-live="polite" aria-label="Loading dashboard"><DashboardSkeleton /></div>;
 
   if (error || !summary) {
     const isNoOrg = error instanceof Error && error.message.includes('No organization found');
     return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-6 rounded-2xl border bg-card p-12 text-center text-card-foreground shadow-sm">
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-6 rounded-2xl border bg-card p-12 text-center text-card-foreground shadow-sm" role="alert" aria-live="assertive">
         <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
           <AlertCircle className="h-10 w-10" />
         </div>
@@ -159,7 +187,7 @@ export default function Dashboard({
           </p>
         </div>
         {!isNoOrg && (
-          <Button variant="outline" className="px-8 py-6 font-bold">
+          <Button variant="outline" className="px-8 py-6 font-bold" onClick={() => refetch()}>
             Reconnect Audit Engine
           </Button>
         )}
@@ -211,9 +239,12 @@ export default function Dashboard({
           )}
           <button
             type="button"
-            className="text-sm text-text-muted underline underline-offset-4 transition hover:text-text-secondary"
+            onClick={handleForwardEmail}
+            disabled={forwardingEmail}
+            className="inline-flex items-center gap-1.5 text-sm text-text-muted underline underline-offset-4 transition hover:text-text-secondary disabled:opacity-50"
           >
-            Forward an email
+            <CopyIcon className="h-3.5 w-3.5" />
+            {forwardingEmail ? 'Looking up...' : 'Forward an email'}
           </button>
         </div>
       </motion.div>
@@ -227,7 +258,7 @@ export default function Dashboard({
       gst={gstRecoverable} 
     />
   ) : (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000" aria-live="polite" aria-atomic="true">
       {/* Greeting */}
       <motion.p
         initial={{ opacity: 0 }}
@@ -242,7 +273,7 @@ export default function Dashboard({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25, ease: 'easeOut' }}
-        className="rounded-xl border border-glass-border bg-card p-8 relative overflow-hidden"
+        className="rounded-xl border border-glass-border bg-card p-4 sm:p-8 relative overflow-hidden"
       >
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-champagne/[0.03] to-transparent" />
         <div className="relative flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
@@ -250,7 +281,7 @@ export default function Dashboard({
             <p className="text-xs font-semibold uppercase tracking-tight text-muted-foreground">
               {thisMonth ? formatMonthLabel(thisMonth.month) : 'This Month'} Spend
             </p>
-            <p className="mt-1 text-5xl font-semibold tracking-tight tabular-nums text-text-primary sm:text-6xl">
+            <p className="mt-1 text-3xl font-semibold tracking-tight tabular-nums text-text-primary sm:text-5xl sm:text-6xl">
               {thisMonth ? (
                 <AnimatedCounter
                   from={0}
@@ -264,8 +295,8 @@ export default function Dashboard({
               {monthOverMonth !== null && (
                 <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                   monthOverMonth >= 0
-                    ? 'bg-emerald-500/10 text-emerald-light'
-                    : 'bg-red-500/10 text-red-400'
+                    ? 'bg-emerald-success/10 text-emerald-light'
+                    : 'bg-danger/10 text-danger'
                 }`}>
                   {monthOverMonth >= 0 ? '↑' : '↓'} {Math.abs(monthOverMonth).toFixed(1)}%
                 </span>
@@ -340,7 +371,7 @@ export default function Dashboard({
         <div className="lg:col-span-1 space-y-4">
           {mileageTotalKm > 0 && (
             <div className="rounded-xl border border-glass-border bg-card p-5 flex items-start gap-4">
-              <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-light shrink-0">
+              <div className="h-10 w-10 rounded-xl bg-emerald-success/10 flex items-center justify-center text-emerald-light shrink-0">
                 <Gauge className="h-5 w-5" />
               </div>
               <div>
@@ -353,13 +384,13 @@ export default function Dashboard({
           )}
           {unmatchedBankCount > 0 && (
             <div className="rounded-xl border border-glass-border bg-card p-5 flex items-start gap-4">
-              <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0">
+              <div className="h-10 w-10 rounded-xl bg-warning/10 flex items-center justify-center text-warning shrink-0">
                 <Landmark className="h-5 w-5" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-text-primary">Unmatched Transactions</p>
                 <p className="mt-1 text-xs text-text-secondary">
-                  <span className="font-medium text-amber-400">{unmatchedBankCount}</span> bank transaction{unmatchedBankCount === 1 ? '' : 's'} with no matching receipt
+                  <span className="font-medium text-warning">{unmatchedBankCount}</span> bank transaction{unmatchedBankCount === 1 ? '' : 's'} with no matching receipt
                 </p>
               </div>
             </div>
@@ -445,7 +476,7 @@ function StatCard({ label, value, helper, icon, className = "", trend = null, sp
             <div className="flex items-center gap-2">
               {sparkline && <Sparkline data={sparkline} />}
               {trend && (
-                <Badge variant="secondary" className={`px-2 py-0.5 text-[10px] font-bold tracking-widest ${trend.up ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/15 text-red-600 dark:text-red-400'}`}>
+                <Badge variant="secondary" className={`px-2 py-0.5 text-[10px] font-bold tracking-widest ${trend.up ? 'bg-emerald-success/15 text-emerald-light dark:text-emerald-light' : 'bg-danger/15 text-danger dark:text-danger'}`}>
                   {trend.up ? '↑' : '↓'} {trend.value}
                 </Badge>
               )}
@@ -453,7 +484,7 @@ function StatCard({ label, value, helper, icon, className = "", trend = null, sp
           </div>
           <div className="mt-4">
             <p className="text-[11px] font-semibold uppercase tracking-tight text-muted-foreground">{label}</p>
-            <p className="mt-1 text-4xl font-semibold tracking-tight tabular-nums">
+            <p className="mt-1 text-2xl font-semibold tracking-tight tabular-nums sm:text-4xl">
               <AnimatedCounter
                 from={0}
                 to={numValue}
@@ -476,7 +507,7 @@ function GSTRecoveryMeter({ gst, pst, total }: { gst: number; pst: number; total
 
   return (
     <ShadcnCard className="rounded-xl border bg-card text-card-foreground shadow-sm relative overflow-hidden flex flex-col justify-center items-center p-8 group">
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.02] to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-emerald-success/[0.02] to-transparent pointer-events-none" />
       <div className="relative">
         <svg width="180" height="110" viewBox="0 0 120 70">
           <path d="M 10 65 A 50 50 0 0 1 110 65" fill="none" stroke="var(--glass-border)" strokeWidth="8" strokeLinecap="round" />
@@ -508,9 +539,9 @@ function GSTRecoveryMeter({ gst, pst, total }: { gst: number; pst: number; total
 
 function AlertTile({ title, count, description, tone, onClick }: { title: string; count: number; description: string; tone: 'danger' | 'info' | 'warning'; onClick: () => void }) {
   const toneMap = {
-    danger: "border-red-500/20 bg-red-500/[0.04] text-red-400",
+    danger: "border-danger/20 bg-danger/[0.04] text-danger",
     info: "border-champagne/20 bg-champagne/5 text-champagne",
-    warning: "border-amber-500/20 bg-amber-500/[0.04] text-amber-400",
+    warning: "border-warning/20 bg-warning/[0.04] text-warning",
   }[tone];
 
   return (
@@ -520,7 +551,7 @@ function AlertTile({ title, count, description, tone, onClick }: { title: string
       whileTap={{ scale: 0.98 }}
       className={cn("group rounded-[2rem] border p-5 text-left transition-all hover:bg-surface-raised", toneMap)}>
       <div className="flex justify-between items-start mb-4">
-        <div className={cn("flex h-10 w-10 items-center justify-center rounded-[2rem]", tone === 'danger' ? 'bg-red-500/10' : tone === 'info' ? 'bg-champagne/10' : 'bg-amber-500/10')}>
+        <div className={cn("flex h-10 w-10 items-center justify-center rounded-[2rem]", tone === 'danger' ? 'bg-danger/10' : tone === 'info' ? 'bg-champagne/10' : 'bg-warning/10')}>
           {tone === 'danger' ? <BadgeAlert className="h-5 w-5" /> : tone === 'info' ? <FileSearch className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
         </div>
         <span className="text-2xl font-black tabular-nums">{count}</span>
@@ -533,9 +564,9 @@ function AlertTile({ title, count, description, tone, onClick }: { title: string
 
 function AccessDeniedDashboard({ scans, total, gst }: { scans: number; total: number; gst: number }) {
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000" aria-live="polite" aria-atomic="true">
       <div className="flex flex-col items-center justify-center rounded-2xl border bg-card p-12 text-center text-card-foreground shadow-sm">
-        <div className="h-16 w-16 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 mb-6 shadow-inner">
+        <div className="h-16 w-16 rounded-xl bg-warning/10 flex items-center justify-center text-warning mb-6 shadow-inner">
           <Lock className="h-8 w-8" />
         </div>
         <h2 className="text-2xl font-bold tracking-tight">Executive Intelligence Restricted</h2>

@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Ban, CopyCheck } from 'lucide-react';
 
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import type { DuplicateModalProps } from './types';
 
 function formatCurrency(amount: number | null | undefined) {
@@ -29,18 +30,21 @@ export default function DuplicateModal({
   onCancel,
   onContinue,
 }: DuplicateModalProps) {
+  const trapRef = useFocusTrap(true);
   return (
     <div
       className="fixed inset-0 z-[110] flex items-center justify-center bg-obsidian/80 p-4 backdrop-blur-xl"
       onClick={onCancel}
     >
       <div
+        ref={trapRef}
         className="w-full max-w-lg overflow-hidden rounded-3xl border border-glass-border bg-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => { if (e.key === 'Escape') onCancel?.(); }}
       >
         <div className="border-b border-glass-border px-5 py-4">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[2rem] bg-amber-500/15 text-amber-400">
+            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[2rem] bg-warning/15 text-warning">
               <AlertTriangle className="h-5 w-5" />
             </div>
 
@@ -87,10 +91,10 @@ export default function DuplicateModal({
             )}
           </div>
 
-          <div className="rounded-[3rem] border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+          <div className="rounded-[3rem] border border-warning/20 bg-warning/[0.06] px-4 py-3">
             <div className="flex items-start gap-3">
-              <CopyCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
-              <p className="text-sm leading-relaxed text-amber-300">
+              <CopyCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning" />
+              <p className="text-sm leading-relaxed text-warning">
                 If this is a separate receipt that only looks similar, you can still save it. Otherwise, cancel and
                 review the existing record first.
               </p>

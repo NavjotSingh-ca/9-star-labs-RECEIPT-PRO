@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CreditCard, Building2, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { CreditCard, Building2, ShieldCheck, Users, ArrowLeft } from 'lucide-react';
 
 const navItems = [
   { href: '/settings/billing', label: 'Billing & Plan', icon: CreditCard },
+  { href: '/settings/team', label: 'Team', icon: Users },
   { href: '/settings/org', label: 'Organization', icon: Building2 },
   { href: '/settings/security', label: 'Security', icon: ShieldCheck },
 ];
@@ -48,7 +49,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
       </nav>
 
       {/* Mobile nav tabs */}
-      <div className="mb-4 flex gap-1 border-b border-glass-border pb-1 lg:hidden">
+      <div className="mb-4 flex gap-1 border-b border-glass-border pb-1 lg:hidden" role="tablist" aria-label="Settings sections">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (

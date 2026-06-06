@@ -79,7 +79,7 @@ export default function TermsPage() {
                 <span className="rounded-full border border-champagne/30 bg-champagne/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-champagne">
                   Legal Agreement
                 </span>
-                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-emerald-400">
+                <span className="rounded-full border border-emerald-success/30 bg-emerald-success/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-emerald-light">
                   Effective: April 27, 2026
                 </span>
               </div>
@@ -189,8 +189,8 @@ export default function TermsPage() {
           </Section>
 
           <Section id="ai-disclaimer" title="5. AI & Automation Disclaimer">
-            <div className="rounded-[2rem] border border-amber-500/20 bg-amber-500/[0.05] p-4 mb-4">
-              <p className="font-semibold text-amber-300 text-sm mb-1">AI Extraction Limitations</p>
+            <div className="rounded-[2rem] border border-warning/20 bg-warning/[0.05] p-4 mb-4">
+              <p className="font-semibold text-warning text-sm mb-1">AI Extraction Limitations</p>
               <p>
                 The Service uses generative AI to extract text from uploaded documents. AI outputs may
                 contain errors, omissions, or inaccuracies (&ldquo;hallucinations&rdquo;). You are
@@ -303,8 +303,8 @@ export default function TermsPage() {
           </Section>
 
           <Section id="limitation" title="11. Limitation of Liability">
-            <div className="rounded-[2rem] border border-amber-500/20 bg-amber-500/[0.05] p-4 mb-4">
-              <p className="font-semibold text-amber-300 text-sm mb-1">Important Liability Cap</p>
+            <div className="rounded-[2rem] border border-warning/20 bg-warning/[0.05] p-4 mb-4">
+              <p className="font-semibold text-warning text-sm mb-1">Important Liability Cap</p>
               <p>
                 To the maximum extent permitted by applicable law, 9 Star Labs shall not be liable for
                 any indirect, incidental, special, consequential, or punitive damages, including loss
@@ -435,7 +435,7 @@ export default function TermsPage() {
               our right to enforce it later.
             </p>
             <p>
-              <B>Notices:</B> Legal notices shall be sent to <A href="mailto:legal@9starlabs.ca">legal@9starlabs.ca</A>
+              <B>Notices:</B> Legal notices shall be sent to <A href="mailto:9starlaba@gmail.com">9starlaba@gmail.com</A>
               or to the mailing address on file for your account.
             </p>
           </Section>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import {
   ShieldCheck,
   AlertCircle,
@@ -15,6 +16,7 @@ import {
   Settings,
   LogOut,
   X,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import type { UserRole } from '@/lib/types';
@@ -45,6 +47,7 @@ export default function MoreSheet({
   const [showRedeemInput, setShowRedeemInput] = useState(false);
   const [redeemCodeValue, setRedeemCodeValue] = useState('');
   const [redeemLoading, setRedeemLoading] = useState(false);
+  const [dataExportLoading, setDataExportLoading] = useState(false);
 
   const handleRedeemCode = async () => {
     if (!redeemCodeValue || redeemCodeValue.trim().length !== 6) return;
@@ -66,8 +69,12 @@ export default function MoreSheet({
     <AnimatePresence>
       {activeTab === 'more' && (
         <div
-          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex flex-col"
+          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex flex-col focus-visible:outline-2 focus-visible:outline-champagne/40"
           onClick={onClose}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClose(); } }}
+          tabIndex={0}
+          role="button"
+          aria-label="Close menu"
         >
           <motion.div
             initial={{ opacity: 0, x: '100%' }}
@@ -104,7 +111,7 @@ export default function MoreSheet({
                     />
                     <MoreTabButton
                       icon={<AlertCircle className="h-5 w-5" />}
-                      iconBg="bg-red-500/10 text-red-400"
+                      iconBg="bg-danger/10 text-danger"
                       label="Anomaly Dashboard"
                       description="AI fraud & math errors"
                       onClick={() => onTabChange('alerts')}
@@ -125,7 +132,7 @@ export default function MoreSheet({
                     />
                     <MoreTabButton
                       icon={<TrendingUp className="h-5 w-5" />}
-                      iconBg="bg-amber-500/10 text-amber-400"
+                      iconBg="bg-warning/10 text-warning"
                       label="Reimbursements"
                       description="Employee payables tracker"
                       onClick={() => onTabChange('payables')}
@@ -199,7 +206,7 @@ export default function MoreSheet({
                 <div className="mt-6 px-2">
                   <p className="mb-2 text-xs font-bold uppercase tracking-widest text-text-muted">Settings</p>
                   <MoreSettingLink
-                    icon={<Crown className="h-4 w-4 text-amber-400" />}
+                    icon={<Crown className="h-4 w-4 text-warning" />}
                     label="Billing & Plan"
                     href="/settings/billing"
                     badge={planLabel}
@@ -218,7 +225,7 @@ export default function MoreSheet({
                   <button
                     type="button"
                     onClick={onSignOut}
-                    className="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-red-500/10 hover:text-red-400 transition"
+                    className="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-danger/10 hover:text-danger transition"
                   >
                     <LogOut className="h-4 w-4" />
                     <span>Sign out</span>
@@ -237,7 +244,9 @@ export default function MoreSheet({
                   />
                   <button
                     type="button"
+                    disabled={dataExportLoading}
                     onClick={async () => {
+                      setDataExportLoading(true);
                       try {
                         const { supabase } = await import('@/lib/supabase');
                         const { data: { session } } = await supabase.auth.getSession();
@@ -253,11 +262,15 @@ export default function MoreSheet({
                         a.download = `9sl-data-export.json`;
                         a.click();
                         URL.revokeObjectURL(url);
-                      } catch {}
+                      } catch {
+                        toast.error('Failed to download your data. The server may be unavailable.');
+                      } finally {
+                        setDataExportLoading(false);
+                      }
                     }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-hover transition"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-hover transition disabled:opacity-50"
                   >
-                    <Download className="h-4 w-4" />
+                    {dataExportLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                     <span>Download My Data (PIPEDA)</span>
                   </button>
                 </div>
@@ -322,8 +335,8 @@ function MoreSettingLink({
       <span className="text-sm font-semibold text-text-secondary flex-1">{label}</span>
       {badge && (
         <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-          badgeActive ? 'bg-amber-500/10 text-amber-300' : 'bg-surface-raised text-text-muted'
-        }`}>
+          badgeActive ? 'bg-warning/10 text-warning' : 'bg-surface-raised text-text-muted'
+        }`} aria-live="polite" aria-atomic="true">
           {badge}
         </span>
       )}

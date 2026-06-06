@@ -198,7 +198,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   org_id uuid REFERENCES organizations(id) ON DELETE CASCADE,
   stripe_customer_id text,
   stripe_subscription_id text UNIQUE,
-  plan text NOT NULL DEFAULT 'free' CHECK (plan = ANY (ARRAY['free','pro','enterprise'])),
+  plan text NOT NULL DEFAULT 'free' CHECK (plan = ANY (ARRAY['free','starter','pro','business','enterprise'])),
   receipt_limit integer DEFAULT 50,
   user_limit integer DEFAULT 1,
   status text CHECK (status = ANY (ARRAY['active','trialing','past_due','canceled'])),

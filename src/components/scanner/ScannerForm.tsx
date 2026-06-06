@@ -18,10 +18,10 @@ const inputCls =
   'w-full rounded-[2rem] border border-glass-border bg-surface-raised px-3 py-2.5 text-sm text-text-primary outline-none transition placeholder:text-text-muted focus:border-champagne/40 focus:ring-2 focus:ring-champagne/15';
 
 const errorInputCls =
-  'w-full rounded-[2rem] border border-red-500/40 bg-red-500/[0.06] px-3 py-2.5 text-sm text-text-primary outline-none transition focus:border-red-500/60 focus:ring-2 focus:ring-red-500/15';
+  'w-full rounded-[2rem] border border-danger/40 bg-danger/[0.06] px-3 py-2.5 text-sm text-text-primary outline-none transition focus:border-danger/60 focus:ring-2 focus:ring-danger/15';
 
 const warningInputCls =
-  'w-full rounded-[2rem] border border-amber-500/40 bg-amber-500/[0.06] px-3 py-2.5 text-sm text-text-primary outline-none transition focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/15';
+  'w-full rounded-[2rem] border border-warning/40 bg-warning/[0.06] px-3 py-2.5 text-sm text-text-primary outline-none transition focus:border-warning/60 focus:ring-2 focus:ring-warning/15';
 
 function safeNumber(value: unknown): number {
   const n = Number(value ?? 0);
@@ -37,9 +37,9 @@ function craScoreColor(score: number): string {
 }
 
 function craScoreBgClass(score: number): string {
-  if (score >= 80) return 'bg-emerald-500';
-  if (score >= 60) return 'bg-amber-500';
-  return 'bg-red-500';
+  if (score >= 80) return 'bg-emerald-success';
+  if (score >= 60) return 'bg-warning';
+  return 'bg-danger';
 }
 
 /* ─── Animated CRA Score Ring ─── */
@@ -72,16 +72,16 @@ function CRAScoreRing({ score }: { score: number }) {
 
 /* ─── Receipt Quota Counter ─── */
 function QuotaBar() {
-  const { plan, receiptCount, isLoading } = usePlan();
-  const limit = plan === 'free' ? 50 : plan === 'pro' ? Infinity : Infinity;
-  
-  if (isLoading || limit === Infinity) return null; // Don't show for unlimited plans
-  
+  const { plan, receiptCount, isLoading, gates } = usePlan();
+  const limit = gates.receiptLimit;
+
+  if (isLoading || limit === Infinity) return null;
+
   const pct = Math.min((receiptCount / limit) * 100, 100);
   const remaining = Math.max(limit - receiptCount, 0);
   
-  const barColor = pct >= 100 ? 'bg-red-500' : pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500';
-  const textColor = pct >= 100 ? 'text-red-400' : pct >= 80 ? 'text-amber-400' : 'text-emerald-400';
+  const barColor = pct >= 100 ? 'bg-danger' : pct >= 80 ? 'bg-warning' : 'bg-emerald-success';
+  const textColor = pct >= 100 ? 'text-danger' : pct >= 80 ? 'text-warning' : 'text-emerald-light';
   
   return (
     <div className="mx-4 mt-3 rounded-[2rem] border border-glass-border bg-surface-raised p-3">
@@ -103,11 +103,11 @@ function QuotaBar() {
         />
       </div>
       {pct >= 100 ? (
-        <p className="mt-1.5 text-[10px] text-red-400 font-semibold">
+        <p className="mt-1.5 text-[10px] text-danger font-semibold">
           Limit reached — upgrade to Pro for unlimited scans.
         </p>
       ) : pct >= 80 ? (
-        <p className="mt-1.5 text-[10px] text-amber-400 font-medium">
+        <p className="mt-1.5 text-[10px] text-warning font-medium">
           {remaining} receipt{remaining === 1 ? '' : 's'} remaining this month.
         </p>
       ) : null}
@@ -234,7 +234,7 @@ export default function ScannerForm({
             <p className="text-sm font-bold text-champagne">Pre-filled from your history</p>
             <p className="text-xs text-text-secondary mt-0.5">Category, job code, and business use % were set from your previous receipts for this vendor. Please confirm or adjust.</p>
           </div>
-          <button onClick={onDismissPrefill} className="text-text-muted hover:text-text-primary text-xs font-medium shrink-0 mt-0.5">Dismiss</button>
+          <button type="button" onClick={onDismissPrefill} className="text-text-muted hover:text-text-primary text-xs font-medium shrink-0 mt-0.5">Dismiss</button>
         </div>
       )}
 
@@ -276,12 +276,12 @@ export default function ScannerForm({
             </div>
           )}
           {needsVehicleId && (
-            <div className="rounded-[3rem] border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+            <div className="rounded-[3rem] border border-warning/20 bg-warning/[0.06] px-4 py-3">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning" />
                 <div>
-                  <p className="text-sm font-bold text-amber-300">CRA Tip: Vehicle ID is mandatory for fuel ITC.</p>
-                  <p className="mt-1 text-xs leading-relaxed text-amber-400/80">Input the physical truck or asset ID to claim input tax credits safely.</p>
+                  <p className="text-sm font-bold text-warning">CRA Tip: Vehicle ID is mandatory for fuel ITC.</p>
+                  <p className="mt-1 text-xs leading-relaxed text-warning/80">Input the physical truck or asset ID to claim input tax credits safely.</p>
                 </div>
               </div>
             </div>
@@ -300,12 +300,12 @@ export default function ScannerForm({
 
           {/* Core AI Flags */}
           {fraudSuspicion && (
-            <div className="rounded-[3rem] border border-red-500/30 bg-red-500/[0.08] px-4 py-3 shadow-lg shadow-red-500/5">
+            <div className="rounded-[3rem] border border-danger/30 bg-danger/[0.08] px-4 py-3 shadow-lg shadow-red-500/5">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500" />
+                <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-danger" />
                 <div>
-                  <p className="text-sm font-bold text-red-400">AI Anomaly Detected</p>
-                  <p className="mt-1 text-xs leading-relaxed text-red-300">
+                  <p className="text-sm font-bold text-danger">AI Anomaly Detected</p>
+                  <p className="mt-1 text-xs leading-relaxed text-danger">
                     {fraudReason}
                   </p>
                 </div>
@@ -313,12 +313,12 @@ export default function ScannerForm({
             </div>
           )}
           {missingBN && (
-            <div className="rounded-[3rem] border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+            <div className="rounded-[3rem] border border-warning/20 bg-warning/[0.06] px-4 py-3">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning" />
                 <div>
-                  <p className="text-sm font-bold text-amber-300">Missing GST / Business Number</p>
-                  <p className="mt-1 text-xs leading-relaxed text-amber-400/80">
+                  <p className="text-sm font-bold text-warning">Missing GST / Business Number</p>
+                  <p className="mt-1 text-xs leading-relaxed text-warning/80">
                     CRA claims are harder to support when the supplier GST/BN is missing.
                   </p>
                 </div>
@@ -326,12 +326,12 @@ export default function ScannerForm({
             </div>
           )}
           {mathMismatch && (
-            <div className="rounded-[3rem] border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+            <div className="rounded-[3rem] border border-warning/20 bg-warning/[0.06] px-4 py-3">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning" />
                 <div>
-                  <p className="text-sm font-bold text-amber-300">Caution: Totals do not match. Proceed with override?</p>
-                  <p className="mt-1 text-xs leading-relaxed text-amber-400/80">
+                  <p className="text-sm font-bold text-warning">Caution: Totals do not match. Proceed with override?</p>
+                  <p className="mt-1 text-xs leading-relaxed text-warning/80">
                     The subtotal plus taxes does not match the total within expected tolerance. A high audit risk flag will be attached.
                   </p>
                 </div>
@@ -339,12 +339,12 @@ export default function ScannerForm({
             </div>
           )}
           {thermalWarning && (
-            <div className="rounded-[3rem] border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+            <div className="rounded-[3rem] border border-warning/20 bg-warning/[0.06] px-4 py-3">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning" />
                 <div>
-                  <p className="text-sm font-bold text-amber-300">Thermal receipt warning</p>
-                  <p className="mt-1 text-xs leading-relaxed text-amber-400/80">
+                  <p className="text-sm font-bold text-warning">Thermal receipt warning</p>
+                  <p className="mt-1 text-xs leading-relaxed text-warning/80">
                     This appears to be a thermal receipt. Back it up promptly.
                   </p>
                 </div>
@@ -352,12 +352,12 @@ export default function ScannerForm({
             </div>
           )}
           {lowReadiness && (
-            <div className="rounded-[3rem] border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+            <div className="rounded-[3rem] border border-warning/20 bg-warning/[0.06] px-4 py-3">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning" />
                 <div>
-                  <p className="text-sm font-bold text-amber-300">Low CRA readiness</p>
-                  <p className="mt-1 text-xs leading-relaxed text-amber-400/80">
+                  <p className="text-sm font-bold text-warning">Low CRA readiness</p>
+                  <p className="mt-1 text-xs leading-relaxed text-warning/80">
                     The extracted record may be incomplete. Double check vendor, taxes, and dates.
                   </p>
                 </div>
@@ -378,7 +378,7 @@ export default function ScannerForm({
             <div className="sm:col-span-2">
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-muted">Vendor Name</label>
               <input type="text" {...register('vendor_name')} className={`${errors.vendor_name ? errorInputCls : (glowActive ? inputCls + ' self-healing-glow' : inputCls)}`} placeholder="Supplier name" />
-              {errors.vendor_name && <p className="mt-1 text-xs text-red-500">{errors.vendor_name.message}</p>}
+              {errors.vendor_name && <p className="mt-1 text-xs text-danger">{errors.vendor_name.message}</p>}
             </div>
             <div className="sm:col-span-2">
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-muted">Vendor Address</label>
@@ -395,7 +395,7 @@ export default function ScannerForm({
                 </span>
               </label>
               <input type="date" {...register('transaction_date')} className={errors.transaction_date ? errorInputCls : inputCls} />
-              {errors.transaction_date && <p className="mt-1 text-xs text-red-500">{errors.transaction_date.message}</p>}
+              {errors.transaction_date && <p className="mt-1 text-xs text-danger">{errors.transaction_date.message}</p>}
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-muted">Time</label>
@@ -460,13 +460,13 @@ export default function ScannerForm({
               }}
               className={`rounded-[3rem] border p-4 text-left transition ${
                 formData.paid_by === 'employee_cash'
-                  ? 'border-amber-500/40 bg-amber-500/[0.08]'
+                  ? 'border-warning/40 bg-warning/[0.08]'
                   : 'border-glass-border bg-surface-raised hover:border-glass-border-hover'
               }`}
             >
               <div className="flex items-center gap-2">
-                <DollarSign className={`h-4 w-4 ${formData.paid_by === 'employee_cash' ? 'text-amber-400' : 'text-text-muted'}`} />
-                <span className={`text-sm font-semibold ${formData.paid_by === 'employee_cash' ? 'text-amber-400' : 'text-text-secondary'}`}>
+                <DollarSign className={`h-4 w-4 ${formData.paid_by === 'employee_cash' ? 'text-warning' : 'text-text-muted'}`} />
+                <span className={`text-sm font-semibold ${formData.paid_by === 'employee_cash' ? 'text-warning' : 'text-text-secondary'}`}>
                   Employee Cash
                 </span>
               </div>
@@ -475,12 +475,12 @@ export default function ScannerForm({
           </div>
 
           {formData.paid_by === 'employee_cash' && (
-            <div className="mt-3 rounded-[2rem] border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
-              <div className="flex items-center gap-2 text-sm text-amber-300">
+            <div className="mt-3 rounded-[2rem] border border-warning/20 bg-warning/[0.06] px-4 py-3">
+              <div className="flex items-center gap-2 text-sm text-warning">
                 <AlertTriangle className="h-4 w-4 flex-shrink-0" />
                 <span className="font-semibold">Reimbursement queued</span>
               </div>
-              <p className="mt-1 text-xs text-amber-400/80">This receipt will appear in the Owner reimbursement queue for approval.</p>
+              <p className="mt-1 text-xs text-warning/80">This receipt will appear in the Owner reimbursement queue for approval.</p>
             </div>
           )}
         </div>
@@ -496,7 +496,7 @@ export default function ScannerForm({
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-muted">Subtotal</label>
               <input type="number" step="0.01" min="0" {...register('subtotal', { valueAsNumber: true })} className={errors.subtotal ? errorInputCls : inputCls} />
-              {errors.subtotal && <p className="mt-1 text-xs text-red-500">{errors.subtotal.message}</p>}
+              {errors.subtotal && <p className="mt-1 text-xs text-danger">{errors.subtotal.message}</p>}
             </div>
             <div>
               <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-text-muted">
@@ -509,17 +509,17 @@ export default function ScannerForm({
                 </span>
               </label>
               <input type="number" step="0.01" min="0" {...register('total_amount', { valueAsNumber: true })} className={errors.total_amount ? errorInputCls : (glowActive ? inputCls + ' self-healing-glow' : inputCls)} />
-              {errors.total_amount && <p className="mt-1 text-xs text-red-500">{errors.total_amount.message}</p>}
+              {errors.total_amount && <p className="mt-1 text-xs text-danger">{errors.total_amount.message}</p>}
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-muted">GST Amount</label>
               <input type="number" step="0.01" min="0" {...register('tax_amount', { valueAsNumber: true })} className={errors.tax_amount ? errorInputCls : inputCls} />
-              {errors.tax_amount && <p className="mt-1 text-xs text-red-500">{errors.tax_amount.message}</p>}
+              {errors.tax_amount && <p className="mt-1 text-xs text-danger">{errors.tax_amount.message}</p>}
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-muted">PST / HST</label>
               <input type="number" step="0.01" min="0" {...register('pst_amount', { valueAsNumber: true })} className={errors.pst_amount ? errorInputCls : inputCls} />
-              {errors.pst_amount && <p className="mt-1 text-xs text-red-500">{errors.pst_amount.message}</p>}
+              {errors.pst_amount && <p className="mt-1 text-xs text-danger">{errors.pst_amount.message}</p>}
             </div>
           </div>
 
@@ -554,7 +554,7 @@ export default function ScannerForm({
                 </span>
               </label>
               <input type="text" {...register('business_number')} className={errors.business_number ? errorInputCls : (missingBN ? warningInputCls : inputCls)} placeholder="123456789RT0001" />
-              {errors.business_number && <p className="mt-1 text-xs text-red-500">{errors.business_number.message}</p>}
+              {errors.business_number && <p className="mt-1 text-xs text-danger">{errors.business_number.message}</p>}
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-muted">Category</label>
@@ -607,7 +607,7 @@ export default function ScannerForm({
               <div key={item.id} className="flex gap-4 px-5 py-4 transition hover:bg-surface-hover/50">
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-3">
-                    <input type="text" {...register(`line_items.${index}.description` as const)} className="w-full min-w-0 bg-transparent text-sm font-semibold text-text-primary placeholder:text-text-muted focus:outline-none" placeholder="Item description" />
+                    <input type="text" {...register(`line_items.${index}.description` as const)} className="w-full min-w-0 bg-transparent text-sm font-semibold text-text-primary placeholder:text-text-muted focus:outline-2 focus:outline-champagne/40 focus:outline-offset-2 rounded-sm" placeholder="Item description" />
                     <div className="min-w-[70px] shrink-0 font-mono text-sm font-bold text-champagne text-right">${safeNumber(formData.line_items?.[index]?.line_total).toFixed(2)}</div>
                   </div>
                   <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-text-muted">
@@ -621,7 +621,7 @@ export default function ScannerForm({
                     </div>
                   </div>
                 </div>
-                <button type="button" onClick={() => remove(index)} className="shrink-0 self-start text-text-muted transition hover:text-red-400 p-1">
+                <button type="button" onClick={() => remove(index)} className="shrink-0 self-start text-text-muted transition hover:text-danger p-1">
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
@@ -631,7 +631,7 @@ export default function ScannerForm({
       </div>
 
       {/* Real-Time Scores */}
-      <section className="space-y-3">
+      <section className="space-y-3" aria-live="polite">
         <div className="grid grid-cols-2 gap-4">
           <div className="rounded-[3rem] border border-glass-border bg-surface-raised px-5 py-4">
             <div className="flex items-center gap-2 text-text-muted">
@@ -671,7 +671,7 @@ export default function ScannerForm({
         {/* Buttons - sticky at bottom */}
         <div className="sticky bottom-0 bg-surface border-t border-glass-border p-4 space-y-3 z-20">
           {!isMathValid && hasAnalyzed && (
-            <div className="flex items-center gap-2 rounded-[2rem] bg-red-500/10 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-red-400 border border-red-500/20">
+            <div className="flex items-center gap-2 rounded-[2rem] bg-danger/10 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-danger border border-danger/20">
               <AlertTriangle className="h-4 w-4" />
               Math Discrepancy
             </div>
@@ -701,9 +701,15 @@ export default function ScannerForm({
             </button>
 
             {hasAnalyzed && (
-              <button 
-                type="submit" 
-                disabled={!canSave} 
+              <button
+                type="submit"
+                disabled={!canSave}
+                title={
+                  !hasAnalyzed ? 'Wait for AI processing to complete' :
+                  !isConfirmed ? 'Confirm accuracy before saving' :
+                  saving ? 'Saving...' :
+                  'Save this receipt'
+                }
                 className="w-full h-14 bg-champagne hover:bg-champagne-dim disabled:opacity-40 text-obsidian font-black uppercase tracking-widest rounded-[2rem] flex items-center justify-center gap-2 transition shadow-lg"
               >
                 {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}

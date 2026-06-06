@@ -2,28 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryState, parseAsStringEnum } from 'nuqs';
 import { toast } from 'sonner';
 import { Drawer } from 'vaul';
 import {
-  AlertCircle,
-  Camera,
-  CheckCircle2,
-  Crown,
-  LayoutDashboard,
-  Layers,
   Loader2,
-  LogOut,
-  MoreHorizontal,
   ReceiptText,
-  Scale,
-  Settings,
-  ShieldCheck,
   TrendingUp,
-  UserCircle2,
-  Download,
-  X,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -47,6 +33,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ConsentBanner } from '@/components/ConsentBanner';
 import OfflineIndicator from '@/components/OfflineIndicator';
 import SwUpdateBanner from '@/components/SwUpdateBanner';
+import InstallPrompt from '@/components/InstallPrompt';
+import ShortcutsOverlay from '@/components/ShortcutsOverlay';
 import { UpgradePrompt } from '@/components/upgrade-prompt';
 import AuthScreen from '@/components/AuthScreen';
 import { OnboardingTour } from '@/components/OnboardingTour';
@@ -59,10 +47,10 @@ import { supabase } from '@/lib/supabase';
 import { usePlan } from '@/hooks/use-plan';
 import type { ReceiptRow, UserRole } from '@/lib/types';
 import type { User } from '@supabase/supabase-js';
-import { getReceipts, getBusinessUnits, getAuditLogs, redeemAccessCode } from '@/lib/services/receipts';
+import { getReceipts, getBusinessUnits, getAuditLogs } from '@/lib/services/receipts';
 import { getUserRole } from '@/lib/services/roles';
-
-type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'more';
+import type { Tab } from '@/lib/store';
+import { useAppStore } from '@/lib/store';
 
 const cad = new Intl.NumberFormat('en-CA', {
   style: 'currency',
@@ -81,9 +69,15 @@ const tabVariants = {
   exit: { opacity: 0, y: -8 },
 };
 
+const showToast = (type: 'success' | 'error' | 'info', msg: string) => {
+  if (type === 'success') toast.success(msg);
+  else if (type === 'error') toast.error(msg);
+  else toast.info(msg);
+};
+
 function FullPageLoader() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-obsidian">
+    <div className="flex min-h-screen items-center justify-center bg-obsidian" role="status" aria-live="polite" aria-label="Loading application">
       <div className="flex flex-col items-center gap-4">
         <div className="flex h-16 w-16 items-center justify-center rounded-[3rem] bg-champagne/15 champagne-glow">
           <ReceiptText className="h-8 w-8 text-champagne" />
@@ -142,46 +136,24 @@ function AppContent() {
   const [hasMounted, setHasMounted] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const [activeTab, setActiveTab] = useQueryState('tab', parseAsStringEnum<Tab>(['dashboard', 'receipts', 'scan', 'export', 'audit', 'reconcile', 'mileage', 'approvals', 'payables', 'projects', 'alerts', 'more']).withDefault('dashboard'));
+  const storeTab = useAppStore((s) => s.setActiveTab);
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
+
+  useEffect(() => {
+    if (activeTab) storeTab(activeTab);
+  }, [activeTab, storeTab]);
 
   useEffect(() => { setHasMounted(true); }, []);
 
   const setTabWithUrl = useCallback((tab: Tab) => {
     if (typeof window === 'undefined') return;
     setActiveTab(tab);
-    const url = new URL(window.location.href);
-    url.searchParams.set('tab', tab);
-    window.history.pushState({ tab }, '', url);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get('tab') as Tab | null;
-    if (tab) setActiveTab(tab);
-  }, [hasMounted]);
-
-  useEffect(() => {
-    if (!hasMounted || typeof window === 'undefined') return;
-    const handlePopState = (event: PopStateEvent) => {
-      const tabFromState = event.state?.tab as Tab | null;
-      const tabFromUrl = new URLSearchParams(window.location.search).get('tab') as Tab | null;
-      setActiveTab(tabFromState || tabFromUrl || 'dashboard');
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [hasMounted]);
+  }, [setActiveTab]);
 
   const [role, setRole] = useState<UserRole>('Owner');
-
-  const showToast = (type: 'success' | 'error' | 'info', msg: string) => {
-    if (type === 'success') toast.success(msg);
-    else if (type === 'error') toast.error(msg);
-    else toast.info(msg);
-  };
 
   const closeMoreMenu = useCallback(() => {
     const fallback: Tab = role === 'Employee' ? 'scan' : 'dashboard';
@@ -204,9 +176,18 @@ function AppContent() {
     async function resolveUser(currentUser: User) {
       setUser(currentUser);
       try {
-        const role = await getUserRole(currentUser.id);
+        const rolePromise = getUserRole(currentUser.id);
+        const orgPromise = supabase.rpc('get_user_org');
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Auth timeout')), 3000)
+        );
+
+        const [role, { data: orgId }] = await Promise.all([
+          Promise.race([rolePromise, timeout]),
+          Promise.race([orgPromise, timeout]),
+        ]) as [UserRole, { data: string | null }];
+
         if (!active) return;
-        const { data: orgId } = await supabase.rpc('get_user_org');
         let finalRole = role;
         if (!orgId) {
           await supabase.rpc('bootstrap_first_user_org', {
@@ -221,7 +202,8 @@ function AppContent() {
         }
       } catch (err) {
         if (active) {
-          console.error('Auth failed:', err);
+          console.error('Auth resolution failed:', err);
+          toast.error('Unable to verify your role. Some features may be limited.');
           setRole('Employee');
           setAuthLoading(false);
         }
@@ -235,6 +217,8 @@ function AppContent() {
       } else {
         setAuthLoading(false);
       }
+    }).catch(() => {
+      if (active) setAuthLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -249,7 +233,7 @@ function AppContent() {
 
     const safetyTimeout = setTimeout(() => {
       setAuthLoading(false);
-    }, 4000);
+    }, 3000);
 
     return () => {
       active = false;
@@ -302,18 +286,30 @@ function AppContent() {
     setTabWithUrl('receipts');
   }, [setTabWithUrl]);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     await supabase.auth.signOut();
     setTabWithUrl('dashboard');
     setActiveFilter('all');
-  };
+  }, [setTabWithUrl]);
 
-  const handleCommand = (action: string) => {
+  const handleCommand = useCallback((action: string) => {
     if (action === 'scan') setTabWithUrl('scan');
     if (action === 'bulk-upload') setTabWithUrl('scan');
     if (action === 'missing-bn') { setActiveFilter('missing-bn'); setTabWithUrl('receipts'); }
     if (action === 'export-idea') setTabWithUrl('export');
-  };
+  }, [setTabWithUrl]);
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 's' && !e.metaKey && !e.ctrlKey && !e.altKey && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement)) {
+        e.preventDefault();
+        setTabWithUrl('scan');
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [setTabWithUrl]);
 
   const [showInviteModal, setShowInviteModal] = useState(false);
   const isPrivileged = role !== 'Employee';
@@ -350,6 +346,8 @@ function AppContent() {
           exit="exit"
           transition={tabTransition}
           className="flex min-h-[50vh] flex-col items-center justify-center gap-4"
+          role="status"
+          aria-live="polite"
         >
           <Loader2 className="h-9 w-9 animate-spin text-champagne" />
           <p className="text-sm font-medium text-text-secondary">Loading your workspace…</p>
@@ -462,6 +460,8 @@ function AppContent() {
         animate="animate"
         exit="exit"
         transition={tabTransition}
+        aria-live="polite"
+        aria-atomic="true"
       >
         {inner}
       </motion.div>
@@ -475,15 +475,17 @@ function AppContent() {
 
         <OnboardingTour />
         {/* Desktop sidebar */}
-      <Sidebar
-        activeTab={activeTab}
-        onTabChange={setTabWithUrl}
-        role={role}
-        planLabel={planLabel}
-        plan={plan}
-        openInviteModal={() => setShowInviteModal(true)}
-        handleSignOut={handleSignOut}
-      />
+      <ErrorBoundary componentName="Sidebar">
+        <Sidebar
+          activeTab={activeTab}
+          onTabChange={setTabWithUrl}
+          role={role}
+          planLabel={planLabel}
+          plan={plan}
+          openInviteModal={() => setShowInviteModal(true)}
+          handleSignOut={handleSignOut}
+        />
+      </ErrorBoundary>
 
       {/* Main content area */}
       <div className="flex flex-1 flex-col min-w-0">
@@ -511,7 +513,9 @@ function AppContent() {
                 transition={tabTransition}
                 className="mb-5"
               >
-                <AuditHUD receipts={receipts} />
+                <ErrorBoundary componentName="AuditHUD">
+                  <AuditHUD receipts={receipts} />
+                </ErrorBoundary>
               </motion.div>
             )}
 
@@ -522,13 +526,15 @@ function AppContent() {
                 animate={{ opacity: 1, y: 0 }}
                 className="mb-5"
               >
-                <UpgradePrompt
-                  plan={plan}
-                  receiptCount={receiptCount}
-                  teamSize={teamSize}
-                  isTrialing={isTrialing}
-                  daysLeftInTrial={trialDaysLeft}
-                />
+                <ErrorBoundary componentName="UpgradePrompt">
+                  <UpgradePrompt
+                    plan={plan}
+                    receiptCount={receiptCount}
+                    teamSize={teamSize}
+                    isTrialing={isTrialing}
+                    daysLeftInTrial={trialDaysLeft}
+                  />
+                </ErrorBoundary>
               </motion.div>
             )}
 
@@ -543,21 +549,25 @@ function AppContent() {
         <MobileNav activeTab={activeTab} onTabChange={setTabWithUrl} role={role} noReceipts={receipts.length === 0} />
 
         {/* More slide-out panel */}
-        <MoreSheet
-          activeTab={activeTab}
-          onTabChange={setTabWithUrl}
-          onClose={closeMoreMenu}
-          role={role}
-          planLabel={planLabel}
-          plan={plan}
-          openInviteModal={() => setShowInviteModal(true)}
-          onSignOut={handleSignOut}
-        />
+        <ErrorBoundary componentName="MoreSheet">
+          <MoreSheet
+            activeTab={activeTab}
+            onTabChange={setTabWithUrl}
+            onClose={closeMoreMenu}
+            role={role}
+            planLabel={planLabel}
+            plan={plan}
+            openInviteModal={() => setShowInviteModal(true)}
+            onSignOut={handleSignOut}
+          />
+        </ErrorBoundary>
       </div>
 
       {/* Global overlays */}
       <ConsentBanner />
       <CommandPalette onAction={handleCommand} />
+      <ShortcutsOverlay />
+      <InstallPrompt />
 
       <Drawer.Root open={showInviteModal} onOpenChange={setShowInviteModal}>
         <Drawer.Portal>

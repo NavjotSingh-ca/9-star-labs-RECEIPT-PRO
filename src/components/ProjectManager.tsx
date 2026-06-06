@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, Loader2, Plus, Trash2, Briefcase, X } from 'lucide-react';
+
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getProjects, createProject, deleteProject } from '@/lib/services/receipts';
 import { supabase } from '@/lib/supabase';
@@ -17,6 +19,7 @@ export default function ProjectManager() {
   const [budget, setBudget] = useState('');
   const [error, setError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  const trapRef = useFocusTrap(!!deleteConfirm);
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['projects'],
@@ -131,17 +134,17 @@ export default function ProjectManager() {
             </button>
           </div>
         </form>
-        {error && <p className="mt-2 text-xs text-red-400" role="alert">{error}</p>}
+        {error && <p className="mt-2 text-xs text-danger" role="alert">{error}</p>}
       </div>
 
       {/* Project list */}
-      <div className="grid gap-4">
+      <div className="grid gap-4" aria-live="polite">
         {isLoading || isLoadingActuals ? (
-          <div className="flex justify-center py-12">
+          <div className="flex justify-center py-12" role="status" aria-label="Loading projects">
             <Loader2 className="h-8 w-8 animate-spin text-champagne" />
           </div>
         ) : projects.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-glass-border bg-surface/30 py-16 text-center">
+          <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-glass-border bg-surface/30 py-16 text-center" aria-live="polite">
             <AlertCircle className="h-10 w-10 text-text-muted opacity-30" />
             <p className="text-sm text-text-muted">No active projects. Initialize your first job site above.</p>
           </div>
@@ -177,7 +180,7 @@ export default function ProjectManager() {
                       <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-6">
                         <div>
                           <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mb-1">Spent</p>
-                          <p className={cn("text-sm font-bold", isOver ? "text-red-400" : "text-text-primary")}>
+                          <p className={cn("text-sm font-bold", isOver ? "text-danger" : "text-text-primary")}>
                             {formatCurrency(spend)}
                           </p>
                         </div>
@@ -191,7 +194,7 @@ export default function ProjectManager() {
                           <div className="col-span-2">
                             <div className="flex justify-between items-center mb-1.5">
                               <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Utilization</p>
-                              <p className={cn("text-[10px] font-black", isOver ? "text-red-400" : "text-champagne")}>
+                              <p className={cn("text-[10px] font-black", isOver ? "text-danger" : "text-champagne")}>
                                 {percent.toFixed(1)}%
                               </p>
                             </div>
@@ -199,7 +202,7 @@ export default function ProjectManager() {
                               <motion.div 
                                 initial={{ width: 0 }}
                                 animate={{ width: `${percent}%` }}
-                                className={cn("h-full rounded-full transition-all", isOver ? "bg-red-500" : "bg-champagne")}
+                                className={cn("h-full rounded-full transition-all", isOver ? "bg-danger" : "bg-champagne")}
                               />
                             </div>
                           </div>
@@ -211,7 +214,7 @@ export default function ProjectManager() {
                       type="button"
                       onClick={() => setDeleteConfirm({ id: p.id, name: p.name })}
                       disabled={deleteMutation.isPending}
-                      className="rounded-[2rem] p-2.5 text-text-muted transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                      className="rounded-[2rem] p-2.5 text-text-muted transition hover:bg-danger/10 hover:text-danger disabled:opacity-50"
                       aria-label="Delete project"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -231,18 +234,23 @@ export default function ProjectManager() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 focus-visible:outline-2 focus-visible:outline-champagne/40"
             onClick={() => setDeleteConfirm(null)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDeleteConfirm(null); } }}
+            tabIndex={0}
+            role="button"
+            aria-label="Close dialog"
           >
             <motion.div
+              ref={trapRef}
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-md rounded-3xl border border-red-500/20 bg-surface p-6 shadow-2xl"
+              className="w-full max-w-md rounded-3xl border border-danger/20 bg-surface p-6 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-red-400">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-danger/10 text-danger">
                   <AlertCircle className="h-6 w-6" />
                 </div>
                 <div className="flex-1">
@@ -252,6 +260,8 @@ export default function ProjectManager() {
                   </p>
                 </div>
                 <button
+                  type="button"
+                  aria-label="Close dialog"
                   onClick={() => setDeleteConfirm(null)}
                   className="text-text-muted hover:text-text-primary"
                 >
@@ -260,18 +270,20 @@ export default function ProjectManager() {
               </div>
               <div className="mt-6 flex justify-end gap-3">
                 <button
+                  type="button"
                   onClick={() => setDeleteConfirm(null)}
                   className="rounded-[2rem] border border-glass-border bg-surface-raised px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-surface"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     deleteMutation.mutate(deleteConfirm.id);
                     setDeleteConfirm(null);
                   }}
                   disabled={deleteMutation.isPending}
-                  className="rounded-[2rem] bg-red-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-600 disabled:opacity-50"
+                  className="rounded-[2rem] bg-danger px-4 py-2 text-sm font-bold text-white transition hover:bg-danger/80 disabled:opacity-50"
                 >
                   {deleteMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

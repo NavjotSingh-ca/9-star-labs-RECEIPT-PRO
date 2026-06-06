@@ -54,8 +54,10 @@ export default function InviteModal({ onClose, businessUnits }: InviteModalProps
           </div>
         </div>
         <button
+          type="button"
           onClick={onClose}
           className="rounded-[2rem] p-2 text-text-muted transition hover:bg-surface-raised hover:text-text-primary"
+          aria-label="Close invite modal"
         >
           <X className="h-6 w-6" />
         </button>
@@ -107,7 +109,7 @@ export default function InviteModal({ onClose, businessUnits }: InviteModalProps
 
         {/* Error */}
         {error && (
-          <p className="rounded-[2rem] bg-red-500/10 px-4 py-2 text-sm text-red-400">{error}</p>
+          <p className="rounded-[2rem] bg-danger/10 px-4 py-2 text-sm text-danger">{error}</p>
         )}
 
         {/* Generated Code Display */}
@@ -115,18 +117,19 @@ export default function InviteModal({ onClose, businessUnits }: InviteModalProps
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="rounded-[3rem] border border-emerald-500/20 bg-emerald-500/[0.04] p-6 text-center"
+            className="rounded-[3rem] border border-emerald-success/20 bg-emerald-success/[0.04] p-6 text-center"
           >
             <p className="mb-2 text-xs font-bold uppercase tracking-widest text-emerald-light/70">
               Invite Code — Expires in 24h
             </p>
             <p className="text-5xl font-black tracking-[0.4em] text-emerald-light">{generatedCode}</p>
             <button
+              type="button"
               onClick={handleCopy}
               className={[
                 'mt-5 inline-flex items-center gap-2 rounded-[2rem] px-4 py-2 text-sm font-semibold transition',
                 copied
-                  ? 'bg-emerald-500/15 text-emerald-light'
+                  ? 'bg-emerald-success/15 text-emerald-light'
                   : 'bg-surface border border-glass-border text-text-secondary hover:text-text-primary',
               ].join(' ')}
             >

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
-import { Loader2, Eye, EyeOff, Mail, Lock, ReceiptText, AlertCircle, CheckCircle2, X, Sparkles, ArrowRight, ShieldCheck, Fingerprint, TrendingUp } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Mail, Lock, ReceiptText, AlertCircle, CheckCircle2, Sparkles, ArrowRight, ShieldCheck, Fingerprint, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { redeemAccessCode } from '@/lib/services/receipts';
@@ -63,6 +63,7 @@ export default function AuthScreen() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
   const [gradientIndex, setGradientIndex] = useState(0);
   const [inviteCode, setInviteCode] = useState('');
 
@@ -81,9 +82,9 @@ export default function AuthScreen() {
   const strength = useMemo(() => {
     if (!password) return { score: 0, label: '', color: '', width: '0%' };
     const passed = passwordRequirements.filter((r) => r.test(password)).length;
-    if (passed <= 1) return { score: passed, label: 'Weak', color: 'bg-red-500', width: '25%' };
-    if (passed === 2) return { score: passed, label: 'Fair', color: 'bg-orange-500', width: '50%' };
-    if (passed === 3) return { score: passed, label: 'Good', color: 'bg-yellow-500', width: '75%' };
+    if (passed <= 1) return { score: passed, label: 'Weak', color: 'bg-danger', width: '25%' };
+    if (passed === 2) return { score: passed, label: 'Fair', color: 'bg-warning', width: '50%' };
+    if (passed === 3) return { score: passed, label: 'Good', color: 'bg-champagne-dim', width: '75%' };
     return { score: passed, label: 'Strong', color: 'bg-emerald-light', width: '100%' };
   }, [password]);
 
@@ -144,7 +145,10 @@ export default function AuthScreen() {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      });
       if (error) throw error;
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Google sign-in failed';
@@ -160,14 +164,17 @@ export default function AuthScreen() {
       toast.error('Enter your email first');
       return;
     }
+    setForgotLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback?type=recovery`,
+        redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
       });
       if (error) throw error;
       toast.success('Password reset email sent');
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : 'Failed to send reset email');
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -344,7 +351,7 @@ export default function AuthScreen() {
                         <motion.div
                           initial={{ opacity: 0, y: -5 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2.5 text-xs text-red-400"
+                          className="flex items-center gap-2 rounded-xl border border-danger/20 bg-danger/5 px-3 py-2.5 text-xs text-danger"
                         >
                           <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                           <span>{signinForm.formState.errors.root.message}</span>
@@ -367,13 +374,13 @@ export default function AuthScreen() {
                               'w-full rounded-xl border bg-white/[0.03] pl-10 pr-4 py-2.5 text-sm text-white outline-none transition placeholder:text-white/15',
                               'focus:border-champagne/40 focus:ring-1 focus:ring-champagne/15',
                               signinForm.formState.errors.email
-                                ? 'border-red-500/40 focus:border-red-500/40 focus:ring-red-500/20'
+                                ? 'border-danger/40 focus:border-danger/40 focus:ring-danger/20'
                                 : 'border-white/[0.08]'
                             )}
                           />
                         </div>
                         {signinForm.formState.errors.email && (
-                          <p className="text-[11px] text-red-400">{signinForm.formState.errors.email.message}</p>
+                          <p className="text-[11px] text-danger">{signinForm.formState.errors.email.message}</p>
                         )}
                       </div>
 
@@ -393,12 +400,13 @@ export default function AuthScreen() {
                               'w-full rounded-xl border bg-white/[0.03] pl-10 pr-10 py-2.5 text-sm text-white outline-none transition placeholder:text-white/15',
                               'focus:border-champagne/40 focus:ring-1 focus:ring-champagne/15',
                               signinForm.formState.errors.password
-                                ? 'border-red-500/40'
+                                ? 'border-danger/40'
                                 : 'border-white/[0.08]'
                             )}
                           />
                           <button
                             type="button"
+                            aria-label="Toggle password visibility"
                             onClick={() => setShowPassword((v) => !v)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary transition"
                           >
@@ -406,7 +414,7 @@ export default function AuthScreen() {
                           </button>
                         </div>
                         {signinForm.formState.errors.password && (
-                          <p className="text-[11px] text-red-400">{signinForm.formState.errors.password.message}</p>
+                          <p className="text-[11px] text-danger">{signinForm.formState.errors.password.message}</p>
                         )}
                       </div>
 
@@ -424,7 +432,8 @@ export default function AuthScreen() {
                         <button
                           type="button"
                           onClick={handleForgotPassword}
-                          className="text-xs text-champagne-dim hover:text-champagne transition-colors"
+                          disabled={forgotLoading}
+                          className="text-xs text-champagne-dim hover:text-champagne transition-colors disabled:opacity-50"
                         >
                           Forgot password?
                         </button>
@@ -463,13 +472,13 @@ export default function AuthScreen() {
                               'w-full rounded-xl border bg-white/[0.03] pl-10 pr-4 py-2.5 text-sm text-white outline-none transition placeholder:text-white/15',
                               'focus:border-champagne/40 focus:ring-1 focus:ring-champagne/15',
                               signupForm.formState.errors.email
-                                ? 'border-red-500/40'
+                                ? 'border-danger/40'
                                 : 'border-white/[0.08]'
                             )}
                           />
                         </div>
                         {signupForm.formState.errors.email && (
-                          <p className="text-[11px] text-red-400">{signupForm.formState.errors.email.message}</p>
+                          <p className="text-[11px] text-danger">{signupForm.formState.errors.email.message}</p>
                         )}
                       </div>
 
@@ -489,19 +498,22 @@ export default function AuthScreen() {
                               'w-full rounded-xl border bg-white/[0.03] pl-10 pr-10 py-2.5 text-sm text-white outline-none transition placeholder:text-white/15',
                               'focus:border-champagne/40 focus:ring-1 focus:ring-champagne/15',
                               signupForm.formState.errors.password
-                                ? 'border-red-500/40'
+                                ? 'border-danger/40'
                                 : 'border-white/[0.08]'
                             )}
                           />
                           <button
                             type="button"
+                            aria-label="Toggle password visibility"
                             onClick={() => setShowPassword((v) => !v)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary transition"
                           >
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
                         </div>
-
+                        {signupForm.formState.errors.password && (
+                          <p className="text-[11px] text-danger">{signupForm.formState.errors.password.message}</p>
+                        )}
                         {password && (
                           <motion.div
                             initial={{ opacity: 0, height: 0 }}
@@ -516,7 +528,7 @@ export default function AuthScreen() {
                                 transition={{ duration: 0.3 }}
                               />
                             </div>
-                            <p className={cn('text-[11px] font-medium', strength.score <= 1 ? 'text-red-400' : strength.score === 2 ? 'text-orange-400' : strength.score === 3 ? 'text-yellow-400' : 'text-emerald-light')}>
+                            <p className={cn('text-[11px] font-medium', strength.score <= 1 ? 'text-danger' : strength.score === 2 ? 'text-warning' : strength.score === 3 ? 'text-champagne-dim' : 'text-emerald-light')}>
                               {strength.label}
                             </p>
                             <div className="grid grid-cols-2 gap-1">
@@ -537,9 +549,6 @@ export default function AuthScreen() {
                               })}
                             </div>
                           </motion.div>
-                        )}
-                        {signupForm.formState.errors.password && (
-                          <p className="text-[11px] text-red-400">{signupForm.formState.errors.password.message}</p>
                         )}
                       </div>
 
@@ -586,7 +595,7 @@ export default function AuthScreen() {
                         </p>
                       </button>
                       {signupForm.formState.errors.accepted && (
-                        <p className="text-[11px] text-red-400">{signupForm.formState.errors.accepted.message}</p>
+                        <p className="text-[11px] text-danger">{signupForm.formState.errors.accepted.message}</p>
                       )}
 
                       <Button

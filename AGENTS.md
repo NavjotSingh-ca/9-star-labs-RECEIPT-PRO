@@ -67,6 +67,25 @@ All defined in `src/app/globals.css` using Tailwind v4 `@theme` directive:
 - `sidebar-*` (9 tokens) — dark sidebar colors, always dark regardless of theme
 - `card`, `card-foreground`, `foreground`, `muted`, `muted-foreground` — shadcn compat
 
+## Self-Loop Protocol (Autonomous Mode)
+This section defines how I operate when the user has asked me to continuously improve the codebase without interruption.
+
+### Loop Rules
+1. **Auto-promote**: After completing a task, mark it done in `todowrite` and immediately promote the next `pending` item to `in_progress`
+2. **Build gate**: Run `npx tsc --noEmit` after every file change. If it fails, fix the error before moving on
+3. **Full build**: Run `npx next build` every 3-5 task items to catch production issues early
+4. **Blockers**: If a task is blocked (missing data, requires user decision), log the reason in task notes, mark it `cancelled`, skip to the next unblocked task
+5. **Resume**: This file is the state checkpoint. If context resets, the next session reads this file, picks the first `pending` task, and continues
+6. **Exhaustion**: When all `pending` tasks are done, stop and write "ALL TASKS COMPLETE" in the final message. Await the user's next instruction or a fresh oracle prompt
+
+### Task Oracle
+When no more tasks exist or I need fresh direction, the user can take `task-oracle-prompt.md` to any AI. That AI will analyze the codebase and return prioritized task items. The user pastes them back to me, I add them to the todo list, and the loop continues.
+
+### Priority Order
+- CRITICAL > HIGH > MEDIUM > LOW
+- Within severity: Infrastructure > UX > Features > Architecture > Moonshots
+- Quick wins (Phase 0) first, then Phase 1, 2, 3, 4, 5 sequentially
+
 ## Progress
 ### Done
 - Full production readiness audit of 40+ source files completed — all CRITICAL, HIGH, MEDIUM, and LOW issues catalogued with exact file paths, line numbers, severities, and fix steps.
@@ -127,6 +146,11 @@ All defined in `src/app/globals.css` using Tailwind v4 `@theme` directive:
 - **MobileNav → 4 tabs** — Simplified to Home, Records, Scan (center FAB), More. Scan button pulses when no receipts.
 - **Research prompt** — `research-prompts.md` created with deep research prompt on Scanner UX (state machines, camera patterns, batch UX, error recovery, performance).
 - **CSS fixes** — `--font-sans` in `@theme` now references `var(--font-geist)` (was hardcoded "Geist Variable" string). Scrollbar thumb uses `var(--glass-border)` / `var(--glass-border-hover)` (was hardcoded white that was invisible in light mode).
+- **PHASE 0.4 (Stripe types)** — Replaced `as unknown as {...}` casts with proper `as unknown as { field?: type }` access patterns. Stripe v22 types don't include `current_period_end` on `Subscription` or `subscription` on `Invoice` as directly accessible properties.
+- **PHASE 0.5 (getOrgId cleanup)** — Replaced 2 `supabase.rpc('get_user_org')` + `as unknown as string` casts with `getOrgIdString()` in `receipts.ts`.
+- **PHASE 0.6 (z.any cleanup)** — Replaced 3 `z.any()` with `z.unknown()` in receipt/line item schemas in `receipts.ts`.
+- **PHASE 0.7 (JSZip lazy load)** — Converted static `import JSZip from 'jszip'` to dynamic `await import('jszip')` in both `Export.tsx` and `useScannerState.ts`.
+- **PHASE 1.1 (Auth proxy)** — Completed `src/proxy.ts` with auth redirect: unauthenticated users on non-public paths redirected to `/`, `getUser()` session refresh retained.
 
 ### In Progress
 - (none)
@@ -152,6 +176,7 @@ All defined in `src/app/globals.css` using Tailwind v4 `@theme` directive:
 - **Scanner refactoring** follows the pattern of: hook (state+logic) + thin component (render only). The hook owns all state, mutations, effects, and callbacks. The component imports it and delegates.
 
 ## Next Steps
+- All PHASE 0.x and PHASE 1.1 tasks complete. Run `task-oracle-prompt.md` through an external AI to generate the next batch of prioritized tasks.
 - Run `setup.sql` against Supabase to apply schema changes if not already applied.
 - Build and deploy the Next.js application.
 

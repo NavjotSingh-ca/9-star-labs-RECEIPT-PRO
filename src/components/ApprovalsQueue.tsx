@@ -79,12 +79,12 @@ const ApprovalCard = React.memo(function ApprovalCard({
           type="button"
           onClick={onToggle}
           className={[
-            'mt-0.5 h-5 w-5 flex-shrink-0 rounded-[2rem] border-2 transition',
+            'mt-0.5 h-6 w-6 flex-shrink-0 rounded-[2rem] border-2 transition',
             selected ? 'border-champagne bg-champagne' : 'border-glass-border',
           ].join(' ')}
           aria-label={selected ? 'Deselect' : 'Select'}
         >
-          {selected && <CheckCircle2 className="h-3.5 w-3.5 text-obsidian" />}
+          {selected && <CheckCircle2 className="h-4 w-4 text-obsidian" />}
         </button>
 
         {/* Image thumbnail */}
@@ -109,7 +109,7 @@ const ApprovalCard = React.memo(function ApprovalCard({
               {receipt.category ?? 'Uncategorized'}
             </span>
             {receipt.needs_reimbursement && (
-              <span className="rounded-[2rem] bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-400">
+              <span className="rounded-[2rem] bg-warning/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-warning">
                 Reimbursement Pending
               </span>
             )}
@@ -119,7 +119,7 @@ const ApprovalCard = React.memo(function ApprovalCard({
               </span>
             )}
             {receipt.fraud_suspicion && (
-              <span className="rounded-[2rem] bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-400">
+              <span className="rounded-[2rem] bg-danger/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-danger">
                 Fraud Flag
               </span>
             )}
@@ -137,7 +137,7 @@ const ApprovalCard = React.memo(function ApprovalCard({
               type="button"
               onClick={() => onApprove(receipt.id)}
               disabled={loading}
-              className="flex items-center gap-1.5 rounded-[2rem] bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-[2rem] bg-emerald-success/10 px-3 py-1.5 text-xs font-bold text-emerald-light transition hover:bg-emerald-success/20 disabled:opacity-50"
               aria-label="Approve (A)"
             >
               <ThumbsUp className="h-3.5 w-3.5" />
@@ -147,7 +147,7 @@ const ApprovalCard = React.memo(function ApprovalCard({
               type="button"
               onClick={() => onReject(receipt.id)}
               disabled={loading}
-              className="flex items-center gap-1.5 rounded-[2rem] bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-[2rem] bg-danger/10 px-3 py-1.5 text-xs font-bold text-danger transition hover:bg-danger/20 disabled:opacity-50"
               aria-label="Reject (R)"
             >
               <ThumbsDown className="h-3.5 w-3.5" />
@@ -263,36 +263,38 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selected, bulkMutation]);
 
-  const toggleSelect = (id: string) => {
+  const toggleSelect = useCallback((id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  };
+  }, []);
 
-  const selectAll = () => {
-    if (selected.size === pending.length) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(pending.map((p) => p.id)));
-    }
-  };
+  const selectAll = useCallback(() => {
+    setSelected((prev) => {
+      if (prev.size === pending.length) {
+        return new Set();
+      } else {
+        return new Set(pending.map((p) => p.id));
+      }
+    });
+  }, [pending]);
 
-  const handleSingleAction = async (id: string, status: 'approved' | 'rejected') => {
+  const handleSingleAction = useCallback(async (id: string, status: 'approved' | 'rejected') => {
     setActionLoading(id);
     try {
       await approveMutation.mutateAsync({ id, status });
     } finally {
       setActionLoading(null);
     }
-  };
+  }, [approveMutation]);
 
   if (role === 'Employee') {
     return (
-      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4 text-center">
-        <AlertCircle className="h-10 w-10 text-text-muted" />
+      <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-glass-border bg-surface/30 py-16 text-center" role="status" aria-live="polite">
+        <AlertCircle className="h-10 w-10 text-text-muted opacity-30" />
         <p className="text-sm text-text-muted">Employees do not have access to the Approvals Queue.</p>
       </div>
     );
@@ -332,7 +334,7 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
                 type="button"
                 onClick={() => bulkMutation.mutate('approved')}
                 disabled={bulkMutation.isPending}
-                className="flex items-center gap-2 rounded-[2rem] bg-emerald-500/15 px-4 py-2 text-sm font-bold text-emerald-400 transition hover:bg-emerald-500/25 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-[2rem] bg-emerald-success/15 px-4 py-2 text-sm font-bold text-emerald-light transition hover:bg-emerald-success/25 disabled:opacity-50"
               >
                 <ThumbsUp className="h-4 w-4" />
                 Approve All <span className="text-xs opacity-60">(A)</span>
@@ -341,7 +343,7 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
                 type="button"
                 onClick={() => bulkMutation.mutate('rejected')}
                 disabled={bulkMutation.isPending}
-                className="flex items-center gap-2 rounded-[2rem] bg-red-500/15 px-4 py-2 text-sm font-bold text-red-400 transition hover:bg-red-500/25 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-[2rem] bg-danger/15 px-4 py-2 text-sm font-bold text-danger transition hover:bg-danger/25 disabled:opacity-50"
               >
                 <ThumbsDown className="h-4 w-4" />
                 Reject All <span className="text-xs opacity-60">(R)</span>
@@ -371,19 +373,10 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
 
       {/* Empty state */}
       {!isLoading && pending.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex min-h-[40vh] flex-col items-center justify-center gap-4 rounded-[3rem] border border-glass-border bg-surface p-10 text-center"
-        >
-          <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-500/10 text-emerald-400">
-            <CheckCircle2 className="h-8 w-8" />
-          </div>
-          <h3 className="text-lg font-bold text-text-primary">All caught up!</h3>
-          <p className="max-w-xs text-sm text-text-secondary">
-            No receipts are waiting for your approval. Employees&apos; scans will appear here once submitted.
-          </p>
-        </motion.div>
+        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-glass-border bg-surface/30 py-16 text-center" role="status" aria-live="polite">
+          <AlertCircle className="h-10 w-10 text-text-muted opacity-30" />
+          <p className="text-sm text-text-muted">No receipts pending approval. Employees&apos; scans will appear here once submitted.</p>
+        </div>
       )}
 
       {/* Cards */}
@@ -406,7 +399,7 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
         <div className="flex items-center gap-2 rounded-[3rem] border border-glass-border bg-surface px-4 py-3">
           <Clock className="h-4 w-4 text-text-muted" />
           <p className="text-xs text-text-muted">
-            Select receipts then use the bulk toolbar. Keyboard: <kbd className="rounded bg-surface-raised px-1.5 py-0.5 text-champagne">A</kbd> = Approve, <kbd className="rounded bg-surface-raised px-1.5 py-0.5 text-red-400">R</kbd> = Reject.
+            Select receipts then use the bulk toolbar. Keyboard: <kbd className="rounded bg-surface-raised px-1.5 py-0.5 text-champagne">A</kbd> = Approve, <kbd className="rounded bg-surface-raised px-1.5 py-0.5 text-danger">R</kbd> = Reject.
           </p>
         </div>
       )}

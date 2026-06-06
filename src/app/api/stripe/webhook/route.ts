@@ -41,12 +41,21 @@ export async function POST(request: Request) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         const orgId = session.metadata?.org_id;
-        const plan = (session.metadata?.plan as 'free' | 'pro' | 'enterprise') || 'pro';
+        const plan = (session.metadata?.plan as 'free' | 'starter' | 'pro' | 'business' | 'enterprise') || 'pro';
 
         if (!orgId) {
           console.warn('[Stripe Webhook] No org_id in session metadata');
           return NextResponse.json({ received: true });
         }
+
+        const planLimits: Record<string, { receipt_limit: number; user_limit: number }> = {
+          free: { receipt_limit: 25, user_limit: 1 },
+          starter: { receipt_limit: 200, user_limit: 3 },
+          pro: { receipt_limit: 999999, user_limit: 10 },
+          business: { receipt_limit: 999999, user_limit: 15 },
+          enterprise: { receipt_limit: 999999, user_limit: 999999 },
+        };
+        const limits = planLimits[plan] || planLimits.free;
 
         const subId = session.subscription as string;
         const custId = session.customer as string;
@@ -59,8 +68,8 @@ export async function POST(request: Request) {
             stripe_customer_id: custId,
             stripe_subscription_id: subId,
             status: 'active',
-            receipt_limit: plan === 'pro' ? 999999 : 50,
-            user_limit: plan === 'pro' ? 5 : 1,
+            receipt_limit: limits.receipt_limit,
+            user_limit: limits.user_limit,
             current_period_end: null,
             updated_at: new Date().toISOString(),
           }, { onConflict: 'org_id' });
@@ -69,8 +78,7 @@ export async function POST(request: Request) {
 
       case 'invoice.paid': {
         const invoice = event.data.object as Stripe.Invoice;
-        const invAny = invoice as unknown as { subscription: string; period_end: number };
-        const subId = invAny.subscription;
+        const subId = (invoice as unknown as { subscription?: string }).subscription;
         if (!subId) break;
 
         const { data: localSub } = await supabaseAdmin
@@ -80,12 +88,13 @@ export async function POST(request: Request) {
           .maybeSingle();
         if (!localSub) break;
 
+        const periodEnd = (invoice as unknown as { period_end?: number }).period_end;
         await supabaseAdmin
           .from('subscriptions')
           .update({
             status: 'active',
-            current_period_end: invAny.period_end
-              ? new Date(invAny.period_end * 1000).toISOString()
+            current_period_end: periodEnd
+              ? new Date(periodEnd * 1000).toISOString()
               : null,
             updated_at: new Date().toISOString(),
           })
@@ -95,8 +104,7 @@ export async function POST(request: Request) {
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
-        const invAny = invoice as unknown as { subscription: string; period_end: number };
-        const subId = invAny.subscription;
+        const subId = (invoice as unknown as { subscription?: string }).subscription;
         if (!subId) break;
 
         const { data: localSub } = await supabaseAdmin
@@ -106,12 +114,13 @@ export async function POST(request: Request) {
           .maybeSingle();
         if (!localSub) break;
 
+        const periodEnd = (invoice as unknown as { period_end?: number }).period_end;
         await supabaseAdmin
           .from('subscriptions')
           .update({
             status: 'past_due',
-            current_period_end: invAny.period_end
-              ? new Date(invAny.period_end * 1000).toISOString()
+            current_period_end: periodEnd
+              ? new Date(periodEnd * 1000).toISOString()
               : null,
             updated_at: new Date().toISOString(),
           })
@@ -121,7 +130,6 @@ export async function POST(request: Request) {
 
       case 'customer.subscription.updated': {
         const sub = event.data.object as Stripe.Subscription;
-        const subAny = sub as unknown as { current_period_end: number };
         const orgId = sub.metadata?.org_id;
         if (!orgId) break;
 
@@ -130,12 +138,13 @@ export async function POST(request: Request) {
           : sub.status === 'trialing' ? 'trialing'
           : 'active';
 
+        const periodEnd = (sub as unknown as { current_period_end?: number }).current_period_end;
         await supabaseAdmin
           .from('subscriptions')
           .update({
             status,
-            current_period_end: subAny.current_period_end
-              ? new Date(subAny.current_period_end * 1000).toISOString()
+            current_period_end: periodEnd
+              ? new Date(periodEnd * 1000).toISOString()
               : null,
             updated_at: new Date().toISOString(),
           })
@@ -145,16 +154,16 @@ export async function POST(request: Request) {
 
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription;
-        const subAny = sub as unknown as { current_period_end: number };
         const orgId = sub.metadata?.org_id;
         if (!orgId) break;
 
+        const periodEnd = (sub as unknown as { current_period_end?: number }).current_period_end;
         await supabaseAdmin
           .from('subscriptions')
           .update({
             status: 'canceled',
             plan: 'free',
-            receipt_limit: 50,
+            receipt_limit: 25,
             user_limit: 1,
             stripe_subscription_id: null,
             updated_at: new Date().toISOString(),
@@ -173,7 +182,7 @@ export async function POST(request: Request) {
         .from('processed_webhook_events')
         .insert({ event_id: event.id, event_type: event.type });
     } catch (err) {
-      console.error('[Stripe Webhook] Failed to record idempotency entry — duplicate events may be processed:', err);
+      console.error('[Stripe Webhook] idempotency write failed — duplicates possible:', err);
     }
 
     return NextResponse.json({ received: true });

@@ -79,7 +79,7 @@ export default function RootLayout({
           <SmoothScroll>
             <Providers>
               {children}
-              <Toaster position="top-center" richColors />
+              <Toaster position="bottom-right" richColors />
             </Providers>
           </SmoothScroll>
         </PostHogProvider>

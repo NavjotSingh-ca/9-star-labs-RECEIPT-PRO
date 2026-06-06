@@ -334,7 +334,8 @@ Return the corrected JSON only. Keep the same schema.`;
       clearTimeout(timeout);
     }
   } catch {
-    // If self-correction fails, return original data unchanged
+    // AI self-correction failed — return original Gemini output
+    console.warn('AI self-correction failed — using original results');
     return firstPass;
   }
 }
@@ -356,7 +357,11 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
   const supabaseClient = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll: () => cookieStore.getAll(),
-      setAll: () => {},
+      setAll: (cookiesToSet) => {
+        cookiesToSet.forEach(({ name, value, options }) =>
+          cookieStore.set(name, value, options)
+        );
+      },
     },
   });
 
@@ -412,8 +417,8 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
         .select('plan, receipt_limit, status')
         .eq('org_id', orgId)
         .single();
-      const plan = (subData?.plan || 'free') as 'free' | 'pro' | 'enterprise';
-      const receiptLimit = typeof subData?.receipt_limit === 'number' ? subData.receipt_limit : 50;
+      const plan: string = subData?.plan || 'free';
+      const receiptLimit = typeof subData?.receipt_limit === 'number' ? subData.receipt_limit : 25;
       if (plan === 'free' || receiptLimit !== 999999) {
         const now = new Date();
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
@@ -443,7 +448,7 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
   try {
     await supabaseClient.from('scan_attempts').insert({ user_id: userId });
   } catch {
-    // If scan_attempts table doesn't exist yet, continue — the rate limit still works via fallback
+    console.warn('scan_attempts insert skipped — table may not exist');
   }
 
   const payload = preparePayload(validImage);

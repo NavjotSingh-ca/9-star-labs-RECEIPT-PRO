@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import Image from 'next/image';
 import {
+  AlertCircle,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   DollarSign,
   Loader2,
   Receipt,
@@ -14,6 +17,7 @@ import {
   MessageSquare,
   Send,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Drawer } from 'vaul';
 
@@ -80,7 +84,9 @@ export default function History({
   userId,
 }: HistoryProps) {
   const [selectedReceipt, setSelectedReceipt] = useState<ReceiptRow | null>(null);
+  const [receiptIndex, setReceiptIndex] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [semanticMode, setSemanticMode] = useState(false);
@@ -93,6 +99,7 @@ export default function History({
     hasNextPage,
     isFetchingNextPage,
     isLoading,
+    isRefetching,
     refetch
   } = useInfiniteQuery({
     initialPageParam: 0,
@@ -172,22 +179,55 @@ export default function History({
     return items;
   }, [receipts, activeFilter, semanticMode, semanticResults]);
 
-  const handleDelete = async (id: string) => {
-    setDeleteTarget(id);
-  };
+  const statCards = useMemo(() => {
+    const totalSpend = filteredReceipts.reduce((s, r) => s + toNumber(r.total_amount), 0);
+    const avgSpend = filteredReceipts.length > 0 ? totalSpend / filteredReceipts.length : 0;
+    const pendingCount = filteredReceipts.filter(r => r.approval_status === 'submitted').length;
+    return [
+      { label: 'Total Receipts', value: filteredReceipts.length.toString(), icon: Receipt, color: 'text-champagne' },
+      { label: 'Total Spend', value: formatCurrency(totalSpend), icon: DollarSign, color: 'text-emerald-light' },
+      { label: 'Avg per Receipt', value: formatCurrency(avgSpend), icon: DollarSign, color: 'text-champagne' },
+      { label: 'Pending', value: pendingCount.toString(), icon: DollarSign, color: 'text-warning' },
+    ];
+  }, [filteredReceipts]);
 
-  const confirmDelete = async () => {
+  const handleSelectReceipt = useCallback((receipt: ReceiptRow) => {
+    const idx = filteredReceipts.findIndex(r => r.id === receipt.id);
+    setReceiptIndex(idx >= 0 ? idx : 0);
+    setSelectedReceipt(receipt);
+  }, [filteredReceipts]);
+
+  const handleDelete = useCallback((id: string) => {
+    setDeleteTarget(id);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
     if (!deleteTarget || !userId) return;
+    setDeleteLoading(true);
     try {
       await deleteReceipt(deleteTarget, userId);
       if (onUpdate) await onUpdate();
       refetch();
     } catch (err) {
-      console.error('Delete error:', err);
+      console.error('Confirm delete error:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to delete this receipt. It may be protected by retention rules.');
     } finally {
+      setDeleteLoading(false);
       setDeleteTarget(null);
     }
-  };
+  }, [deleteTarget, userId, onUpdate, refetch]);
+
+  const handlePrevReceipt = useCallback(() => {
+    const newIdx = receiptIndex > 0 ? receiptIndex - 1 : filteredReceipts.length - 1;
+    setReceiptIndex(newIdx);
+    setSelectedReceipt(filteredReceipts[newIdx]);
+  }, [receiptIndex, filteredReceipts]);
+
+  const handleNextReceipt = useCallback(() => {
+    const newIdx = receiptIndex < filteredReceipts.length - 1 ? receiptIndex + 1 : 0;
+    setReceiptIndex(newIdx);
+    setSelectedReceipt(filteredReceipts[newIdx]);
+  }, [receiptIndex, filteredReceipts]);
 
   const handleSemanticSearch = async (query: string) => {
     if (!query.trim()) {
@@ -200,6 +240,7 @@ export default function History({
       setSemanticResults(results.map(r => r.id));
     } catch (err) {
       console.error('Semantic search failed:', err);
+      toast.error('AI search failed. Please try a simpler query or check your connection.');
     } finally {
       setSemanticLoading(false);
     }
@@ -217,13 +258,13 @@ export default function History({
               <span className="font-bold">{totalCount}</span> record{totalCount === 1 ? '' : 's'} · {activeFilter === 'all' ? 'All entries' : activeFilter}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               onClick={() => refetch()}
               variant="outline"
               className="px-4 font-bold"
             >
-              <RefreshCw className={cn("mr-2 h-4 w-4", isFetchingNextPage ? "animate-spin" : "")} />
+              <RefreshCw className={cn("mr-2 h-4 w-4", (isFetchingNextPage || isRefetching) ? "animate-spin" : "")} />
               Sync
             </Button>
             <Button
@@ -256,13 +297,14 @@ export default function History({
                     <input 
                       type="text"
                       placeholder="Describe what you're looking for (e.g. 'Fuel receipts over $100 from last March')"
+                      aria-label="AI semantic search query"
                       className="mt-2 w-full bg-transparent text-sm font-medium outline-none placeholder:text-muted-foreground"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleSemanticSearch(e.currentTarget.value);
                       }}
                     />
                     {semanticLoading && (
-                      <div className="mt-2 flex items-center gap-2 text-[10px] text-primary font-bold uppercase tracking-widest animate-pulse">
+                      <div className="mt-2 flex items-center gap-2 text-[10px] text-primary font-bold uppercase tracking-widest animate-pulse" role="status" aria-live="polite">
                         Analyzing patterns...
                       </div>
                     )}
@@ -273,11 +315,37 @@ export default function History({
           )}
         </AnimatePresence>
 
+        {/* Receipt Quick Stats */}
+        {receipts.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4"
+          >
+            {statCards.map((stat) => (
+              <div
+                key={stat.label}
+                className="flex items-center gap-3 rounded-xl border border-glass-border bg-card px-4 py-3 transition hover:border-glass-border-hover"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-raised">
+                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                </div>
+                <div>
+                  <p className="text-[11px] font-medium text-text-muted">{stat.label}</p>
+                  <p className="text-sm font-bold tracking-tight text-text-primary tabular-nums">{stat.value}</p>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        )}
+
         {/* The Ledger */}
         {isLoading && !receipts.length ? (
-          <ReceiptTableSkeleton />
+          <div role="status" aria-live="polite" aria-label="Loading receipts">
+            <ReceiptTableSkeleton />
+          </div>
         ) : receipts.length === 0 ? (
-          <div className="flex min-h-[40vh] flex-col items-center justify-center gap-6 rounded-xl border border-dashed bg-muted/10 p-12 text-center">
+          <div className="flex min-h-[40vh] flex-col items-center justify-center gap-6 rounded-xl border border-dashed bg-muted/10 p-12 text-center" aria-live="polite">
             <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-muted text-muted-foreground">
               <Receipt className="h-10 w-10" />
             </div>
@@ -296,10 +364,10 @@ export default function History({
             </div>
           </div>
         ) : (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700" aria-live="polite" aria-atomic="true">
             <ProfessionalLedger 
               data={filteredReceipts} 
-              onSelect={setSelectedReceipt}
+              onSelect={handleSelectReceipt}
               onDelete={handleDelete}
             />
             
@@ -335,6 +403,30 @@ export default function History({
           <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[160] flex flex-col rounded-t-2xl border-t bg-background outline-none focus:ring-0 sm:max-w-3xl sm:mx-auto sm:mb-6 sm:rounded-2xl sm:max-h-[95vh] bottom-nav">
             <div className="mx-auto mt-4 h-1.5 w-12 flex-shrink-0 rounded-full bg-muted" />
             
+            {selectedReceipt && filteredReceipts.length > 1 && (
+              <div className="flex items-center justify-between border-b border-glass-border px-4 py-2">
+                <button
+                  type="button"
+                  onClick={handlePrevReceipt}
+                  className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-text-secondary transition hover:bg-surface-hover hover:text-text-primary"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  Previous
+                </button>
+                <span className="text-xs font-medium text-text-muted tabular-nums">
+                  {receiptIndex + 1} of {filteredReceipts.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleNextReceipt}
+                  className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-text-secondary transition hover:bg-surface-hover hover:text-text-primary"
+                >
+                  Next
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+
             {selectedReceipt && (
               <div className="flex-1 overflow-y-auto px-2">
                 <ErrorBoundary componentName="ReceiptDetailModal">
@@ -366,9 +458,11 @@ export default function History({
               render={<Button variant="outline" className="rounded-xl font-semibold" />}
             />
             <AlertDialogAction
+              disabled={deleteLoading}
               render={<Button variant="destructive" className="rounded-xl font-semibold" />}
               onClick={confirmDelete}
             >
+              {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Delete Record
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -415,7 +509,7 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
     fetch(`/api/receipts/comments?receiptId=${receipt.id}`)
       .then(res => res.json())
       .then(data => { if (data.data) setComments(data.data) })
-      .catch(console.error);
+      .catch(() => toast.error('Failed to load comments.'));
   }, [receipt.id]);
 
   async function handlePostComment() {
@@ -500,9 +594,9 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
   }
 
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   async function handleDelete() {
-    if (!window.confirm("Are you sure you want to delete this receipt? This action will move it to the trash.")) return;
     setDeleteLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -516,6 +610,7 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
       setEditError(err instanceof Error ? err.message : 'Delete failed.');
     } finally {
       setDeleteLoading(false);
+      setShowDeleteConfirm(false);
     }
   }
 
@@ -527,21 +622,31 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
       const resp = await fetch(`/api/integrations/${provider}?action=sync&receiptId=${receipt.id}`, { method: 'POST' });
       const result = await resp.json();
       if (!resp.ok) throw new Error(result.error || 'Sync failed');
-      alert(`Successfully synced to ${provider.toUpperCase()}`);
+      toast.success(`Successfully synced to ${provider.toUpperCase()}`);
     } catch (err: unknown) {
-      alert(`Sync Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toast.error(`Sync Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setSyncLoading(null);
     }
   }
 
   const [displayUrl, setDisplayUrl] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
   React.useEffect(() => {
     async function getFreshUrl() {
-      if (!receipt.image_url) return;
-      const freshUrl = await getReceiptImageUrl(receipt.image_url);
-      setDisplayUrl(freshUrl);
+      if (!receipt.image_url) { setImageLoading(false); return; }
+      setImageLoading(true);
+      setImageError(false);
+      try {
+        const freshUrl = await getReceiptImageUrl(receipt.image_url);
+        setDisplayUrl(freshUrl);
+      } catch {
+        setImageError(true);
+      } finally {
+        setImageLoading(false);
+      }
     }
     getFreshUrl();
   }, [receipt.image_url]);
@@ -567,9 +672,10 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
             <Button
               variant="outline"
               size="icon"
-              onClick={handleDelete}
+              onClick={() => setShowDeleteConfirm(true)}
               disabled={deleteLoading}
-              className="h-12 w-12 rounded-[2rem] bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"
+              className="h-12 w-12 rounded-[2rem] bg-danger/10 text-danger border-danger/20 hover:bg-danger/20"
+              aria-label="Delete receipt"
             >
               {deleteLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Trash2 className="h-5 w-5" />}
             </Button>
@@ -578,6 +684,7 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
               size="icon"
               onClick={onClose}
               className="h-12 w-12 rounded-[2rem] bg-surface-raised"
+              aria-label="Close receipt details"
             >
               <X className="h-6 w-6" />
             </Button>
@@ -585,8 +692,24 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 space-y-8">
-          {imageUrl && (
-            <div className="relative rounded-[3rem] border border-glass-border bg-obsidian/20 overflow-hidden shadow-2xl" style={{ minHeight: '300px' }}>
+          {imageLoading ? (
+            <div className="relative min-h-[300px] rounded-[3rem] border border-glass-border bg-obsidian/20 overflow-hidden shadow-2xl flex items-center justify-center" role="status" aria-live="polite" aria-label="Loading receipt image">
+              <Loader2 className="h-8 w-8 animate-spin text-champagne" />
+            </div>
+          ) : imageError ? (
+            <div className="relative min-h-[300px] rounded-[3rem] border border-danger/20 bg-danger/5 overflow-hidden shadow-2xl flex flex-col items-center justify-center gap-2" role="alert">
+              <AlertCircle className="h-8 w-8 text-danger" />
+              <p className="text-sm text-text-muted">Failed to load receipt image</p>
+              <button
+                type="button"
+                onClick={() => { setImageLoading(true); setImageError(false); getReceiptImageUrl(receipt.image_url || '').then(setDisplayUrl).catch(() => setImageError(true)).finally(() => setImageLoading(false)); }}
+                className="rounded-[2rem] border border-danger/30 px-4 py-1.5 text-xs font-semibold text-danger hover:bg-danger/10"
+              >
+                Retry
+              </button>
+            </div>
+          ) : imageUrl ? (
+            <div className="relative min-h-[300px] rounded-[3rem] border border-glass-border bg-obsidian/20 overflow-hidden shadow-2xl">
               <Image
                 src={imageUrl}
                 alt="Receipt"
@@ -596,7 +719,7 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
                 sizes="(max-width: 768px) 100vw, 50vw"
               />
             </div>
-          )}
+          ) : null}
 
           <div className="grid gap-6 sm:grid-cols-2">
             {/* AI Context Card */}
@@ -607,7 +730,7 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-bold">Confidence Score</span>
-                <span className={cn("text-xl font-bold tabular-nums", tone.label.includes('High') ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500')}>
+                <span className={cn("text-xl font-bold tabular-nums", tone.label.includes('High') ? 'text-emerald-light' : 'text-warning')}>
                   {score}%
                 </span>
               </div>
@@ -615,7 +738,7 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
                 <motion.div 
                   initial={{ width: 0 }}
                   animate={{ width: `${score}%` }}
-                  className={cn("h-full", tone.label.includes('High') ? 'bg-emerald-500' : 'bg-amber-500')}
+                  className={cn("h-full", tone.label.includes('High') ? 'bg-emerald-success' : 'bg-warning')}
                 />
               </div>
             </Card>
@@ -685,6 +808,7 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handlePostComment()}
+                  aria-label="Add a comment"
                   className="flex-1 rounded-lg border bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
                 />
                 <Button
@@ -698,6 +822,31 @@ function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: Rece
             </div>
           </Card>
         </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Receipt Record</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this receipt from the ledger. The original data will be preserved in the audit trail, but this entry will no longer appear in reports or searches.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              render={<Button variant="outline" className="rounded-xl font-semibold" />}
+            />
+            <AlertDialogAction
+              disabled={deleteLoading}
+              render={<Button variant="destructive" className="rounded-xl font-semibold" />}
+              onClick={handleDelete}
+            >
+              {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Delete Record
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </div>
   );
 }

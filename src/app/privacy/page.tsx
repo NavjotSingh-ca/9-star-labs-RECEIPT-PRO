@@ -84,7 +84,7 @@ export default function PrivacyPage() {
                 <span className="rounded-full border border-champagne/30 bg-champagne/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-champagne">
                   Quebec Law 25 Ready
                 </span>
-                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-emerald-400">
+                <span className="rounded-full border border-emerald-success/30 bg-emerald-success/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-emerald-light">
                   Effective: April 27, 2026
                 </span>
               </div>
@@ -120,7 +120,7 @@ export default function PrivacyPage() {
               <B><em>Personal Information Protection Act</em></B>{' '}
               (Alberta PIPA, SA 2003, c. P-6.5). This Privacy Policy explains our practices and
               your rights in plain language. If you have questions, contact us at{' '}
-              <A href="mailto:privacy@9starlabs.ca">privacy@9starlabs.ca</A>.
+              <A href="mailto:9starlaba@gmail.com">9starlaba@gmail.com</A>.
             </p>
           </div>
 
@@ -136,7 +136,7 @@ export default function PrivacyPage() {
             <p>
               <B>Our Privacy Officer</B> is responsible for overseeing our compliance with PIPEDA
               and Alberta PIPA. You may contact our Privacy Officer at:{' '}
-              <A href="mailto:privacy@9starlabs.ca">privacy@9starlabs.ca</A>
+              <A href="mailto:9starlaba@gmail.com">9starlaba@gmail.com</A>
             </p>
           </Section>
 
@@ -187,15 +187,15 @@ export default function PrivacyPage() {
 
           {/* Section 4 */}
           <Section id="ai-ml" title="4. AI & Machine Learning Disclosure">
-            <div className="rounded-[2rem] border border-amber-500/20 bg-amber-500/[0.05] p-4 mb-4">
-              <p className="font-semibold text-amber-300 text-sm mb-1">Important AI Disclosure</p>
+            <div className="rounded-[2rem] border border-warning/20 bg-warning/[0.05] p-4 mb-4">
+              <p className="font-semibold text-warning text-sm mb-1">Important AI Disclosure</p>
               <p>Images of your financial documents are transmitted to Google LLC&apos;s Generative AI API for extraction processing. This occurs every time you scan a receipt through the Service.</p>
             </div>
             <p><B>What is transmitted to Google:</B> The base64-encoded image of your receipt or financial document, along with a structured prompt instructing the AI to extract specific financial fields. No other personal information (name, email, account ID) is transmitted alongside the image.</p>
             <p><B>Google&apos;s data usage policy:</B> Under Google&apos;s enterprise API terms for Gemini API access, data processed through the API is <B>not used to train Google&apos;s public AI models</B>. Google acts as a data processor on our behalf. For full details, see <A href="https://ai.google.dev/gemini-api/terms">Google&apos;s Generative AI Terms</A> and <A href="https://policies.google.com/privacy">Google&apos;s Privacy Policy</A>.</p>
             <p><B>Vector embeddings for semantic search:</B> Text descriptions derived from your receipts (vendor name, category, notes, amount) are also transmitted to Google&apos;s text-embedding-004 model to generate numerical vector representations stored in our database. These vectors enable natural-language search but do not contain full receipt images or sensitive financial identifiers.</p>
             <p><B>AI accuracy limitations:</B> AI extraction is subject to error. You are responsible for reviewing and verifying all AI-extracted data before submission to the CRA or any accounting system. CRA readiness scores are informational tools, not legal guarantees of deductibility. Always consult a qualified Canadian accountant or tax professional for tax advice.</p>
-            <p><B>Opt-out:</B> You may choose to manually enter receipt data without using the AI extraction feature. Contact <A href="mailto:privacy@9starlabs.ca">privacy@9starlabs.ca</A> to request a manual-entry-only account mode.</p>
+            <p><B>Opt-out:</B> You may choose to manually enter receipt data without using the AI extraction feature. Contact <A href="mailto:9starlaba@gmail.com">9starlaba@gmail.com</A> to request a manual-entry-only account mode.</p>
           </Section>
 
           {/* Section 5 */}
@@ -212,7 +212,7 @@ export default function PrivacyPage() {
               <li><B>Multi-factor authentication (MFA)</B> support via TOTP authenticator apps for all user accounts.</li>
               <li><B>Security headers</B> — X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Strict-Transport-Security with 2-year max-age, and nonce-based Content-Security-Policy enforcement on all pages.</li>
             </ul>
-            <p>Despite these safeguards, no internet-based service can guarantee absolute security. If you discover a security vulnerability, please contact us immediately at <A href="mailto:security@9starlabs.ca">security@9starlabs.ca</A>.</p>
+            <p>Despite these safeguards, no internet-based service can guarantee absolute security. If you discover a security vulnerability, please contact us immediately at <A href="mailto:9starlaba@gmail.com">9starlaba@gmail.com</A>.</p>
           </Section>
 
           {/* Section 6 */}
@@ -236,9 +236,9 @@ export default function PrivacyPage() {
             <div className="space-y-4">
               {[
                 { right: 'Right of Access', desc: 'You may request a copy of all personal information we hold about you. We will respond within 30 days of a verified written request. A portable data export (CSV + receipt images ZIP) is available directly from the Export tab in the application.' },
-                { right: 'Right of Correction', desc: 'You may request correction of inaccurate personal information. Receipt data can be corrected directly in the application. For account information corrections, contact privacy@9starlabs.ca.' },
+                { right: 'Right of Correction', desc: 'You may request correction of inaccurate personal information. Receipt data can be corrected directly in the application. For account information corrections, contact 9starlaba@gmail.com.' },
                 { right: 'Right of Erasure', desc: 'You may request deletion of your account and associated data. Requests within the 7-year CRA retention window will require written acknowledgment that deletion may impair your CRA compliance obligations.' },
-                { right: 'Withdrawal of Consent', desc: 'You may withdraw consent to non-essential data processing at any time by contacting privacy@9starlabs.ca. Note that withdrawal of consent to AI extraction will prevent use of the AI scanning features.' },
+                { right: 'Withdrawal of Consent', desc: 'You may withdraw consent to non-essential data processing at any time by contacting 9starlaba@gmail.com. Note that withdrawal of consent to AI extraction will prevent use of the AI scanning features.' },
                 { right: 'Right to Complain', desc: 'If you believe your privacy rights have been violated, you may file a complaint with the Office of the Privacy Commissioner of Canada at www.priv.gc.ca or the Office of the Information and Privacy Commissioner of Alberta at www.oipc.ab.ca.' },
               ].map(({ right, desc }) => (
                 <div key={right} className="rounded-[2rem] border border-glass-border bg-surface/30 p-4">
@@ -247,12 +247,12 @@ export default function PrivacyPage() {
                 </div>
               ))}
             </div>
-            <p>To exercise any of these rights, submit a written request to <A href="mailto:privacy@9starlabs.ca">privacy@9starlabs.ca</A>. We will verify your identity before processing any access, correction, or deletion request.</p>
+            <p>To exercise any of these rights, submit a written request to <A href="mailto:9starlaba@gmail.com">9starlaba@gmail.com</A>. We will verify your identity before processing any access, correction, or deletion request.</p>
           </Section>
 
           {/* Section 8 */}
           <Section id="childrens-privacy" title="8. Children's Privacy">
-            <p>The Service is intended exclusively for use by business owners, employees, and accountants managing business expenses. <B>The Service is not directed at, and we do not knowingly collect personal information from, individuals under the age of 18.</B> If you believe a minor has created an account, please contact us immediately at <A href="mailto:privacy@9starlabs.ca">privacy@9starlabs.ca</A> and we will delete that information promptly.</p>
+            <p>The Service is intended exclusively for use by business owners, employees, and accountants managing business expenses. <B>The Service is not directed at, and we do not knowingly collect personal information from, individuals under the age of 18.</B> If you believe a minor has created an account, please contact us immediately at <A href="mailto:9starlaba@gmail.com">9starlaba@gmail.com</A> and we will delete that information promptly.</p>
           </Section>
 
           {/* Section 9 */}
@@ -332,7 +332,7 @@ export default function PrivacyPage() {
             <p>
               <B>Privacy Officer:</B> Our Privacy Officer oversees compliance with Quebec&apos;s privacy
               framework. Quebec residents may contact our Privacy Officer directly at{' '}
-              <A href="mailto:privacy@9starlabs.ca">privacy@9starlabs.ca</A> with the subject line
+              <A href="mailto:9starlaba@gmail.com">9starlaba@gmail.com</A> with the subject line
               &ldquo;Quebec Privacy Request.&rdquo;
             </p>
             <p>
@@ -380,8 +380,8 @@ export default function PrivacyPage() {
               <div className="space-y-1 text-sm">
                 <p><B>9 Star Labs Inc.</B></p>
                 <p>Edmonton, Alberta, Canada</p>
-                <p>Email: <A href="mailto:privacy@9starlabs.ca">privacy@9starlabs.ca</A></p>
-                <p>Security: <A href="mailto:security@9starlabs.ca">security@9starlabs.ca</A></p>
+                <p>Email: <A href="mailto:9starlaba@gmail.com">9starlaba@gmail.com</A></p>
+                <p>Security: <A href="mailto:9starlaba@gmail.com">9starlaba@gmail.com</A></p>
               </div>
               <p className="mt-4 text-xs text-text-muted">
                 This policy was last reviewed and updated on <B>April 27, 2026</B>. Previous versions are available on request.

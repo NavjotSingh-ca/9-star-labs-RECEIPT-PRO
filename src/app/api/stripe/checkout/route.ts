@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
     const parsed = z.object({
       priceId: z.string().min(1),
-      plan: z.enum(['free', 'pro', 'enterprise']).optional(),
+      plan: z.enum(['free', 'starter', 'pro', 'business', 'enterprise']).optional(),
     }).safeParse(await request.json().catch(() => ({})));
 
     if (!parsed.success) {

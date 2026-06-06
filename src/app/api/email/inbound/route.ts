@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     const email = payload.data;
     const toAddress = email.to[0]?.toLowerCase();
     
-    // Extract org slug from email: e.g., receipts+myorg@inbound.9starlabs.ca
+    // Extract org slug from email: e.g., receipts+myorg@inbound.yourdomain.com
     const match = toAddress?.match(/^receipts\+([^@]+)@/);
     if (!match || !match[1]) {
       return NextResponse.json({ error: 'Invalid destination address' }, { status: 400 });

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAppStore } from '@/lib/store';
 import {
   LayoutDashboard,
   Camera,
@@ -99,8 +100,9 @@ export default function Sidebar({
   openInviteModal,
   handleSignOut,
 }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const collapsed = useAppStore((s) => s.sidebarCollapsed);
+  const setCollapsed = useAppStore((s) => s.setSidebarCollapsed);
 
   const isPrivileged = role !== 'Employee';
 
@@ -232,12 +234,12 @@ export default function Sidebar({
           className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition mb-1 ${collapsed ? 'justify-center' : ''}`}
           title={collapsed ? `Billing · ${planLabel}` : undefined}
         >
-          <Crown className={`h-4 w-4 flex-shrink-0 ${plan === 'pro' || plan === 'enterprise' ? 'text-amber-400' : 'text-sidebar-text-muted'}`} />
+          <Crown className={`h-4 w-4 flex-shrink-0 ${plan === 'pro' || plan === 'enterprise' ? 'text-warning' : 'text-sidebar-text-muted'}`} />
           {!collapsed && (
             <>
               <span className="flex-1">Billing</span>
               <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${
-                plan === 'pro' || plan === 'enterprise' ? 'bg-amber-500/10 text-amber-300' : 'bg-sidebar-hover text-sidebar-text-muted'
+                plan === 'pro' || plan === 'enterprise' ? 'bg-warning/10 text-warning' : 'bg-sidebar-hover text-sidebar-text-muted'
               }`}>
                 {planLabel}
               </span>
@@ -272,7 +274,7 @@ export default function Sidebar({
           <button
             type="button"
             onClick={handleSignOut}
-            className={`flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-red-400 transition ${collapsed ? 'justify-center w-full' : 'flex-1'}`}
+            className={`flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-danger transition ${collapsed ? 'justify-center w-full' : 'flex-1'}`}
             title="Sign out"
           >
             <LogOut className="h-4 w-4 flex-shrink-0" />
@@ -304,8 +306,12 @@ export default function Sidebar({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm focus-visible:outline-2 focus-visible:outline-champagne/40"
               onClick={() => setMobileOpen(false)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMobileOpen(false); } }}
+              tabIndex={0}
+              role="button"
+              aria-label="Close menu"
             />
             <motion.aside
               initial={{ x: '-100%' }}
@@ -332,6 +338,8 @@ export default function Sidebar({
                     type="button"
                     onClick={() => setMobileOpen(false)}
                     className="flex h-8 w-8 items-center justify-center rounded-lg text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition"
+                    aria-label="Close menu"
+                    title="Close menu"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -374,7 +382,7 @@ export default function Sidebar({
                     onClick={() => setMobileOpen(false)}
                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition"
                   >
-                    <Crown className="h-4 w-4 text-amber-400 flex-shrink-0" />
+                    <Crown className="h-4 w-4 text-warning flex-shrink-0" />
                     <span>Billing & Plan</span>
                   </Link>
                   <Link
@@ -388,7 +396,7 @@ export default function Sidebar({
                   <button
                     type="button"
                     onClick={() => { handleSignOut(); setMobileOpen(false); }}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-red-400 transition"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-danger transition"
                   >
                     <LogOut className="h-4 w-4" />
                     <span>Sign out</span>

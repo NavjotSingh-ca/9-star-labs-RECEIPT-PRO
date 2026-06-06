@@ -3,6 +3,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Loader2, KeyRound, AlertCircle, CheckCircle2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface MFAFactor {
   id: string;
@@ -20,6 +30,7 @@ export default function SecuritySettings() {
   const [factorId, setFactorId] = useState('');
   const [verifyCode, setVerifyCode] = useState('');
   const [isEnrolling, setIsEnrolling] = useState(false);
+  const [unenrollTarget, setUnenrollTarget] = useState<string | null>(null);
 
   useEffect(() => {
     loadFactors();
@@ -81,7 +92,6 @@ export default function SecuritySettings() {
   }
 
   async function unenrollFactor(id: string) {
-    if (!window.confirm("Are you sure you want to disable MFA? This decreases your account security.")) return;
     setLoading(true);
     try {
       const { error } = await supabase.auth.mfa.unenroll({ factorId: id });
@@ -92,6 +102,7 @@ export default function SecuritySettings() {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
+      setUnenrollTarget(null);
     }
   }
 
@@ -103,21 +114,21 @@ export default function SecuritySettings() {
       </div>
 
           {error && (
-            <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20">
+            <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-danger/10 px-4 py-3 text-sm text-danger border border-danger/20" role="alert">
               <AlertCircle className="h-4 w-4" />
               <span>{error}</span>
             </div>
           )}
 
           {success && (
-            <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400 border border-emerald-500/20">
+            <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-emerald-success/10 px-4 py-3 text-sm text-emerald-light border border-emerald-success/20" role="status" aria-live="polite">
               <CheckCircle2 className="h-4 w-4" />
               <span>{success}</span>
             </div>
           )}
 
           {loading && !isEnrolling ? (
-            <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-champagne" /></div>
+            <div className="flex justify-center py-8" role="status" aria-live="polite" aria-atomic="true" aria-label="Loading security settings"><Loader2 className="h-8 w-8 animate-spin text-champagne" /></div>
           ) : (
             <div className="space-y-8">
               
@@ -126,7 +137,7 @@ export default function SecuritySettings() {
                 
                 {factors.length > 0 ? (
                   <div className="space-y-4">
-                    <p className="text-sm text-emerald-400 font-medium flex items-center gap-2">
+                    <p className="text-sm text-emerald-light font-medium flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4" /> MFA is currently enabled.
                     </p>
                     {factors.map(f => (
@@ -139,8 +150,8 @@ export default function SecuritySettings() {
                           </div>
                         </div>
                         <button
-                          onClick={() => unenrollFactor(f.id)}
-                          className="rounded-[2rem] bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/20"
+                          onClick={() => setUnenrollTarget(f.id)}
+                          className="rounded-[2rem] bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger transition hover:bg-danger/20"
                         >
                           Remove
                         </button>
@@ -183,7 +194,7 @@ export default function SecuritySettings() {
                           <button
                             onClick={verifyEnrollment}
                             disabled={loading || verifyCode.length !== 6}
-                            className="flex-1 flex justify-center items-center gap-2 rounded-[2rem] bg-emerald-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-600 disabled:opacity-50"
+                            className="flex-1 flex justify-center items-center gap-2 rounded-[2rem] bg-emerald-success px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-success/80 disabled:opacity-50"
                           >
                             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                             Verify and Enable
@@ -203,6 +214,29 @@ export default function SecuritySettings() {
 
             </div>
           )}
+      <AlertDialog open={!!unenrollTarget} onOpenChange={(open) => { if (!open) setUnenrollTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disable MFA</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to disable Multi-Factor Authentication? This decreases your account security. You will no longer be prompted for a code when signing in.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              render={<button className="rounded-[2rem] border border-glass-border px-4 py-2 text-sm font-medium text-text-secondary hover:bg-surface-raised" />}
+            />
+            <AlertDialogAction
+              disabled={loading}
+              render={<button className="rounded-[2rem] bg-danger px-4 py-2 text-sm font-bold text-white hover:bg-danger/80 disabled:opacity-50" />}
+              onClick={() => unenrollTarget && unenrollFactor(unenrollTarget)}
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2 inline" /> : null}
+              Disable MFA
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

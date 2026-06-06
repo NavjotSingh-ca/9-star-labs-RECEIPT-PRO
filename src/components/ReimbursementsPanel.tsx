@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, CheckCircle2, DollarSign, Loader2, User } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, DollarSign, Loader2 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getReimbursementsPending, updateReceiptApproval } from '@/lib/services/receipts';
 import type { ReceiptRow, UserRole } from '@/lib/types';
@@ -29,11 +29,11 @@ function ReimburseCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: 20 }}
-      className="flex items-center gap-5 rounded-3xl border border-amber-500/15 bg-amber-500/[0.03] p-5"
+      className="flex items-center gap-5 rounded-3xl border border-warning/15 bg-warning/[0.03] p-5"
     >
       {/* Icon */}
-      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[2rem] bg-amber-500/10">
-        <DollarSign className="h-6 w-6 text-amber-400" />
+      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[2rem] bg-warning/10">
+        <DollarSign className="h-6 w-6 text-warning" />
       </div>
 
       {/* Details */}
@@ -43,16 +43,16 @@ function ReimburseCard({
           {receipt.transaction_date ?? '—'} · {receipt.category ?? 'Uncategorized'}
         </p>
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
-          <span className="rounded-[2rem] bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-400">
+          <span className="rounded-[2rem] bg-warning/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-warning">
             Employee Cash
           </span>
           <span className={[
             'rounded-[2rem] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
             receipt.reimbursement_status === 'pending' || !receipt.reimbursement_status
-              ? 'bg-amber-500/15 text-amber-400'
+              ? 'bg-warning/15 text-warning'
               : receipt.reimbursement_status === 'approved'
-              ? 'bg-emerald-500/15 text-emerald-400'
-              : 'bg-red-500/15 text-red-400',
+              ? 'bg-emerald-success/15 text-emerald-light'
+              : 'bg-danger/15 text-danger',
           ].join(' ')}>
             {receipt.reimbursement_status ?? 'Pending'}
           </span>
@@ -61,14 +61,14 @@ function ReimburseCard({
 
       {/* Amount + action */}
       <div className="flex flex-col items-end gap-2">
-        <p className="text-lg font-black tabular-nums text-amber-400">
+        <p className="text-lg font-black tabular-nums text-warning">
           {cad.format(Number(receipt.total_amount ?? 0))}
         </p>
         <button
           type="button"
           onClick={() => onMarkPaid(receipt.id)}
           disabled={loading || receipt.reimbursement_status === 'approved'}
-          className="flex items-center gap-1.5 rounded-[2rem] bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-40"
+          className="flex items-center gap-1.5 rounded-[2rem] bg-emerald-success/10 px-3 py-1.5 text-xs font-bold text-emerald-light transition hover:bg-emerald-success/20 disabled:opacity-40"
         >
           {loading ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -136,13 +136,13 @@ export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) 
       {/* Header */}
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-400">Payables</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-warning">Payables</p>
           <h2 className="mt-1 text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">
             Reimbursements
           </h2>
         </div>
         {payables.length > 0 && (
-          <div className="rounded-[3rem] border border-amber-500/30 bg-amber-500/[0.05] px-3 py-1.5 text-sm font-black text-amber-400">
+          <div className="rounded-[3rem] border border-warning/30 bg-warning/[0.05] px-3 py-1.5 text-sm font-black text-warning">
             {cad.format(totalPending)} outstanding
           </div>
         )}
@@ -150,32 +150,23 @@ export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) 
 
       {/* Loading */}
       {(isLoading || userLoading) && (
-        <div className="flex items-center justify-center py-16">
+        <div className="flex items-center justify-center py-16" role="status" aria-live="polite" aria-label="Loading payables">
           <Loader2 className="h-8 w-8 animate-spin text-champagne" />
         </div>
       )}
 
       {/* Empty */}
       {!isLoading && payables.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex min-h-[40vh] flex-col items-center justify-center gap-4 rounded-[3rem] border border-glass-border bg-surface p-10 text-center"
-        >
-          <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-500/10 text-emerald-400">
-            <CheckCircle2 className="h-8 w-8" />
-          </div>
-          <h3 className="text-lg font-bold text-text-primary">No outstanding payables</h3>
-          <p className="max-w-xs text-sm text-text-secondary">
-            When employees submit receipts paid with their own cash, they appear here for reimbursement tracking.
-          </p>
-        </motion.div>
+        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-glass-border bg-surface/30 py-16 text-center" role="status" aria-live="polite">
+          <AlertCircle className="h-10 w-10 text-text-muted opacity-30" />
+          <p className="text-sm text-text-muted">No outstanding payables. Employee cash reimbursements will appear here.</p>
+        </div>
       )}
 
       {/* Note */}
       {payables.length > 0 && (
-        <div className="flex items-start gap-3 rounded-[3rem] border border-amber-500/15 bg-amber-500/[0.04] px-4 py-3">
-          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
+        <div className="flex items-start gap-3 rounded-[3rem] border border-warning/15 bg-warning/[0.04] px-4 py-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning" />
           <p className="text-xs leading-relaxed text-text-secondary">
             These receipts were paid out-of-pocket by employees. Mark as <strong className="text-text-primary">&quot;Paid&quot;</strong> once the employee has been reimbursed.
           </p>

@@ -37,6 +37,9 @@ self.addEventListener('message', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Only cache http(s) URLs — chrome-extension, blob, data, etc are unsupported
+  if (!event.request.url.startsWith('http')) return;
+
   const url = new URL(event.request.url);
 
   if (event.request.method !== 'GET') return;
@@ -60,8 +63,9 @@ self.addEventListener('fetch', (event) => {
         (cached) =>
           cached ||
           fetch(event.request).then((response) => {
+            if (!response.ok) return response;
             const clone = response.clone();
-            caches.open(STATIC_CACHE).then((cache) => cache.put(event.request, clone));
+            caches.open(STATIC_CACHE).then((cache) => cache.put(event.request, clone)).catch(() => {});
             return response;
           })
       )
@@ -76,8 +80,9 @@ self.addEventListener('fetch', (event) => {
         (cached) =>
           cached ||
           fetch(event.request).then((response) => {
+            if (!response.ok) return response;
             const clone = response.clone();
-            caches.open(STATIC_CACHE).then((cache) => cache.put(event.request, clone));
+            caches.open(STATIC_CACHE).then((cache) => cache.put(event.request, clone)).catch(() => {});
             return response;
           })
       )
@@ -89,8 +94,9 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
+        if (!response.ok) return response;
         const clone = response.clone();
-        caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, clone));
+        caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, clone)).catch(() => {});
         return response;
       })
       .catch(() => caches.match(event.request).then((cached) => cached || caches.match('/')))

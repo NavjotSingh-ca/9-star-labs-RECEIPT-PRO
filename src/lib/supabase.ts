@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 import { env } from './env';
 
 let client: SupabaseClient | null = null;
@@ -8,6 +9,21 @@ function createSupabaseClient(): SupabaseClient {
     throw new Error(
       'Supabase environment variables are missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.'
     );
+  }
+
+  if (typeof window !== 'undefined') {
+    return createBrowserClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      global: {
+        fetch: (...args: Parameters<typeof fetch>) => {
+          const [url, init] = args;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000);
+          return fetch(url, { ...init, signal: controller.signal }).finally(() =>
+            clearTimeout(timeoutId)
+          );
+        },
+      },
+    });
   }
 
   return createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
@@ -38,34 +54,19 @@ export function getSupabase(): SupabaseClient {
 
 export const supabase = getSupabase();
 
-/**
- * Generate a fresh signed URL for a receipt image.
- * Accepts either a storage path OR a legacy full URL.
- * Returns null if generation fails.
- */
 export async function getReceiptImageUrl(pathOrUrl: string | null | undefined): Promise<string | null> {
   if (!pathOrUrl) return null;
-
-  // If it already starts with http it could be a legacy signed URL or public URL
-  // Try to use it as-is; if it fails rendering, display a placeholder
   if (pathOrUrl.startsWith('http')) {
     return pathOrUrl;
   }
-
-  // It's a storage path — generate a fresh 1-hour signed URL
-  const client = getSupabase();
-  const { data, error } = await client.storage
+  const c = getSupabase();
+  const { data, error } = await c.storage
     .from('receipt-images')
     .createSignedUrl(pathOrUrl, 3600);
-
   if (error || !data) return null;
   return data.signedUrl;
 }
 
-/**
- * Typed helper: fetch current user's org ID as a string.
- * Returns null if not authenticated or no org found.
- */
 export async function getOrgIdString(): Promise<string | null> {
   const { data } = await getSupabase().rpc('get_user_org');
   return typeof data === 'string' ? data : null;

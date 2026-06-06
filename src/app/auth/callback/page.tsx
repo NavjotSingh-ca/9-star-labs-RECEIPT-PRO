@@ -68,7 +68,7 @@ export default function AuthCallback() {
   };
 
   if (!isReset) return (
-    <div className="flex min-h-screen items-center justify-center">
+    <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite" aria-label="Processing authentication">
       <Loader2 className="h-8 w-8 animate-spin" />
     </div>
   );
@@ -77,7 +77,7 @@ export default function AuthCallback() {
     <div className="flex min-h-screen items-center justify-center bg-obsidian p-4">
       <div className="w-full max-w-md rounded-[3rem] border border-glass-border bg-surface p-8 shadow-2xl">
         <h1 className="text-2xl font-bold text-text-primary mb-6">Set New Password</h1>
-        {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+        {error && <p className="text-danger text-sm mb-4" role="alert">{error}</p>}
         <input
           type="password"
           value={newPassword}
@@ -90,7 +90,7 @@ export default function AuthCallback() {
           disabled={loading}
           className="w-full rounded-[2rem] bg-champagne hover:bg-champagne-dim py-3 text-sm font-bold text-obsidian transition disabled:opacity-50"
         >
-          {loading ? 'Updating...' : 'Update Password'}
+          {loading ? <span role="status" aria-live="polite">Updating...</span> : 'Update Password'}
         </button>
       </div>
     </div>
