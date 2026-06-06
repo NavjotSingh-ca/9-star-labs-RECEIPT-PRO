@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { Plan, PlanGates, Subscription } from '@/lib/services/subscription';
 import { getSubscription, getPlanGates, getUsageCount, getTeamSize, checkLimit, formatPlanLabel } from '@/lib/services/subscription';
 
@@ -18,62 +18,47 @@ export interface PlanInfo {
 }
 
 export function usePlan(): PlanInfo {
-  const [plan, setPlan] = useState<Plan>('free');
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [receiptCount, setReceiptCount] = useState(0);
-  const [teamSize, setTeamSize] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: sub, isLoading: subLoading } = useQuery({
+    queryKey: ['subscription'],
+    queryFn: getSubscription,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      setIsLoading(true);
-      try {
-        const sub = await getSubscription();
-        if (!active) return;
-        setSubscription(sub);
-        const p = !sub ? 'free' as Plan : sub.status === 'trialing' ? 'pro' as Plan : sub.plan as Plan;
-        if (!active) return;
-        setPlan(p);
+  const plan: Plan = !sub ? 'free' : sub.status === 'trialing' ? 'pro' : (sub.plan as Plan);
 
-        const now = new Date();
-        const fromDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-        const toDate = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+  const now = new Date();
+  const fromDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const toDate = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
 
-        const [usage, users] = await Promise.all([
-          getUsageCount(fromDate, toDate),
-          getTeamSize(),
-        ]);
-        if (!active) return;
+  const { data: receiptCount = 0 } = useQuery({
+    queryKey: ['receipt_count', fromDate, toDate],
+    queryFn: () => getUsageCount(fromDate, toDate),
+    staleTime: 5 * 60 * 1000,
+    enabled: !subLoading,
+  });
 
-        setReceiptCount(usage);
-        setTeamSize(users);
-      } catch (err) {
-        console.error('loadPlan failed:', err);
-        // Silently degrade to free plan — plan info is not critical for core functionality
-      } finally {
-        if (active) setIsLoading(false);
-      }
-    }
-    load();
-    return () => { active = false; };
-  }, []);
+  const { data: teamSize = 0 } = useQuery({
+    queryKey: ['team_size'],
+    queryFn: getTeamSize,
+    staleTime: 5 * 60 * 1000,
+    enabled: !subLoading,
+  });
 
   const gates = getPlanGates(plan);
   const canScan = checkLimit(plan, receiptCount, 'receipt');
   const canInviteUser = checkLimit(plan, teamSize, 'user');
-  const isTrialing = subscription?.status === 'trialing';
+  const isTrialing = sub?.status === 'trialing';
 
   return {
     plan,
     gates,
-    subscription,
+    subscription: sub ?? null,
     receiptCount,
     teamSize,
     canScan,
     canInviteUser,
     isTrialing,
-    isLoading,
+    isLoading: subLoading,
     label: formatPlanLabel(plan),
   };
 }
