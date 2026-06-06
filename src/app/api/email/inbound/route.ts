@@ -4,6 +4,15 @@ import { env } from '@/lib/env';
 import { logError, logInfo } from '@/lib/logger';
 import { sanitizeFilename } from '@/lib/sanitization';
 import crypto from 'crypto';
+import { z } from 'zod';
+
+const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+const MAX_TOTAL_BYTES = 50 * 1024 * 1024;
+const attachmentSchema = z.object({
+  content_type: z.string(),
+  content: z.string(),
+  filename: z.string(),
+});
 
 // Resend webhook signature verification
 function verifySignature(payload: string, signature: string, secret: string) {
@@ -80,11 +89,27 @@ export async function POST(request: Request) {
       if (authUser) userId = authUser.id;
     }
 
-    // Process attachments
+    // Process attachments with size and type validation
     const attachments = email.attachments || [];
-    const validAttachments = attachments.filter((a: any) => 
-      a.content_type?.startsWith('image/') || a.content_type === 'application/pdf'
-    );
+    const validAttachments: z.infer<typeof attachmentSchema>[] = [];
+    let totalBytes = 0;
+    for (const a of attachments) {
+      const parsed = attachmentSchema.safeParse(a);
+      if (!parsed.success) continue;
+      const { content_type, content, filename } = parsed.data;
+      if (!content_type?.startsWith('image/') && content_type !== 'application/pdf') continue;
+      const buffer = Buffer.from(content, 'base64');
+      if (buffer.byteLength > MAX_ATTACHMENT_BYTES) {
+        logInfo('Attachment exceeds size limit', { filename, bytes: buffer.byteLength });
+        continue;
+      }
+      totalBytes += buffer.byteLength;
+      if (totalBytes > MAX_TOTAL_BYTES) {
+        logInfo('Total attachment payload exceeds limit', { totalBytes });
+        break;
+      }
+      validAttachments.push({ content_type, content, filename });
+    }
 
     if (validAttachments.length === 0) {
       logInfo('No valid attachments found in inbound email', { orgSlug, subject: email.subject });

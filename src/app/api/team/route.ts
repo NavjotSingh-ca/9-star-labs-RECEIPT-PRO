@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { z } from 'zod';
 
 export async function GET(request: Request) {
   try {
@@ -70,8 +71,10 @@ export async function DELETE(request: Request) {
     if (!orgId || !callerRole) return NextResponse.json({ error: 'No organization' }, { status: 400 });
     if (callerRole.role !== 'Owner') return NextResponse.json({ error: 'Only Owners can remove members' }, { status: 403 });
 
-    const { userId } = await request.json();
-    if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 });
+    const body = await request.json();
+    const parsed = z.object({ userId: z.string().uuid() }).safeParse(body);
+    if (!parsed.success) return NextResponse.json({ error: 'Invalid userId format' }, { status: 400 });
+    const { userId } = parsed.data;
     if (userId === user.id) return NextResponse.json({ error: 'Cannot remove yourself' }, { status: 400 });
 
     const { data: target } = await supabaseAdmin
