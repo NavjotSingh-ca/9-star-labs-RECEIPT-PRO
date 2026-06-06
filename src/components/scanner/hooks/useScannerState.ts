@@ -126,11 +126,12 @@ export function useScannerState(
       const computedHash = await generateDuplicateHash(localFormData.vendor_name, localFormData.transaction_date, localFormData.total_amount);
 
       if (!bypassCheck && duplicateCandidate === null) {
+        if (!orgId) throw new Error('Organization not loaded — cannot check for duplicates.');
         const { data: duplicates, error: dupCheckError } = await supabase
           .from('receipts')
           .select('id, created_at, vendor_name, total_amount')
           .eq('duplicate_hash', computedHash)
-          .eq('user_id', user.id);
+          .eq('org_id', orgId);
 
         if (dupCheckError) throw dupCheckError;
         if (duplicates && duplicates.length > 0) {
