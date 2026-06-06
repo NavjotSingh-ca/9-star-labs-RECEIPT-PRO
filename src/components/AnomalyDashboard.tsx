@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { handleSupabaseError } from '@/lib/supabase-error-handler';
+import { useQuery } from '@tanstack/react-query';
+import { supabase, getOrgIdString } from '@/lib/supabase';
 import { TrendingUp, SearchX, Calculator, CopySlash, Loader2, FileWarning } from 'lucide-react';
 import { formatDineroIntl } from '@/lib/finance-utils';
 import type { ReceiptRow } from '@/lib/types';
@@ -17,84 +16,46 @@ interface SpendAnomaly {
   transaction_date: string;
 }
 
+interface AnomaliesResult {
+  fraudReceipts: ReceiptRow[];
+  mathErrors: ReceiptRow[];
+  missingBN: ReceiptRow[];
+  duplicates: ReceiptRow[];
+  spendAnomalies: SpendAnomaly[];
+}
+
+async function fetchAnomalies(): Promise<AnomaliesResult> {
+  const orgId = await getOrgIdString();
+  if (!orgId) throw new Error('No organization found');
+
+  const columns = 'id, vendor_name, total_amount, fraud_reason, created_at, transaction_date, vendor_tax_number, subtotal, tax_amount, pst_amount, duplicate_hash';
+  const base = supabase.from('receipts').select(columns).eq('org_id', orgId).eq('is_deleted', false);
+
+  const [fraudData, mathData, bnData, dupData, spendData] = await Promise.all([
+    base.eq('fraud_suspicion', true).order('created_at', { ascending: false }),
+    base.eq('math_mismatch_warning', true).order('created_at', { ascending: false }),
+    supabase.from('receipts').select(columns).eq('org_id', orgId).eq('is_deleted', false).gte('total_amount', 100).is('vendor_tax_number', null).order('created_at', { ascending: false }),
+    base.eq('duplicate_warning', true).order('created_at', { ascending: false }),
+    supabase.rpc('get_spend_anomalies', { p_org_id: orgId }),
+  ]);
+
+  const fraudReceipts = (fraudData.data as ReceiptRow[]) || [];
+  const mathErrors = (mathData.data as ReceiptRow[]) || [];
+  const missingBN = ((bnData.data as ReceiptRow[]) || []).filter(r => !r.vendor_tax_number || r.vendor_tax_number.trim() === '');
+  const duplicates = (dupData.data as ReceiptRow[]) || [];
+  const spendAnomalies = (spendData.data as SpendAnomaly[]) || [];
+
+  return { fraudReceipts, mathErrors, missingBN, duplicates, spendAnomalies };
+}
+
 export default function AnomalyDashboard() {
-  const [loading, setLoading] = useState(true);
-  const [fraudReceipts, setFraudReceipts] = useState<ReceiptRow[]>([]);
-  const [mathErrors, setMathErrors] = useState<ReceiptRow[]>([]);
-  const [missingBN, setMissingBN] = useState<ReceiptRow[]>([]);
-  const [duplicates, setDuplicates] = useState<ReceiptRow[]>([]);
-  const [spendAnomalies, setSpendAnomalies] = useState<SpendAnomaly[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['anomalies'],
+    queryFn: fetchAnomalies,
+    staleTime: 2 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    let active = true;
-
-    async function loadAnomalies() {
-      try {
-        const { data: orgData } = await supabase.rpc('get_user_org');
-        const orgId = orgData as unknown as string;
-        if (!orgId) return;
-
-        // 1. Fetch AI Fraud Suspicion
-        const { data: fraudData } = await supabase
-          .from('receipts')
-          .select('*')
-          .eq('org_id', orgId)
-          .eq('is_deleted', false)
-          .eq('fraud_suspicion', true)
-          .order('created_at', { ascending: false });
-
-        // 2. Fetch Math Errors
-        const { data: mathData } = await supabase
-          .from('receipts')
-          .select('*')
-          .eq('org_id', orgId)
-          .eq('is_deleted', false)
-          .eq('math_mismatch_warning', true)
-          .order('created_at', { ascending: false });
-
-        // 3. Fetch Missing BN (> $100)
-        const { data: bnData } = await supabase
-          .from('receipts')
-          .select('*')
-          .eq('org_id', orgId)
-          .eq('is_deleted', false)
-          .gte('total_amount', 100)
-          .is('vendor_tax_number', null)
-          .order('created_at', { ascending: false });
-
-        // 4. Fetch Duplicate Warnings
-        const { data: dupData } = await supabase
-          .from('receipts')
-          .select('*')
-          .eq('org_id', orgId)
-          .eq('is_deleted', false)
-          .eq('duplicate_warning', true)
-          .order('created_at', { ascending: false });
-
-        // 5. Fetch Spend Anomalies (RPC)
-        const { data: spendData } = await supabase.rpc('get_spend_anomalies', { p_org_id: orgId });
-
-        if (active) {
-          setFraudReceipts(fraudData as ReceiptRow[] || []);
-          setMathErrors(mathData as ReceiptRow[] || []);
-          // Filter out missing BN rows that actually have empty strings instead of null
-          setMissingBN((bnData as ReceiptRow[] || []).filter(r => !r.vendor_tax_number || r.vendor_tax_number.trim() === ''));
-          setDuplicates(dupData as ReceiptRow[] || []);
-          setSpendAnomalies(spendData as SpendAnomaly[] || []);
-        }
-      } catch (err) {
-        if (active) setError(handleSupabaseError(err).userMessage);
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    loadAnomalies();
-    return () => { active = false; };
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center" role="status" aria-live="polite" aria-label="Loading anomaly data">
         <Loader2 className="h-8 w-8 animate-spin text-champagne" />
@@ -102,6 +63,11 @@ export default function AnomalyDashboard() {
     );
   }
 
+  const fraudReceipts = data?.fraudReceipts ?? [];
+  const mathErrors = data?.mathErrors ?? [];
+  const missingBN = data?.missingBN ?? [];
+  const duplicates = data?.duplicates ?? [];
+  const spendAnomalies = data?.spendAnomalies ?? [];
   const totalAnomalies = fraudReceipts.length + mathErrors.length + missingBN.length + duplicates.length + spendAnomalies.length;
 
   return (
@@ -118,7 +84,7 @@ export default function AnomalyDashboard() {
 
       {error && (
         <div className="rounded-[2rem] bg-danger/10 p-4 text-sm text-danger border border-danger/20" role="alert">
-          {error}
+          {error?.message ?? 'An error occurred loading anomalies.'}
         </div>
       )}
 
