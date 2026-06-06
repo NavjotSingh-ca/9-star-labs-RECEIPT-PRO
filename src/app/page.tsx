@@ -210,10 +210,10 @@ function AppContent() {
       }
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
       if (!active) return;
-      if (session?.user) {
-        resolveUser(session.user);
+      if (user) {
+        resolveUser(user);
       } else {
         setAuthLoading(false);
       }
