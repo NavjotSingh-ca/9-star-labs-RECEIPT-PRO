@@ -29,6 +29,14 @@ const envSchema = z.object({
   // PostHog
   NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1).optional(),
   NEXT_PUBLIC_POSTHOG_HOST: z.string().url().optional().default('https://app.posthog.com'),
+}).superRefine((data, ctx) => {
+  if (data.QBO_CLIENT_ID && !data.TOKEN_ENCRYPTION_KEY) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'TOKEN_ENCRYPTION_KEY is required when QBO_CLIENT_ID is set — otherwise OAuth tokens are stored in plaintext',
+      path: ['TOKEN_ENCRYPTION_KEY'],
+    });
+  }
 });
 
 function parseEnv() {

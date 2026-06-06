@@ -5,8 +5,7 @@ const ENCRYPTION_KEY = env.TOKEN_ENCRYPTION_KEY || '';
 
 export function encryptToken(plaintext: string): string {
   if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length < 32) {
-    console.error('[Encryption] TOKEN_ENCRYPTION_KEY not configured — storing token in plaintext');
-    return plaintext;
+    throw new Error('TOKEN_ENCRYPTION_KEY must be at least 32 characters for AES-256-GCM encryption');
   }
   const key = Buffer.from(ENCRYPTION_KEY.slice(0, 32), 'utf-8');
   const iv = randomBytes(16);
