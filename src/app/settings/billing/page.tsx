@@ -50,6 +50,8 @@ export default function BillingSettings() {
     setCheckoutLoading(priceId);
     setError('');
     try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) throw new Error('Not authenticated');
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       if (!token) throw new Error('Not authenticated');

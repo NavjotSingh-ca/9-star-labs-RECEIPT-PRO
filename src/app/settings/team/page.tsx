@@ -48,6 +48,8 @@ export default function TeamSettings() {
 
   const loadTeam = useCallback(async () => {
     try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) { setError('Not authenticated'); setLoading(false); return; }
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) { setError('Not authenticated'); setLoading(false); return; }
 
@@ -73,6 +75,8 @@ export default function TeamSettings() {
     setError('');
     setSuccess('');
     try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) return;
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) return;
 
@@ -104,10 +108,10 @@ export default function TeamSettings() {
     setError('');
     setSuccess('');
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) return;
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user?.id) return;
 
-      await setUserRole(userId, newRole as 'Owner' | 'Accountant' | 'Employee', session.user.id);
+      await setUserRole(userId, newRole as 'Owner' | 'Accountant' | 'Employee', user.id);
       setMembers(prev => prev.map(m => m.userId === userId ? { ...m, role: newRole } : m));
       setSuccess('Role updated');
     } catch (err: unknown) {
