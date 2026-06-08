@@ -1,36 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useAutoAnimate } from '@formkit/auto-animate/react';
-import {
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  useReactTable,
-  type ColumnDef,
-  type SortingState,
-} from '@tanstack/react-table';
-import {
-  ArrowUpDown,
-  Eye,
-  FileDown,
-  MoreHorizontal,
-  Search,
-  Trash2,
-} from 'lucide-react';
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import React, { useState, useRef, useMemo } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { ArrowUpDown, Eye, FileDown, MoreHorizontal, Search, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,11 +13,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-
-import { ReceiptRow } from '@/lib/types';
+import type { ReceiptRow } from '@/lib/types';
 import { formatCurrency, formatDate, categoryColor, approvalBadge } from '@/lib/ui-utils';
 import { exportReceiptPdf } from '@/lib/export-receipt-pdf';
-import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 
 interface ProfessionalLedgerProps {
   data: ReceiptRow[];
@@ -52,138 +26,57 @@ interface ProfessionalLedgerProps {
 }
 
 export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data, onSelect, onDelete }: ProfessionalLedgerProps) {
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [globalFilter, setGlobalFilter] = useState('');
-  const [unitMap, setUnitMap] = useState<Record<string, string>>({});
+  const parentRef = useRef<HTMLDivElement>(null);
+  const { data: unitMap = {} } = useQuery({
+    queryKey: ['business_units'],
+    queryFn: async () => {
+      const { data: units } = await supabase
+        .from('business_units')
+        .select('id, name');
+      const map: Record<string, string> = {};
+      (units || []).forEach(u => { map[u.id] = u.name; });
+      return map;
+    },
+    staleTime: Infinity,
+  });
 
-  useEffect(() => {
-    const ids = [...new Set(data.map(r => r.business_unit_id).filter(Boolean))] as string[];
-    if (ids.length === 0) return;
-    let active = true;
-    import('@/lib/supabase').then(({ supabase }) => {
-      supabase.from('business_units').select('id, name').in('id', ids).then(({ data: units }) => {
-        if (!active) return;
-        const map: Record<string, string> = {};
-        (units || []).forEach(u => { map[u.id] = u.name; });
-        setUnitMap(map);
-      });
+  const filtered = useMemo(() => {
+    if (!globalFilter) return data;
+    const q = globalFilter.toLowerCase();
+    return data.filter(r =>
+      (r.vendor_name || '').toLowerCase().includes(q) ||
+      (r.category || '').toLowerCase().includes(q) ||
+      String(r.total_amount || '').includes(q)
+    );
+  }, [data, globalFilter]);
+
+  const rows = useMemo(() => {
+    if (!sortField) return filtered;
+    return [...filtered].sort((a, b) => {
+      const aVal = String(a[sortField as keyof ReceiptRow] ?? '');
+      const bVal = String(b[sortField as keyof ReceiptRow] ?? '');
+      const cmp = aVal.localeCompare(bVal, undefined, { numeric: true });
+      return sortDir === 'asc' ? cmp : -cmp;
     });
-    return () => { active = false; };
-  }, [data]);
+  }, [filtered, sortField, sortDir]);
 
-  const columns: ColumnDef<ReceiptRow>[] = [
-    {
-      accessorKey: 'vendor_name',
-      header: ({ column }) => (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          className="p-0 font-bold hover:bg-transparent"
-        >
-          Vendor
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      ),
-      cell: ({ row }) => (
-        <div className="flex flex-col">
-          <span className="font-bold text-foreground">{row.getValue('vendor_name') || 'Unknown Vendor'}</span>
-          <span className="text-[10px] text-muted-foreground">{row.original.business_unit_id ? (unitMap[row.original.business_unit_id] || row.original.business_unit_id.slice(0, 8) + '...') : 'Main Unit'}</span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'transaction_date',
-      header: 'Date',
-      cell: ({ row }) => <span className="text-sm font-medium">{formatDate(row.getValue('transaction_date'))}</span>,
-    },
-    {
-      accessorKey: 'category',
-      header: 'Category',
-      cell: ({ row }) => {
-        const category = row.getValue('category') as string;
-        return (
-          <Badge variant="outline" className={`${categoryColor(category)} border-none px-3 py-1 text-[10px] font-bold uppercase`}>
-            {category}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: 'total_amount',
-      header: () => <div className="text-right font-bold">Total</div>,
-      cell: ({ row }) => {
-        const amount = parseFloat(row.getValue('total_amount'));
-        return <div className="text-right font-mono font-bold tracking-tight text-foreground tabular-nums">{formatCurrency(amount)}</div>;
-      },
-    },
-    {
-      accessorKey: 'approval_status',
-      header: 'Status',
-      cell: ({ row }) => {
-        const status = row.getValue('approval_status') as string;
-        const config = approvalBadge(status);
-        return (
-          <div className="flex items-center gap-2">
-            <div className={`h-2 w-2 rounded-full ${config.cls.includes('emerald') ? 'bg-emerald-success' : 'bg-warning animate-pulse'}`} />
-            <span className="text-[10px] font-bold uppercase tracking-wider">{status}</span>
-          </div>
-        );
-      },
-    },
-    {
-      id: 'actions',
-      cell: ({ row }) => {
-        const receipt = row.original;
+  function toggleSort(field: string) {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  }
 
-        return (
-          <div className="flex justify-end">
-            <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-full h-8 w-8 p-0 hover:bg-muted focus:outline-none">
-                <MoreHorizontal className="h-4 w-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 rounded-xl p-2 shadow-md">
-                <DropdownMenuLabel className="text-xs font-bold text-muted-foreground">Actions</DropdownMenuLabel>
-                <DropdownMenuItem 
-                  onClick={(e) => { e.stopPropagation(); onSelect(receipt); }}
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition cursor-pointer"
-                >
-                  <Eye className="h-4 w-4" /> View Details
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={(e) => { e.stopPropagation(); exportReceiptPdf(receipt); }}
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition cursor-pointer"
-                >
-                  <FileDown className="h-4 w-4" /> Export PDF
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="my-1" />
-                <DropdownMenuItem 
-                  onClick={(e) => { e.stopPropagation(); onDelete(receipt.id); }}
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-destructive focus:text-destructive transition cursor-pointer"
-                >
-                  <Trash2 className="h-4 w-4" /> Delete Record
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        );
-      },
-    },
-  ];
-
-  const [tableRef] = useAutoAnimate<HTMLTableElement>();
-
-  const table = useReactTable({
-    data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    onGlobalFilterChange: setGlobalFilter,
-    getFilteredRowModel: getFilteredRowModel(),
-    state: {
-      sorting,
-      globalFilter,
-    },
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 56,
+    overscan: 10,
   });
 
   return (
@@ -203,63 +96,108 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
         </div>
       </div>
 
-      <div className="rounded-xl border bg-card overflow-auto max-h-[65vh]">
-        <Table ref={tableRef} className="relative">
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="hover:bg-transparent bg-surface-raised/50 border-b border-glass-border">
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="text-[10px] font-bold uppercase tracking-tight text-text-muted px-6 h-12 sticky top-0 bg-surface-raised backdrop-blur z-10">
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row, i) => (
-                  <motion.tr
-                    key={row.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.03 }}
-                    whileHover={{ scale: 1.005, backgroundColor: 'rgba(190, 169, 142, 0.04)' }}
-                    onClick={() => onSelect(row.original)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(row.original); } }}
-                    tabIndex={0}
-                    role="button"
-                    className={`group cursor-pointer transition-colors border-b border-glass-border ${i % 2 === 0 ? 'bg-surface-raised/50' : 'bg-surface-raised/30'} hover:bg-champagne/5 focus-visible:outline-2 focus-visible:outline-champagne/60 focus-visible:outline-offset-[-2px]`}
-                  >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="px-6 py-3">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </motion.tr>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-64 text-center">
-                  <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground">
-                    <div className="h-16 w-16 rounded-xl bg-muted flex items-center justify-center mb-2">
-                      <Search className="h-8 w-8 opacity-40" />
-                    </div>
-                    <p className="font-bold">No records matching your search</p>
-                    <Button variant="link" onClick={() => setGlobalFilter('')} className="text-primary">
-                      Clear all filters
-                    </Button>
+      <div ref={parentRef} className="rounded-xl border bg-card overflow-auto max-h-[65vh]">
+        <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative', width: '100%', minWidth: 700 }}>
+          {/* Header */}
+          <div className="sticky top-0 z-10 flex items-stretch bg-surface-raised border-b border-glass-border text-[10px] font-bold uppercase tracking-tight text-text-muted">
+            <button type="button" onClick={() => toggleSort('vendor_name')} className="flex-[2] px-6 py-3 text-left flex items-center gap-1 hover:text-text-primary transition">
+              Vendor {sortField === 'vendor_name' && <ArrowUpDown className="h-3 w-3" />}
+            </button>
+            <button type="button" onClick={() => toggleSort('transaction_date')} className="flex-[1] px-6 py-3 text-left flex items-center gap-1 hover:text-text-primary transition">
+              Date {sortField === 'transaction_date' && <ArrowUpDown className="h-3 w-3" />}
+            </button>
+            <div className="flex-[1] px-6 py-3">Category</div>
+            <button type="button" onClick={() => toggleSort('total_amount')} className="flex-[1] px-6 py-3 text-right flex items-center justify-end gap-1 hover:text-text-primary transition">
+              Total {sortField === 'total_amount' && <ArrowUpDown className="h-3 w-3" />}
+            </button>
+            <div className="flex-[1] px-6 py-3">Status</div>
+            <div className="flex-[0.5] px-6 py-3" />
+          </div>
+
+          {/* Virtualized rows */}
+          {rows.length ? (
+            virtualizer.getVirtualItems().map((virtualRow) => {
+              const row = rows[virtualRow.index];
+              return (
+                <div
+                  key={row.id}
+                  className={`absolute left-0 w-full flex items-stretch border-b border-glass-border cursor-pointer transition-colors ${
+                    virtualRow.index % 2 === 0 ? 'bg-surface-raised/50' : 'bg-surface-raised/30'
+                  } hover:bg-champagne/5 focus-visible:outline-2 focus-visible:outline-champagne/60 focus-visible:outline-offset-[-2px]`}
+                  style={{ height: `${virtualRow.size}px`, transform: `translateY(${virtualRow.start}px)` }}
+                  onClick={() => onSelect(row)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(row); } }}
+                  tabIndex={0}
+                  role="button"
+                  data-index={virtualRow.index}
+                >
+                  <div className="flex-[2] px-6 py-3 flex flex-col justify-center">
+                    <span className="font-bold text-foreground text-sm">{row.vendor_name || 'Unknown Vendor'}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {row.business_unit_id ? (unitMap[row.business_unit_id] || row.business_unit_id.slice(0, 8) + '...') : 'Main Unit'}
+                    </span>
                   </div>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                  <div className="flex-[1] px-6 py-3 flex items-center text-sm font-medium">
+                    {formatDate(row.transaction_date)}
+                  </div>
+                  <div className="flex-[1] px-6 py-3 flex items-center">
+                    <Badge variant="outline" className={`${categoryColor(row.category)} border-none px-3 py-1 text-[10px] font-bold uppercase`}>
+                      {row.category}
+                    </Badge>
+                  </div>
+                  <div className="flex-[1] px-6 py-3 flex items-center justify-end font-mono font-bold tracking-tight text-foreground tabular-nums">
+                    {formatCurrency(Number(row.total_amount))}
+                  </div>
+                  <div className="flex-[1] px-6 py-3 flex items-center gap-2">
+                    <div className={`h-2 w-2 rounded-full ${approvalBadge(row.approval_status || '').cls.includes('emerald') ? 'bg-emerald-success' : 'bg-warning animate-pulse'}`} />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">{row.approval_status || ''}</span>
+                  </div>
+                  <div className="flex-[0.5] px-6 py-3 flex items-center justify-end">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-full h-8 w-8 p-0 hover:bg-muted focus:outline-none">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48 rounded-xl p-2 shadow-md">
+                        <DropdownMenuLabel className="text-xs font-bold text-muted-foreground">Actions</DropdownMenuLabel>
+                        <DropdownMenuItem 
+                          onClick={(e) => { e.stopPropagation(); onSelect(row); }}
+                          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition cursor-pointer"
+                        >
+                          <Eye className="h-4 w-4" /> View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={(e) => { e.stopPropagation(); exportReceiptPdf(row); }}
+                          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition cursor-pointer"
+                        >
+                          <FileDown className="h-4 w-4" /> Export PDF
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="my-1" />
+                        <DropdownMenuItem 
+                          onClick={(e) => { e.stopPropagation(); onDelete(row.id); }}
+                          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-destructive focus:text-destructive transition cursor-pointer"
+                        >
+                          <Trash2 className="h-4 w-4" /> Delete Record
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="absolute left-0 w-full flex items-center justify-center" style={{ top: 0, height: '16rem' }}>
+              <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                <div className="h-16 w-16 rounded-xl bg-muted flex items-center justify-center mb-2">
+                  <Search className="h-8 w-8 opacity-40" />
+                </div>
+                <p className="font-bold">No records matching your search</p>
+                <button type="button" onClick={() => setGlobalFilter('')} className="text-sm font-semibold text-champagne hover:underline">
+                  Clear all filters
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

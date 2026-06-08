@@ -1,8 +1,12 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Car, Trash2, MapPin, Calendar, Gauge, Loader2 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod/v4';
 import { formatCurrency } from '@/lib/ui-utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -13,136 +17,87 @@ import {
 } from '@/lib/services/mileage';
 import { supabase } from '@/lib/supabase';
 
+const vehicleSchema = z.object({
+  nickname: z.string().min(1, 'Nickname is required').max(60),
+  plate: z.string().max(20).optional(),
+  make: z.string().max(40).optional(),
+  model: z.string().max(40).optional(),
+  year: z.string().regex(/^\d{0,4}$/).optional(),
+});
+
+const tripSchema = z.object({
+  tripDate: z.string().min(1, 'Date is required'),
+  purpose: z.string().min(1, 'Purpose is required').max(200),
+  startLocation: z.string().max(200).optional(),
+  endLocation: z.string().max(200).optional(),
+  distanceKm: z.string().min(1, 'Distance is required').refine(v => parseFloat(v) > 0, 'Distance must be greater than 0'),
+  vehicleId: z.string().optional(),
+  notes: z.string().max(500).optional(),
+});
+
+type VehicleForm = z.infer<typeof vehicleSchema>;
+type TripForm = z.infer<typeof tripSchema>;
+
 export default function MileageTracker() {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [logs, setLogs] = useState<MileageLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [error, setError] = useState('');
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [showAddTrip, setShowAddTrip] = useState(false);
 
-  // Vehicle form
-  const [vNickname, setVNickname] = useState('');
-  const [vPlate, setVPlate] = useState('');
-  const [vMake, setVMake] = useState('');
-  const [vModel, setVModel] = useState('');
-  const [vYear, setVYear] = useState('');
+  const vehicleForm = useForm<VehicleForm>({
+    resolver: zodResolver(vehicleSchema),
+    defaultValues: { nickname: '', plate: '', make: '', model: '', year: '' },
+  });
 
-  // Trip form
-  const [tripDate, setTripDate] = useState(new Date().toISOString().split('T')[0]);
-  const [tripPurpose, setTripPurpose] = useState('');
-  const [tripStart, setTripStart] = useState('');
-  const [tripEnd, setTripEnd] = useState('');
-  const [tripKm, setTripKm] = useState('');
-  const [tripVehicle, setTripVehicle] = useState('');
-  const [tripNotes, setTripNotes] = useState('');
+  const tripForm = useForm<TripForm>({
+    resolver: zodResolver(tripSchema),
+    defaultValues: {
+      tripDate: new Date().toISOString().split('T')[0],
+      purpose: '', startLocation: '', endLocation: '',
+      distanceKm: '', vehicleId: '', notes: '',
+    },
+  });
 
-  // Preview calculation
-  const [previewAmount, setPreviewAmount] = useState<number | null>(null);
-  const [ytdKm, setYtdKm] = useState(0);
+  const watchedKm = tripForm.watch('distanceKm');
 
-  useEffect(() => {
-    load();
-  }, []);
+  const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery({
+    queryKey: ['vehicles'],
+    queryFn: getVehicles,
+    staleTime: 60_000,
+  });
 
-  useEffect(() => {
-    const km = parseFloat(tripKm);
+  const { data: logs = [], isLoading: logsLoading } = useQuery({
+    queryKey: ['mileage_logs'],
+    queryFn: getMileageLogs,
+    staleTime: 30_000,
+  });
+
+  const { data: userId } = useQuery({
+    queryKey: ['userId'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user?.id ?? null;
+    },
+    staleTime: Infinity,
+  });
+
+  const { data: ytdKm = 0 } = useQuery({
+    queryKey: ['ytd_km', userId],
+    queryFn: () => getYearToDateKm(userId!, new Date().getFullYear()),
+    enabled: !!userId,
+    staleTime: 60_000,
+  });
+
+  const loading = vehiclesLoading || logsLoading;
+
+  const previewAmount = useMemo(() => {
+    const km = parseFloat(watchedKm);
     if (km > 0) {
       const { amount } = calculateCRAMileage(ytdKm, km);
-      setPreviewAmount(amount);
-    } else {
-      setPreviewAmount(null);
+      return amount;
     }
-  }, [tripKm, ytdKm]);
-
-  async function load() {
-    setLoading(true);
-    try {
-      const [v, l] = await Promise.all([getVehicles(), getMileageLogs()]);
-      setVehicles(v);
-      setLogs(l);
-
-      // Get YTD km for current user
-      const { data: authData } = await supabase.auth.getUser();
-      if (authData?.user) {
-        const ytd = await getYearToDateKm(authData.user.id, new Date().getFullYear());
-        setYtdKm(ytd);
-      }
-    } catch (err) {
-      console.error('Mileage data load failed:', err);
-      setError('Failed to load mileage data. Check your connection and try again.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleAddVehicle() {
-    if (!vNickname.trim()) { setError('Vehicle nickname is required.'); return; }
-    setSaving(true);
-    setError('');
-    try {
-      const v = await createVehicle({
-        nickname: vNickname.trim(),
-        plate: vPlate.trim() || undefined,
-        make: vMake.trim() || undefined,
-        model: vModel.trim() || undefined,
-        year: vYear ? parseInt(vYear) : undefined,
-      });
-      setVehicles(prev => [v, ...prev]);
-      setShowAddVehicle(false);
-      setVNickname(''); setVPlate(''); setVMake(''); setVModel(''); setVYear('');
-    } catch (err) {
-      console.error('Add vehicle failed:', err);
-      setError('Failed to add vehicle. The database may be unavailable.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleAddTrip() {
-    if (!tripPurpose.trim()) { setError('Trip purpose is required.'); return; }
-    const km = parseFloat(tripKm);
-    if (!km || km <= 0) { setError('Distance must be greater than 0.'); return; }
-    if (!tripDate) { setError('Trip date is required.'); return; }
-
-    setSaving(true);
-    setError('');
-    try {
-      const log = await createMileageLog({
-        trip_date: tripDate,
-        purpose: tripPurpose.trim(),
-        start_location: tripStart.trim() || undefined,
-        end_location: tripEnd.trim() || undefined,
-        distance_km: km,
-        vehicle_id: tripVehicle || undefined,
-        notes: tripNotes.trim() || undefined,
-      });
-      setLogs(prev => [log, ...prev]);
-      setYtdKm(prev => prev + km);
-      setShowAddTrip(false);
-      setTripPurpose(''); setTripStart(''); setTripEnd(''); setTripKm(''); setTripVehicle(''); setTripNotes('');
-    } catch (err) {
-      console.error('Log trip failed:', err);
-      setError('Failed to log trip. The database may be unavailable.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleDeleteLog(id: string) {
-    setDeletingId(id);
-    try {
-      await deleteMileageLog(id);
-      setLogs(prev => prev.filter(l => l.id !== id));
-    } catch (err) {
-      console.error('Delete trip failed:', err);
-      setError('Failed to delete trip.');
-    } finally {
-      setDeletingId(null);
-    }
-  }
+    return null;
+  }, [watchedKm, ytdKm]);
 
   const summary = useMemo(() => {
     const totalKm = logs.reduce((s, l) => s + Number(l.distance_km), 0);
@@ -150,7 +105,70 @@ export default function MileageTracker() {
     return { totalKm: Math.round(totalKm * 10) / 10, totalAmount: Math.round(totalAmount * 100) / 100, tripCount: logs.length };
   }, [logs]);
 
+  const addVehicleMutation = useMutation({
+    mutationFn: (data: VehicleForm) => createVehicle({
+      nickname: data.nickname.trim(),
+      plate: data.plate?.trim() || undefined,
+      make: data.make?.trim() || undefined,
+      model: data.model?.trim() || undefined,
+      year: data.year ? parseInt(data.year) : undefined,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      setShowAddVehicle(false);
+      vehicleForm.reset();
+    },
+    onError: () => setError('Failed to add vehicle. The database may be unavailable.'),
+  });
+
+  const addTripMutation = useMutation({
+    mutationFn: (data: TripForm) => createMileageLog({
+      trip_date: data.tripDate,
+      purpose: data.purpose.trim(),
+      start_location: data.startLocation?.trim() || undefined,
+      end_location: data.endLocation?.trim() || undefined,
+      distance_km: parseFloat(data.distanceKm),
+      vehicle_id: data.vehicleId || undefined,
+      notes: data.notes?.trim() || undefined,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mileage_logs'] });
+      queryClient.invalidateQueries({ queryKey: ['ytd_km'] });
+      setShowAddTrip(false);
+      tripForm.reset();
+    },
+    onError: () => setError('Failed to log trip. The database may be unavailable.'),
+  });
+
+  const handleAddVehicle = vehicleForm.handleSubmit((data) => {
+    setError('');
+    addVehicleMutation.mutate(data);
+  });
+
+  const handleAddTrip = tripForm.handleSubmit((data) => {
+    setError('');
+    addTripMutation.mutate(data);
+  });
+
+  const deleteLogMutation = useMutation({
+    mutationFn: (id: string) => deleteMileageLog(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mileage_logs'] });
+      queryClient.invalidateQueries({ queryKey: ['ytd_km'] });
+    },
+    onError: () => setError('Failed to delete trip.'),
+  });
+
+  const deleteVehicleMutation = useMutation({
+    mutationFn: (id: string) => deleteVehicle(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vehicles'] }),
+    onError: () => setError('Failed to delete vehicle.'),
+  });
+
+  const handleDeleteLog = (id: string) => deleteLogMutation.mutate(id);
+
   const inputCls = 'w-full rounded-[2rem] border border-glass-border bg-surface-raised px-3 py-2.5 text-sm text-text-primary outline-none transition placeholder:text-text-muted focus:border-champagne/40 focus:ring-2 focus:ring-champagne/15';
+  const errCls = (field: string) => tripForm.formState.errors[field as keyof typeof tripForm.formState.errors] ? 'border-danger/60' : '';
 
   if (loading) {
     return (
@@ -223,37 +241,38 @@ export default function MileageTracker() {
       <AnimatePresence>
         {showAddVehicle && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-            <div className="rounded-3xl border border-glass-border bg-surface p-5 space-y-4 shadow-sm">
+            <form onSubmit={handleAddVehicle} className="rounded-3xl border border-glass-border bg-surface p-5 space-y-4 shadow-sm">
               <h3 className="text-sm font-bold text-text-primary">New Vehicle</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="v-nickname" className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Nickname *</label>
-                  <input id="v-nickname" value={vNickname} onChange={e => setVNickname(e.target.value)} placeholder="e.g. Work Truck" className={inputCls} />
+                  <input id="v-nickname" {...vehicleForm.register('nickname')} placeholder="e.g. Work Truck" className={inputCls} />
+                  {vehicleForm.formState.errors.nickname && <p className="text-[10px] text-danger mt-1">{vehicleForm.formState.errors.nickname.message}</p>}
                 </div>
                 <div>
                   <label htmlFor="v-plate" className="text-[10px] font-bold uppercase tracking-wider text-text-muted">License plate</label>
-                  <input id="v-plate" value={vPlate} onChange={e => setVPlate(e.target.value)} placeholder="ABC-123" className={inputCls} />
+                  <input id="v-plate" {...vehicleForm.register('plate')} placeholder="ABC-123" className={inputCls} />
                 </div>
                 <div>
                   <label htmlFor="v-make" className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Make</label>
-                  <input id="v-make" value={vMake} onChange={e => setVMake(e.target.value)} placeholder="Ford" className={inputCls} />
+                  <input id="v-make" {...vehicleForm.register('make')} placeholder="Ford" className={inputCls} />
                 </div>
                 <div>
                   <label htmlFor="v-model" className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Model</label>
-                  <input id="v-model" value={vModel} onChange={e => setVModel(e.target.value)} placeholder="F-150" className={inputCls} />
+                  <input id="v-model" {...vehicleForm.register('model')} placeholder="F-150" className={inputCls} />
                 </div>
                 <div>
                   <label htmlFor="v-year" className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Year</label>
-                  <input id="v-year" value={vYear} onChange={e => setVYear(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="2024" className={inputCls} />
+                  <input id="v-year" {...vehicleForm.register('year')} placeholder="2024" className={inputCls} />
                 </div>
               </div>
               <div className="flex gap-2 justify-end">
-                <button type="button" onClick={() => setShowAddVehicle(false)} className="px-4 py-2 text-xs font-semibold text-text-secondary rounded-full border border-glass-border hover:bg-surface-raised transition">Cancel</button>
-                <button type="button" onClick={handleAddVehicle} disabled={saving} className="px-4 py-2 text-xs font-bold text-black bg-champagne rounded-full hover:opacity-90 transition disabled:opacity-50">
-                  {saving ? <Loader2 className="h-3 w-3 animate-spin inline" /> : 'Save Vehicle'}
+                <button type="button" onClick={() => { setShowAddVehicle(false); vehicleForm.reset(); }} className="px-4 py-2 text-xs font-semibold text-text-secondary rounded-full border border-glass-border hover:bg-surface-raised transition">Cancel</button>
+                <button type="submit" disabled={addVehicleMutation.isPending} className="px-4 py-2 text-xs font-bold text-black bg-champagne rounded-full hover:opacity-90 transition disabled:opacity-50">
+                  {addVehicleMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin inline" /> : 'Save Vehicle'}
                 </button>
               </div>
-            </div>
+            </form>
           </motion.div>
         )}
       </AnimatePresence>
@@ -262,33 +281,36 @@ export default function MileageTracker() {
       <AnimatePresence>
         {showAddTrip && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-            <div className="rounded-3xl border border-glass-border bg-surface p-5 space-y-4 shadow-sm">
+            <form onSubmit={handleAddTrip} className="rounded-3xl border border-glass-border bg-surface p-5 space-y-4 shadow-sm">
               <h3 className="text-sm font-bold text-text-primary">Log New Trip</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Date *</label>
-                  <input type="date" value={tripDate} onChange={e => setTripDate(e.target.value)} className={inputCls} />
+                  <label htmlFor="trip-date" className="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Date *</label>
+                  <input id="trip-date" type="date" {...tripForm.register('tripDate')} className={`${inputCls} ${errCls('tripDate')}`} />
+                  {tripForm.formState.errors.tripDate && <p className="text-[10px] text-danger mt-1">{tripForm.formState.errors.tripDate.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Distance (km) *</label>
-                  <input type="number" step="0.1" min="0" value={tripKm} onChange={e => setTripKm(e.target.value)} placeholder="0.0" className={inputCls} />
+                  <label htmlFor="trip-km" className="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Distance (km) *</label>
+                  <input id="trip-km" type="number" step="0.1" min="0" {...tripForm.register('distanceKm')} placeholder="0.0" className={`${inputCls} ${errCls('distanceKm')}`} />
+                  {tripForm.formState.errors.distanceKm && <p className="text-[10px] text-danger mt-1">{tripForm.formState.errors.distanceKm.message}</p>}
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Purpose *</label>
-                  <input value={tripPurpose} onChange={e => setTripPurpose(e.target.value)} placeholder="e.g. Client meeting at Leduc site" className={inputCls} />
+                  <label htmlFor="trip-purpose" className="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Purpose *</label>
+                  <input id="trip-purpose" {...tripForm.register('purpose')} placeholder="e.g. Client meeting at Leduc site" className={`${inputCls} ${errCls('purpose')}`} />
+                  {tripForm.formState.errors.purpose && <p className="text-[10px] text-danger mt-1">{tripForm.formState.errors.purpose.message}</p>}
                 </div>
                 <div>
                   <label htmlFor="trip-start" className="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Start location</label>
-                  <input id="trip-start" value={tripStart} onChange={e => setTripStart(e.target.value)} placeholder="123 Main St" className={inputCls} />
+                  <input id="trip-start" {...tripForm.register('startLocation')} placeholder="123 Main St" className={inputCls} />
                 </div>
                 <div>
                   <label htmlFor="trip-end" className="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">End location</label>
-                  <input id="trip-end" value={tripEnd} onChange={e => setTripEnd(e.target.value)} placeholder="456 Oak Ave" className={inputCls} />
+                  <input id="trip-end" {...tripForm.register('endLocation')} placeholder="456 Oak Ave" className={inputCls} />
                 </div>
                 {vehicles.length > 0 && (
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Vehicle</label>
-                    <select value={tripVehicle} onChange={e => setTripVehicle(e.target.value)} className={inputCls}>
+                    <label htmlFor="trip-vehicle" className="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Vehicle</label>
+                    <select id="trip-vehicle" {...tripForm.register('vehicleId')} className={inputCls}>
                       <option value="">Select vehicle</option>
                       {vehicles.map(v => (
                         <option key={v.id} value={v.id}>{v.nickname} {v.plate ? `(${v.plate})` : ''}</option>
@@ -297,8 +319,8 @@ export default function MileageTracker() {
                   </div>
                 )}
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Notes</label>
-                  <input value={tripNotes} onChange={e => setTripNotes(e.target.value)} placeholder="Optional" className={inputCls} />
+                  <label htmlFor="trip-notes" className="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Notes</label>
+                  <input id="trip-notes" {...tripForm.register('notes')} placeholder="Optional" className={inputCls} />
                 </div>
               </div>
 
@@ -311,12 +333,12 @@ export default function MileageTracker() {
               )}
 
               <div className="flex gap-2 justify-end">
-                <button type="button" onClick={() => setShowAddTrip(false)} className="px-4 py-2 text-xs font-semibold text-text-secondary rounded-full border border-glass-border hover:bg-surface-raised transition">Cancel</button>
-                <button type="button" onClick={handleAddTrip} disabled={saving} className="px-4 py-2 text-xs font-bold text-black bg-champagne rounded-full hover:opacity-90 transition disabled:opacity-50">
-                  {saving ? <Loader2 className="h-3 w-3 animate-spin inline" /> : 'Save Trip'}
+                <button type="button" onClick={() => { setShowAddTrip(false); tripForm.reset(); }} className="px-4 py-2 text-xs font-semibold text-text-secondary rounded-full border border-glass-border hover:bg-surface-raised transition">Cancel</button>
+                <button type="submit" disabled={addTripMutation.isPending} className="px-4 py-2 text-xs font-bold text-black bg-champagne rounded-full hover:opacity-90 transition disabled:opacity-50">
+                  {addTripMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin inline" /> : 'Save Trip'}
                 </button>
               </div>
-            </div>
+            </form>
           </motion.div>
         )}
       </AnimatePresence>
@@ -344,7 +366,6 @@ export default function MileageTracker() {
                     <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{log.trip_date}</span>
                     <span className="flex items-center gap-1"><Gauge className="h-3 w-3" />{Number(log.distance_km)} km</span>
                     {log.start_location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{log.start_location} → {log.end_location || '...'}</span>}
-                    {false && <span className="flex items-center gap-1"><Car className="h-3 w-3" />vehicle</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -355,11 +376,11 @@ export default function MileageTracker() {
                   <button
                     type="button"
                     onClick={() => handleDeleteLog(log.id)}
-                    disabled={deletingId === log.id}
+                    disabled={deleteLogMutation.isPending}
                     className="opacity-0 group-hover:opacity-100 transition p-1.5 rounded-full text-text-muted hover:text-danger hover:bg-danger/10 disabled:opacity-30"
                     aria-label="Delete trip"
                   >
-                    {deletingId === log.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    {deleteLogMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                   </button>
                 </div>
               </div>
@@ -383,23 +404,12 @@ export default function MileageTracker() {
                   </p>
                 </div>
                 <button
-                  onClick={async () => {
-                    setDeletingId(v.id);
-                    try {
-                      await deleteVehicle(v.id);
-                      setVehicles(prev => prev.filter(x => x.id !== v.id));
-                    } catch (err) {
-                      console.error('Delete vehicle failed:', err);
-                      setError('Failed to delete vehicle.');
-                    } finally {
-                      setDeletingId(null);
-                    }
-                  }}
-                  disabled={deletingId === v.id}
+                  onClick={() => deleteVehicleMutation.mutate(v.id)}
+                  disabled={deleteVehicleMutation.isPending}
                   className="opacity-0 group-hover:opacity-100 transition p-1.5 rounded-full text-text-muted hover:text-danger hover:bg-danger/10 disabled:opacity-30"
                   aria-label="Delete vehicle"
                 >
-                  {deletingId === v.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  {deleteVehicleMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                 </button>
               </div>
             ))}

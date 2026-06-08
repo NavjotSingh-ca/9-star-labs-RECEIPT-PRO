@@ -1,6 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react';
+import { APP_NAME } from '@/lib/constants';
+import { useReceiptRealtimeSync } from '@/hooks/useReceiptRealtimeSync';
+import { bootstrapOrgAction } from '@/app/actions/bootstrap-org';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useQueryState, parseAsStringEnum } from 'nuqs';
 import { toast } from 'sonner';
@@ -47,7 +50,7 @@ import { supabase } from '@/lib/supabase';
 import { usePlan } from '@/hooks/use-plan';
 import type { ReceiptRow, UserRole } from '@/lib/types';
 import type { User } from '@supabase/supabase-js';
-import { getReceipts, getBusinessUnits, getAuditLogs } from '@/lib/services/receipts';
+import { getReceipts, getBusinessUnits, getAuditLogs, getDashboardSummary, getDailySpend } from '@/lib/services/receipts';
 import { getUserRole } from '@/lib/services/roles';
 import type { Tab } from '@/lib/store';
 import { useAppStore } from '@/lib/store';
@@ -83,8 +86,8 @@ function FullPageLoader() {
           <ReceiptText className="h-8 w-8 text-champagne" />
         </div>
         <Loader2 className="h-6 w-6 animate-spin text-champagne" />
-        <p className="text-sm font-medium text-text-secondary">Loading 9 Star Labs…</p>
-        <div className="mt-8 animate-in fade-in duration-1000 delay-5000">
+        <p className="text-sm font-medium text-text-secondary">Loading {APP_NAME}…</p>
+        <div className="mt-8 animate-in fade-in duration-1000" style={{ animationDelay: '5s' }}>
           <button
             onClick={() => window.location.reload()}
             className="text-xs text-text-muted hover:text-champagne underline underline-offset-4"
@@ -190,11 +193,13 @@ function AppContent() {
         if (!active) return;
         let finalRole = role;
         if (!orgId) {
-          await supabase.rpc('bootstrap_first_user_org', {
-            p_user_id: currentUser.id,
-            p_org_name: 'My Business',
-          });
-          finalRole = await getUserRole(currentUser.id);
+          const result = await bootstrapOrgAction(currentUser.id);
+          if (!result.ok) {
+            console.error('Bootstrap org failed:', result.error);
+            toast.error('Organization setup failed. Some features may be limited.');
+          } else {
+            finalRole = await getUserRole(currentUser.id);
+          }
         }
         if (active) {
           setRole(finalRole);
@@ -242,24 +247,50 @@ function AppContent() {
     };
   }, [hasMounted]);
 
+  const queryClient = useQueryClient();
   const userId = user?.id;
 
-  const { data: receipts = [], isLoading: receiptsLoading, refetch: fetchReceipts } = useQuery({
+  useEffect(() => {
+    if (userId && role) {
+      queryClient.prefetchQuery({
+        queryKey: ['dashboard_summary', role, userId],
+        queryFn: () => getDashboardSummary(role, userId),
+        staleTime: 30_000,
+      });
+      queryClient.prefetchQuery({
+        queryKey: ['daily_spend', userId],
+        queryFn: () => getDailySpend(30),
+        staleTime: 2 * 60 * 1000,
+      });
+    }
+  }, [userId, role, queryClient]);
+
+  useEffect(() => {
+    if (activeTab === 'dashboard') {
+      import('@/components/Scanner');
+    }
+  }, [activeTab]);
+
+  const { data: receipts = [], isLoading: receiptsLoading, refetch: fetchReceipts, isError: receiptsError } = useQuery({
     queryKey: ['receipts', role, userId],
     queryFn: async () => getReceipts(role, userId),
     enabled: !!userId,
+    staleTime: 30_000,
+    retry: 1,
   });
 
   const { data: businessUnits = [] } = useQuery({
     queryKey: ['business_units'],
     queryFn: getBusinessUnits,
     enabled: !!userId,
+    staleTime: 30_000,
   });
 
   useQuery({
     queryKey: ['audit_logs'],
     queryFn: async () => getAuditLogs(50),
     enabled: !!userId && role !== 'Employee',
+    staleTime: 30_000,
   });
 
   const { plan, label: planLabel, receiptCount, teamSize, isTrialing, subscription, isLoading: planLoading } = usePlan();
@@ -267,19 +298,7 @@ function AppContent() {
     ? Math.max(0, Math.ceil((new Date(subscription.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : undefined;
 
-  const queryClient = useQueryClient();
-  useEffect(() => {
-    if (!userId) return;
-    const channel = supabase
-      .channel('receipts-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'receipts' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['receipts'] });
-        queryClient.invalidateQueries({ queryKey: ['receipts_paginated'] });
-        queryClient.invalidateQueries({ queryKey: ['dashboard_summary'] });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [userId, queryClient]);
+  useReceiptRealtimeSync(role, userId);
 
   const handleFilterClick = useCallback((filter: string) => {
     setActiveFilter(filter);
@@ -302,9 +321,18 @@ function AppContent() {
   // Global keyboard shortcuts
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 's' && !e.metaKey && !e.ctrlKey && !e.altKey && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement)) {
+      const target = e.target as HTMLElement;
+      const isInput = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement;
+      const isDrawerContent = !!target.closest('[data-vaul-drawer-content]');
+      if (isInput || isDrawerContent) return;
+
+      if (e.key === 's' && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
         setTabWithUrl('scan');
+      }
+      if (e.key === 'r' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setTabWithUrl('receipts');
       }
     }
     window.addEventListener('keydown', handleKeyDown);
@@ -355,6 +383,27 @@ function AppContent() {
       );
     }
 
+    if (receiptsError) {
+      return (
+        <motion.div
+          key="error"
+          variants={tabVariants}
+          initial="initial"
+          animate="animate"
+          className="flex flex-col items-center justify-center py-20 text-center"
+        >
+          <p className="text-sm font-semibold text-danger mb-2">Failed to load your receipts</p>
+          <p className="text-xs text-text-muted mb-4">Check your connection and try again.</p>
+          <button
+            onClick={() => fetchReceipts()}
+            className="rounded-[2rem] bg-champagne px-5 py-2 text-xs font-bold text-obsidian hover:bg-champagne-dim transition"
+          >
+            Retry
+          </button>
+        </motion.div>
+      );
+    }
+
     const inner = (() => {
       switch (activeTab) {
         case 'dashboard':
@@ -386,7 +435,6 @@ function AppContent() {
                 onSaveSuccess={async () => {
                   await fetchReceipts();
                   setTabWithUrl('receipts');
-                  showToast('success', 'Receipt saved successfully.');
                 }}
               />
             </ErrorBoundary>
@@ -462,6 +510,7 @@ function AppContent() {
         transition={tabTransition}
         aria-live="polite"
         aria-atomic="true"
+        aria-label={`${activeTab} panel`}
       >
         {inner}
       </motion.div>

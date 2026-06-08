@@ -1,88 +1,131 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, getOrgIdString } from '@/lib/supabase';
 import { Loader2, Save, AlertCircle, CheckCircle2, Link2, RefreshCw } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
+interface OrgSettingsForm {
+  business_name: string;
+  business_number: string;
+  address: string;
+  province: string;
+  gst_registrant: boolean;
+  high_value_threshold: number;
+  require_approval_above: number;
+  slack_webhook_url: string;
+}
+
+const defaultSettings: OrgSettingsForm = {
+  business_name: '',
+  business_number: '',
+  address: '',
+  province: 'AB',
+  gst_registrant: true,
+  high_value_threshold: 500.0,
+  require_approval_above: 500.0,
+  slack_webhook_url: '',
+};
+
+interface OrgSettingsRow {
+  business_name?: string;
+  business_number?: string;
+  address?: string;
+  province?: string;
+  gst_registrant?: boolean;
+  high_value_threshold?: number;
+  require_approval_above?: number;
+  slack_webhook_url?: string;
+  qbo_realm_id?: string;
+  qbo_refresh_token?: string;
+  qbo_connected_at?: string;
+}
+
+async function loadOrgSettings(): Promise<{ orgId: string; data: OrgSettingsRow | null }> {
+  const orgId = await getOrgIdString();
+  if (!orgId) throw new Error('No organization found.');
+
+  const { data, error } = await supabase
+    .from('organization_settings')
+    .select('*')
+    .eq('org_id', orgId)
+    .single();
+
+  if (error && error.code !== 'PGRST116') throw error;
+  return { orgId, data: data as OrgSettingsRow | null };
+}
+
 function OrgSettings() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const searchParams = useSearchParams();
+  const [settings, setSettings] = useState<OrgSettingsForm>(defaultSettings);
+  const [qboConnecting, setQboConnecting] = useState(false);
 
-  const [settings, setSettings] = useState({
-    business_name: '',
-    business_number: '',
-    address: '',
-    province: 'AB',
-    gst_registrant: true,
-    high_value_threshold: 500.0,
-    require_approval_above: 500.0,
-    slack_webhook_url: '',
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ['org_settings'],
+    queryFn: loadOrgSettings,
+    staleTime: 60_000,
+    retry: false,
   });
 
-  const [qboConnected, setQboConnected] = useState(false);
-  const [qboConnectedAt, setQboConnectedAt] = useState<string | null>(null);
-  const [qboConnecting, setQboConnecting] = useState(false);
-  const searchParams = useSearchParams();
+  const orgId = data?.orgId;
+  const settingsRow = data?.data;
+  const qboConnected = !!(settingsRow?.qbo_realm_id && settingsRow?.qbo_refresh_token);
+  const qboConnectedAt = settingsRow?.qbo_connected_at ?? null;
 
+  // Populate form from loaded data
   useEffect(() => {
-    loadSettings();
-  }, []);
+    if (!settingsRow) return;
+    setSettings({
+      business_name: settingsRow.business_name || '',
+      business_number: settingsRow.business_number || '',
+      address: settingsRow.address || '',
+      province: settingsRow.province || 'AB',
+      gst_registrant: settingsRow.gst_registrant ?? true,
+      high_value_threshold: settingsRow.high_value_threshold ?? 500.0,
+      require_approval_above: settingsRow.require_approval_above ?? 500.0,
+      slack_webhook_url: settingsRow.slack_webhook_url || '',
+    });
+  }, [settingsRow]);
 
-  async function loadSettings() {
-    try {
-      const { data: orgData } = await supabase.rpc('get_user_org');
-      const orgId = orgData as unknown as string;
-      if (!orgId) {
-        setError('No organization found.');
-        setLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('organization_settings')
-        .select('*')
-        .eq('org_id', orgId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 is not found
-      
-      if (data) {
-        setSettings({
-          business_name: data.business_name || '',
-          business_number: data.business_number || '',
-          address: data.address || '',
-          province: data.province || 'AB',
-          gst_registrant: data.gst_registrant ?? true,
-          high_value_threshold: data.high_value_threshold ?? 500.0,
-          require_approval_above: data.require_approval_above ?? 500.0,
-          slack_webhook_url: data.slack_webhook_url || '',
-        });
-        setQboConnected(!!data.qbo_realm_id && !!data.qbo_refresh_token);
-        setQboConnectedAt(data.qbo_connected_at);
-      }
-
-      // Check for QBO callback params
-      if (searchParams.get('qbo_success')) {
-        setSuccess('QuickBooks Online connected successfully!');
-      } else if (searchParams.get('qbo_error')) {
-        setError(`QBO connection failed: ${searchParams.get('qbo_error')}`);
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
+  // Check for QBO callback params once loaded
+  useEffect(() => {
+    if (!loading && searchParams.get('qbo_success')) {
+      setSuccess('QuickBooks Online connected successfully!');
+      queryClient.invalidateQueries({ queryKey: ['org_settings'] });
+    } else if (!loading && searchParams.get('qbo_error')) {
+      setError(`QBO connection failed: ${searchParams.get('qbo_error')}`);
     }
-  }
+  }, [loading, searchParams, queryClient]);
 
-  async function handleQboConnect() {
-    if (qboConnected) return; // Already connected
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!orgId) throw new Error('No organization found.');
+      const { error: saveError } = await supabase
+        .from('organization_settings')
+        .upsert({
+          org_id: orgId,
+          ...settings,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'org_id' });
+      if (saveError) throw saveError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['org_settings'] });
+      setSuccess('Organization settings saved successfully.');
+      setTimeout(() => setSuccess(''), 3000);
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  const handleQboConnect = async () => {
+    if (qboConnected) return;
     setQboConnecting(true);
     setError('');
     try {
@@ -103,33 +146,9 @@ function OrgSettings() {
       setError(err instanceof Error ? err.message : 'QBO connection failed');
       setQboConnecting(false);
     }
-  }
+  };
 
-  async function saveSettings() {
-    setSaving(true);
-    setError('');
-    setSuccess('');
-    try {
-      const { data: orgData } = await supabase.rpc('get_user_org');
-      const orgId = orgData as unknown as string;
-
-      const { error } = await supabase
-        .from('organization_settings')
-        .upsert({
-          org_id: orgId,
-          ...settings,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'org_id' });
-
-      if (error) throw error;
-      setSuccess('Organization settings saved successfully.');
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setSaving(false);
-    }
-  }
+  const saving = saveMutation.isPending;
 
   return (
     <>
@@ -285,7 +304,7 @@ function OrgSettings() {
               {/* Save Button */}
               <div className="pt-6 border-t flex justify-end">
                 <Button
-                  onClick={saveSettings}
+                  onClick={() => saveMutation.mutate()}
                   disabled={saving}
                   size="lg"
                   className="rounded-xl font-bold"

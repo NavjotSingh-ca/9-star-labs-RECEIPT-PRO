@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { data: orgData } = await supabase.rpc('get_user_org');
-    const orgId = orgData as unknown as string;
+    const orgId = typeof orgData === 'string' ? orgData : null;
     if (!orgId) return NextResponse.json({ error: 'No org found' }, { status: 403 });
 
     // Insert comment
@@ -63,8 +63,10 @@ export async function POST(request: Request) {
       const uploaderEmail = Array.isArray(uploader) ? (uploader as { email: string }[])[0]?.email : null;
 
       if (uploaderEmail && resend) {
+        const from = env.RESEND_FROM_EMAIL;
+        if (!from) throw new Error('RESEND_FROM_EMAIL not configured');
         await resend.emails.send({
-          from: 'Leduc Receipt Pro <9starlaba@gmail.com>',
+          from,
           to: uploaderEmail,
           subject: `Clarification needed: ${receipt.vendor_name} receipt`,
           text: `Your accountant has requested clarification on a receipt.\n\nVendor: ${receipt.vendor_name}\nAmount: ${receipt.total_amount} ${receipt.currency}\n\nComment:\n"${comment}"\n\nPlease log in to Leduc Receipt Pro to provide details.`,
@@ -100,7 +102,7 @@ export async function GET(request: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { data: orgData } = await supabase.rpc('get_user_org');
-    const orgId = orgData as unknown as string;
+    const orgId = typeof orgData === 'string' ? orgData : null;
     if (!orgId) return NextResponse.json({ error: 'No org found' }, { status: 403 });
 
     const { data: receipt } = await supabase

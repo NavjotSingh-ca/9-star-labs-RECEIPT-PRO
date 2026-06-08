@@ -1,55 +1,32 @@
 ﻿'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Loader2, AlertCircle, CheckCircle2, Crown, Users, Zap, Shield } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import type { Plan, Subscription } from '@/lib/services/subscription';
 import { getSubscription, formatPlanLabel, PLAN_GATES } from '@/lib/services/subscription';
 import { env } from '@/lib/env';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function BillingSettings() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [currentPlan, setCurrentPlan] = useState<Plan>('free');
-  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
-  const loadSub = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const sub = await getSubscription();
-      setSubscription(sub);
-      if (sub) {
-        if (sub.status === 'trialing') setCurrentPlan('pro');
-        else if (sub.status === 'active') setCurrentPlan(sub.plan as Plan);
-        else setCurrentPlan('free');
-      } else {
-        setCurrentPlan('free');
+  const { data: sub, isLoading, error, refetch } = useQuery({
+    queryKey: ['subscription'],
+    queryFn: getSubscription,
+    staleTime: 60_000,
+  });
+
+  const currentPlan: Plan = sub
+    ? (sub.status === 'trialing' ? 'pro' : sub.status === 'active' ? (sub.plan as Plan) : 'free')
+    : 'free';
+
+  const checkoutMutation = useMutation({
+    mutationFn: async ({ priceId, plan }: { priceId: string; plan: Plan }) => {
+      if (!env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+        throw new Error('Stripe is not configured. Please contact support.');
       }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load subscription');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadSub();
-  }, [loadSub]);
-
-  async function startCheckout(priceId: string, plan: Plan) {
-    if (!env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-      setError('Stripe is not configured. Please contact support.');
-      return;
-    }
-    setCheckoutLoading(priceId);
-    setError('');
-    try {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) throw new Error('Not authenticated');
       const { data: { session } } = await supabase.auth.getSession();
@@ -58,48 +35,32 @@ export default function BillingSettings() {
 
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ priceId, plan }),
       });
 
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || 'Checkout failed');
-
       window.location.href = body.url;
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Checkout failed');
-      setCheckoutLoading(null);
-    }
-  }
+    },
+  });
 
-  async function openCustomerPortal() {
-    setCheckoutLoading('portal');
-    setError('');
-    try {
+  const portalMutation = useMutation({
+    mutationFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       if (!token) throw new Error('Not authenticated');
 
       const res = await fetch('/api/stripe/portal', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       });
 
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || 'Portal failed');
-
       window.location.href = body.url;
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Portal failed');
-      setCheckoutLoading(null);
-    }
-  }
+    },
+  });
 
   const gates = PLAN_GATES[currentPlan];
 
@@ -197,7 +158,21 @@ export default function BillingSettings() {
           {error && (
             <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-danger/10 px-4 py-3 text-sm text-danger border border-danger/20" role="alert">
               <AlertCircle className="h-4 w-4" />
-              <span>{error}</span>
+              <span>{error instanceof Error ? error.message : 'Failed to load subscription'}</span>
+            </div>
+          )}
+
+          {checkoutMutation.error && (
+            <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-danger/10 px-4 py-3 text-sm text-danger border border-danger/20" role="alert">
+              <AlertCircle className="h-4 w-4" />
+              <span>{checkoutMutation.error instanceof Error ? checkoutMutation.error.message : 'Checkout failed'}</span>
+            </div>
+          )}
+
+          {portalMutation.error && (
+            <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-danger/10 px-4 py-3 text-sm text-danger border border-danger/20" role="alert">
+              <AlertCircle className="h-4 w-4" />
+              <span>{portalMutation.error instanceof Error ? portalMutation.error.message : 'Portal failed'}</span>
             </div>
           )}
 
@@ -208,7 +183,7 @@ export default function BillingSettings() {
             </div>
           )}
 
-          {loading ? (
+          {isLoading ? (
             <div className="flex justify-center py-12" role="status" aria-live="polite" aria-label="Loading billing"><Loader2 className="h-8 w-8 animate-spin text-champagne" /></div>
           ) : (
             <ErrorBoundary componentName="BillingSettings">
@@ -220,10 +195,10 @@ export default function BillingSettings() {
                     <h2 className="text-lg font-bold text-text-primary">Current Plan</h2>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xl font-bold text-champagne">{formatPlanLabel(currentPlan)}</span>
-                      {subscription?.status === 'trialing' && (
+                      {sub?.status === 'trialing' && (
                         <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full font-semibold">Trial</span>
                       )}
-                      {subscription?.status === 'past_due' && (
+                      {sub?.status === 'past_due' && (
                         <span className="text-xs bg-danger/10 text-danger px-2 py-0.5 rounded-full font-semibold">Past Due</span>
                       )}
                     </div>
@@ -241,19 +216,19 @@ export default function BillingSettings() {
                   <span>Up to {gates.userLimit === Infinity ? 'Unlimited' : gates.userLimit} users</span>
                 </div>
 
-                {subscription?.current_period_end && (
+                {sub?.current_period_end && (
                   <p className="text-xs text-text-muted mb-4">
-                    Current period ends: {new Date(subscription.current_period_end).toLocaleDateString('en-CA')}
+                    Current period ends: {new Date(sub.current_period_end).toLocaleDateString('en-CA')}
                   </p>
                 )}
 
-                {subscription?.stripe_customer_id && (
+                {sub?.stripe_customer_id && (
                   <button
-                    onClick={openCustomerPortal}
-                    disabled={checkoutLoading === 'portal'}
+                    onClick={() => portalMutation.mutate()}
+                    disabled={portalMutation.isPending}
                     className="rounded-[2rem] border border-glass-border bg-surface-raised px-4 py-2 text-sm font-semibold text-text-primary transition hover:bg-surface-hover disabled:opacity-50"
                   >
-                    {checkoutLoading === 'portal' ? <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> : null}
+                    {portalMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> : null}
                     Manage Payment Method / Cancel
                   </button>
                 )}
@@ -294,11 +269,11 @@ export default function BillingSettings() {
 
                         {p.priceId && !isCurrent && (
                           <button
-                            onClick={() => startCheckout(p.priceId!, p.id)}
-                            disabled={!!checkoutLoading}
+                            onClick={() => checkoutMutation.mutate({ priceId: p.priceId!, plan: p.id })}
+                            disabled={checkoutMutation.isPending}
                             className="w-full rounded-[2rem] bg-champagne px-4 py-2.5 text-sm font-bold text-black transition hover:bg-champagne/90 disabled:opacity-50"
                           >
-                            {checkoutLoading === p.priceId ? (
+                            {checkoutMutation.isPending ? (
                               <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
                             ) : null}
                             {currentPlan === 'free' && p.id === 'pro' ? 'Start Free Trial' : p.id === 'enterprise' ? 'Contact Us' : 'Upgrade'}

@@ -1,10 +1,11 @@
 import { Resend } from 'resend';
 import { env } from '@/lib/env';
 import { escapeHtml } from '@/lib/html-escape';
+import { logWarn } from '@/lib/logger';
 
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 
-const FROM_EMAIL = 'Receipt Pro <9starlaba@gmail.com>';
+const FROM_EMAIL = env.RESEND_FROM_EMAIL;
 
 interface SendEmailParams {
   to: string;
@@ -14,14 +15,14 @@ interface SendEmailParams {
 }
 
 export async function sendEmail(params: SendEmailParams) {
-  if (!resend) {
-    console.warn('[Email] Resend not configured. Skipping email:', params.subject);
+  if (!resend || !FROM_EMAIL) {
+    if (!FROM_EMAIL) logWarn('[Email] RESEND_FROM_EMAIL not configured. Skipping email: ' + params.subject);
     return { id: 'skipped', error: null };
   }
 
   try {
     const { data, error } = await resend.emails.send({
-      from: FROM_EMAIL,
+      from: FROM_EMAIL!,
       to: params.to,
       subject: params.subject,
       html: params.html,

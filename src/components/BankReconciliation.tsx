@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, RefreshCw, Check } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ReceiptRow } from '@/lib/types';
 import { toNumber, formatCurrency } from '@/lib/ui-utils';
 import { parseBankStatement } from '@/app/actions/parse-bank-statement';
@@ -57,51 +58,44 @@ function levenshteinDistance(a: string, b: string): number {
 }
 
 export default function BankReconciliation({ receipts }: BankReconciliationProps) {
-  const [bankData, setBankData] = useState<BankRow[]>([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  // Fetch persisted transactions on mount
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        const data = await getBankTransactions();
-        if (data && data.length > 0) {
-          setBankData(data.map(d => ({
-            id: d.id,
-            date: d.date,
-            description: d.description,
-            amount: Number(d.amount),
-            matched_receipt_id: d.matched_receipt_id,
-            is_reconciled: d.is_reconciled
-          })));
-        }
-      } catch (err) {
-        console.error('Failed to load bank transactions:', err);
-        setError('Could not load bank transactions. The database may be unavailable.');
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
+  const { data: bankData = [], isLoading: loading } = useQuery({
+    queryKey: ['bank_transactions'],
+    queryFn: async () => {
+      const data = await getBankTransactions();
+      return (data ?? []).map(d => ({
+        id: d.id,
+        date: d.date,
+        description: d.description,
+        amount: Number(d.amount),
+        matched_receipt_id: d.matched_receipt_id,
+        is_reconciled: d.is_reconciled,
+      }));
+    },
+    staleTime: 30_000,
+  });
+
+  const confirmMutation = useMutation({
+    mutationFn: async ({ bankTransactionId, receiptId, score }: { bankTransactionId: string; receiptId: string; score?: number }) => {
+      await confirmBankMatch(bankTransactionId, receiptId, 'confirmed_fuzzy', score);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bank_transactions'] }),
+    onError: () => setError('Failed to confirm match. Please try again.'),
+  });
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setLoading(true);
     setError('');
 
     try {
-      // All file types (PDF, OFX, QFX, CSV) go through the server action for DB persistence
       const reader = new FileReader();
       const base64Promise = new Promise<string>((resolve, reject) => {
         reader.onload = () => {
           const result = reader.result as string;
-          // For data URIs (readAsDataURL), strip the prefix
           resolve(result.includes(',') ? result.split(',')[1] : result);
         };
         reader.onerror = reject;
@@ -112,16 +106,7 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
       const res = await parseBankStatement(base64Data, file.name);
       if (!res.success) throw new Error(res.error);
 
-      // Reload from DB to get the new IDs
-      const newData = await getBankTransactions();
-      setBankData(newData.map(d => ({
-        id: d.id,
-        date: d.date,
-        description: d.description,
-        amount: Number(d.amount),
-        matched_receipt_id: d.matched_receipt_id,
-        is_reconciled: d.is_reconciled
-      })));
+      await queryClient.invalidateQueries({ queryKey: ['bank_transactions'] });
 
       if (res.duplicatesSkipped && res.duplicatesSkipped > 0) {
         setError(`${res.duplicatesSkipped} duplicate transaction(s) were skipped.`);
@@ -129,25 +114,11 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Failed to parse bank file.');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleConfirmMatch = async (bankTransactionId: string, receiptId: string, isManual: boolean, score?: number) => {
-    setConfirmingId(bankTransactionId);
-    try {
-      await confirmBankMatch(bankTransactionId, receiptId, isManual ? 'manual' : 'confirmed_fuzzy', score);
-      setBankData(prev => prev.map(row => 
-        row.id === bankTransactionId 
-          ? { ...row, is_reconciled: true, matched_receipt_id: receiptId } 
-          : row
-      ));
-    } catch (err) {
-      setError('Failed to confirm match. Please try again.');
-    } finally {
-      setConfirmingId(null);
-    }
+  const handleConfirmMatch = (bankTransactionId: string, receiptId: string, _isManual: boolean, score?: number) => {
+    confirmMutation.mutate({ bankTransactionId, receiptId, score });
   };
 
   const matches: MatchResult[] = useMemo(() => {
@@ -305,10 +276,10 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
                             <button
                               type="button"
                               onClick={() => handleConfirmMatch(m.bankRow.id, m.receipt!.id, false, m.score)}
-                              disabled={confirmingId === m.bankRow.id}
+                              disabled={confirmMutation.isPending}
                               className="text-[10px] font-bold uppercase tracking-wider text-champagne hover:text-champagne-dim transition flex items-center gap-1 bg-surface rounded-full px-2 py-1 border border-glass-border"
                             >
-                              {confirmingId === m.bankRow.id ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                              {confirmMutation.isPending ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
                               Confirm Match
                             </button>
                           )}

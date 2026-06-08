@@ -1,4 +1,5 @@
 import type { ReceiptRow } from '@/lib/types';
+import { APP_NAME } from '@/lib/constants';
 
 export async function exportReceiptPdf(receipt: ReceiptRow) {
   const { jsPDF } = await import('jspdf');
@@ -46,7 +47,7 @@ export async function exportReceiptPdf(receipt: ReceiptRow) {
   y = doc.internal.pageSize.getHeight() - 10;
   doc.setFontSize(7);
   doc.setTextColor(150);
-  doc.text(`Exported from 9 Star Labs · ${new Date().toLocaleDateString('en-CA')} · ID: ${receipt.id}`, pageW / 2, y, { align: 'center' });
+  doc.text(`Exported from ${APP_NAME} · ${new Date().toLocaleDateString('en-CA')} · ID: ${receipt.id}`, pageW / 2, y, { align: 'center' });
 
   doc.save(`receipt-${receipt.id.slice(0, 8)}.pdf`);
 }

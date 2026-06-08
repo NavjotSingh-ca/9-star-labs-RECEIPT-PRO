@@ -7,7 +7,7 @@ import { AlertCircle, Loader2, Plus, Trash2, Briefcase, X } from 'lucide-react';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getProjects, createProject, deleteProject } from '@/lib/services/receipts';
-import { supabase } from '@/lib/supabase';
+import { supabase, getOrgIdString } from '@/lib/supabase';
 import type { Project } from '@/lib/types';
 import { formatCurrency } from '@/lib/ui-utils';
 import { cn } from '@/lib/utils';
@@ -24,18 +24,19 @@ export default function ProjectManager() {
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['projects'],
     queryFn: getProjects,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: actuals = [], isLoading: isLoadingActuals } = useQuery({
     queryKey: ['project_actuals'],
     queryFn: async () => {
-      const { data: orgData } = await supabase.rpc('get_user_org');
-      const orgId = orgData as unknown as string;
+      const orgId = await getOrgIdString();
       if (!orgId) return [];
       const { data, error } = await supabase.rpc('get_project_actuals', { p_org_id: orgId });
       if (error) throw error;
       return data;
     },
+    staleTime: 5 * 60 * 1000,
   });
 
   const createMutation = useMutation({

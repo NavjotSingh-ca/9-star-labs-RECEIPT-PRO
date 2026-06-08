@@ -29,7 +29,7 @@ export function SpendingChart({ data }: SpendingChartProps) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="h-[300px] w-full pt-4">
+      <CardContent className="h-[300px] w-full pt-4" role="img" aria-label="Monthly spending trend">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>

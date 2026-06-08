@@ -249,6 +249,8 @@ export default function MoreSheet({
                       setDataExportLoading(true);
                       try {
                         const { supabase } = await import('@/lib/supabase');
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (!user) { return; }
                         const { data: { session } } = await supabase.auth.getSession();
                         if (!session?.access_token) { return; }
                         const response = await fetch('/api/export/data', {

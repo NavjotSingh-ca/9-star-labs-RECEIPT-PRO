@@ -1,0 +1,237 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Leduc Receipt Pro API",
+    "version": "2.0.0",
+    "description": "Internal API routes for receipt scanning, CRA exports, Stripe payments, QBO/Xero integration, team management, email ingestion, and health checks. Consumed by the Next.js client and external webhooks — not intended for public use."
+  },
+  "servers": [{ "url": "/api", "description": "Same-origin API" }],
+  "paths": {
+    "/api/cra/generate": {
+      "get": {
+        "summary": "Generate CRA Audit PDF Package",
+        "description": "Generates a multi-page PDF with T2125/T777 pre-fill data, expense breakdowns, mileage, and top vendors. Accepts tax year or date range to scope data.",
+        "parameters": [
+          { "in": "query", "name": "year", "schema": { "type": "integer", "minimum": 2000, "maximum": 2099 }, "description": "Tax year (defaults to last year)" },
+          { "in": "query", "name": "fromDate", "schema": { "type": "string", "format": "date" }, "description": "Start date (YYYY-MM-DD) to override year-based range" },
+          { "in": "query", "name": "toDate", "schema": { "type": "string", "format": "date" }, "description": "End date (YYYY-MM-DD) to override year-based range" }
+        ],
+        "responses": {
+          "200": { "description": "PDF binary", "content": { "application/pdf": {} } },
+          "400": { "description": "Invalid parameters" },
+          "401": { "description": "Unauthenticated" },
+          "404": { "description": "Organization not found" },
+          "500": { "description": "Generation failed" }
+        }
+      }
+    },
+    "/api/export/data": {
+      "get": {
+        "summary": "Export all user data as JSON (streamed)",
+        "description": "Streams a JSON file containing receipts, business units, audit logs, mileage logs, vehicles, projects, comments, and subscription data. Uses a ReadableStream to avoid Lambda memory limits. Requires Bearer token auth.",
+        "parameters": [
+          { "in": "header", "name": "Authorization", "schema": { "type": "string" }, "required": true, "description": "Bearer token from Supabase session" }
+        ],
+        "responses": {
+          "200": { "description": "Streamed JSON data export", "content": { "application/json": {} } },
+          "401": { "description": "Missing or invalid auth header" },
+          "500": { "description": "Export failed" }
+        }
+      }
+    },
+    "/api/stripe/checkout": {
+      "post": {
+        "summary": "Create Stripe Checkout session",
+        "description": "Creates a Stripe Checkout session for plan upgrades. Validates org ownership and plan type server-side.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "plan": { "type": "string", "enum": ["premium", "business", "enterprise"] } }, "required": ["plan"] } } }
+        },
+        "responses": {
+          "200": { "description": "Returns { url } for redirect to Stripe Checkout" },
+          "400": { "description": "Invalid plan" },
+          "401": { "description": "Unauthenticated" }
+        }
+      }
+    },
+    "/api/stripe/webhook": {
+      "post": {
+        "summary": "Stripe webhook handler",
+        "description": "Processes Stripe events: customer.subscription.updated, invoice.paid, invoice.payment_failed, checkout.session.completed. Idempotent via processed_webhook_events table.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "description": "Raw Stripe event object" } } }
+        },
+        "responses": {
+          "200": { "description": "Event processed" },
+          "400": { "description": "Invalid signature or payload" },
+          "500": { "description": "Processing error" }
+        }
+      }
+    },
+    "/api/stripe/portal": {
+      "post": {
+        "summary": "Create Stripe Customer Portal session",
+        "description": "Returns a URL to the Stripe billing portal for managing subscriptions and invoices.",
+        "responses": {
+          "200": { "description": "Returns { url } for redirect" },
+          "401": { "description": "Unauthenticated" }
+        }
+      }
+    },
+    "/api/qbo/auth": {
+      "get": {
+        "summary": "Initiate QBO OAuth flow",
+        "description": "Redirects to Intuit's OAuth 2.0 authorization page with a state parameter for CSRF protection.",
+        "responses": { "302": { "description": "Redirect to Intuit" } }
+      }
+    },
+    "/api/qbo/callback": {
+      "get": {
+        "summary": "QBO OAuth callback",
+        "description": "Handles the OAuth redirect from Intuit; exchanges code for tokens and encrypts them before storing.",
+        "parameters": [
+          { "in": "query", "name": "code", "schema": { "type": "string" }, "required": true, "description": "Authorization code from Intuit" },
+          { "in": "query", "name": "state", "schema": { "type": "string" }, "required": true, "description": "CSRF state token (must match session state)" },
+          { "in": "query", "name": "realmId", "schema": { "type": "string" }, "description": "Intuit company/realm ID" }
+        ],
+        "responses": {
+          "302": { "description": "Redirect back to settings" },
+          "400": { "description": "Invalid state or missing code" },
+          "500": { "description": "Token exchange failed" }
+        }
+      }
+    },
+    "/api/qbo/refresh": {
+      "post": {
+        "summary": "Refresh QBO access token",
+        "description": "Uses the stored refresh token to obtain a new access token from Intuit.",
+        "responses": {
+          "200": { "description": "Token refreshed" },
+          "401": { "description": "No QBO connection found" },
+          "500": { "description": "Refresh failed" }
+        }
+      }
+    },
+    "/api/team": {
+      "get": {
+        "summary": "List team members",
+        "description": "Returns all team members with roles and pending invitations for the authenticated user's org.",
+        "responses": {
+          "200": { "description": "Array of team members with roles and invitations" },
+          "401": { "description": "Unauthenticated" }
+        }
+      },
+      "post": {
+        "summary": "Invite team member",
+        "description": "Invites a user by email with a specific role. Generates an access code for the invitation.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "email": { "type": "string", "format": "email" }, "role": { "type": "string", "enum": ["Accountant", "Employee", "Admin"] } }, "required": ["email", "role"] } } }
+        },
+        "responses": {
+          "200": { "description": "Invitation sent" },
+          "400": { "description": "Invalid input" }
+        }
+      },
+      "delete": {
+        "summary": "Remove team member",
+        "description": "Removes a team member from the org by user UUID. Only Owners and Admins can remove members.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "userId": { "type": "string", "format": "uuid" } }, "required": ["userId"] } } }
+        },
+        "responses": {
+          "200": { "description": "Member removed" },
+          "400": { "description": "userId required" }
+        }
+      }
+    },
+    "/api/team/roles": {
+      "get": {
+        "summary": "Get current user's roles and permissions",
+        "description": "Returns the authenticated user's role within their organization along with derived permission flags.",
+        "responses": {
+          "200": { "description": "User's role in the org with permission flags" },
+          "401": { "description": "Unauthenticated" }
+        }
+      }
+    },
+    "/api/integrations/qbo": {
+      "get": {
+        "summary": "QBO integration status and sync",
+        "description": "Returns QBO connection status or triggers a manual sync of receipts to QuickBooks Online.",
+        "parameters": [
+          { "in": "query", "name": "action", "schema": { "type": "string", "enum": ["status", "sync"] }, "description": "Action to perform" }
+        ],
+        "responses": {
+          "200": { "description": "QBO status or sync result" },
+          "401": { "description": "Unauthenticated" }
+        }
+      }
+    },
+    "/api/integrations/xero": {
+      "get": {
+        "summary": "Xero integration status",
+        "description": "Returns the current Xero connection status and available synced entities.",
+        "responses": {
+          "200": { "description": "Xero connection status and available entities" },
+          "401": { "description": "Unauthenticated" }
+        }
+      }
+    },
+    "/api/digest/missing-receipts": {
+      "get": {
+        "summary": "Daily digest of missing receipts",
+        "description": "CRON-triggered endpoint that generates an email digest listing bank transactions without matching receipts for the previous day. Authorized via CRON_SECRET.",
+        "parameters": [
+          { "in": "query", "name": "token", "schema": { "type": "string" }, "required": true, "description": "CRON_SECRET for authorization" }
+        ],
+        "responses": {
+          "200": { "description": "Digest sent" },
+          "401": { "description": "Invalid CRON_SECRET" },
+          "500": { "description": "Digest generation failed" }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "Health check",
+        "description": "Simple health probe returning status and server timestamp. No authentication required.",
+        "responses": {
+          "200": { "description": "{ status: 'ok', timestamp }" }
+        }
+      }
+    },
+    "/api/receipts/comments": {
+      "post": {
+        "summary": "Add a comment to a receipt",
+        "description": "Adds a comment to a specific receipt. Sends email notification to the receipt owner if they are not the commenter.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "receiptId": { "type": "string", "format": "uuid", "description": "Receipt UUID" }, "content": { "type": "string", "maxLength": 2000, "description": "Comment text (max 2000 characters)" } }, "required": ["receiptId", "content"] } } }
+        },
+        "responses": {
+          "200": { "description": "Comment added" },
+          "400": { "description": "Invalid input" },
+          "401": { "description": "Unauthenticated" }
+        }
+      }
+    },
+    "/api/email/inbound": {
+      "post": {
+        "summary": "Inbound email webhook",
+        "description": "Receives forwarded emails from SendGrid Inbound Parse or similar service. Extracts attachments, validates size and type, sanitizes filenames, and uploads to storage. Only accepts verified sender domains.",
+        "requestBody": {
+          "required": true,
+          "content": { "multipart/form-data": { "schema": { "type": "object", "properties": { "from": { "type": "string", "format": "email", "description": "Sender email" }, "attachments": { "type": "array", "items": { "type": "object", "properties": { "filename": { "type": "string" }, "content_type": { "type": "string" }, "content": { "type": "string", "description": "Base64-encoded attachment content" } } }, "description": "File attachments" }, "subject": { "type": "string" }, "text": { "type": "string", "description": "Plain text body" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Emails processed" },
+          "400": { "description": "Invalid payload or attachment too large" },
+          "403": { "description": "Sender domain not verified" }
+        }
+      }
+    }
+  }
+}

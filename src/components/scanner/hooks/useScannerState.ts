@@ -1,35 +1,30 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import confetti from 'canvas-confetti';
 
 import { scanReceipt } from '@/app/actions/scan-receipt';
-import { generateDuplicateHash, generateIntegrityHash } from '@/lib/hash';
-import { supabase } from '@/lib/supabase';
+import { supabase, getOrgIdString } from '@/lib/supabase';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { saveReceipt } from '@/lib/services/receipts';
 import { handleSupabaseError, withRetry } from '@/lib/supabase-error-handler';
 import { getVendorDefaults } from '@/lib/services/vendor-defaults';
+import { logWarn } from '@/lib/logger';
 import {
-  computeBlurScore,
   getImageDimensions,
   readFileAsDataUrl,
   resizeImage,
 } from '@/components/scanner/utils';
 import { createBlankReceiptForm } from '@/components/scanner/types';
+import { useSaveReceipt } from './useSaveReceipt';
+import { useImageProcessor, MAX_DIMENSION, JPEG_QUALITY, MIN_DIMENSION, MAX_FILE_SIZE } from './useImageProcessor';
+import { useBatchProcessor, BATCH_LIMIT } from './useBatchProcessor';
 import type { ReceiptForm, ReceiptRow, BusinessUnit } from '@/components/scanner/types';
+import type { User } from '@supabase/supabase-js';
 
 type DuplicateCandidate = ReceiptRow | null;
-const MAX_DIMENSION = 1600;
-const MIN_DIMENSION = 600;
-const MAX_FILE_SIZE = 20 * 1024 * 1024;
-const JPEG_QUALITY = 0.6;
-const STORAGE_BUCKET = 'receipt-images';
-const BATCH_LIMIT = 50;
-const BLUR_THRESHOLD = 40;
 
 export interface ScannerState {
   cameraInputRef: React.RefObject<HTMLInputElement | null>;
@@ -83,7 +78,7 @@ export interface ScannerState {
 }
 
 export function useScannerState(
-  user: NonNullable<ReturnType<typeof Object>> | null,
+  user: User | null,
   onSaveSuccess: () => void,
 ): ScannerState {
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
@@ -93,134 +88,28 @@ export function useScannerState(
   const { online } = useNetworkStatus();
   const { enqueue, getQueue, clearProcessed } = useOfflineQueue();
   const queryClient = useQueryClient();
-  const savingRef = useRef(false);
   const cancelledRef = useRef(false);
 
   const [businessUnits, setBusinessUnits] = useState<BusinessUnit[]>([]);
-  const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [originalFileName, setOriginalFileName] = useState('');
-  const [mimeType, setMimeType] = useState('image/jpeg');
   const [formData, setFormData] = useState<ReceiptForm>(createBlankReceiptForm());
   const [loadingBusinessUnits, setLoadingBusinessUnits] = useState(true);
   const [processingAI, setProcessingAI] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [showCropper, setShowCropper] = useState(false);
   const [showCameraEngine, setShowCameraEngine] = useState(false);
-  const [duplicateCandidate, setDuplicateCandidate] = useState<DuplicateCandidate>(null);
-  const [pendingSave, setPendingSave] = useState(false);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
-  const [batchQueue, setBatchQueue] = useState<File[]>([]);
-  const [batchTotal, setBatchTotal] = useState(0);
-  const [batchProgress, setBatchProgress] = useState(0);
-  const [isBatchProcessing, setIsBatchProcessing] = useState(false);
-  const [blurScore, setBlurScore] = useState<number | null>(null);
-  const [showBlurWarning, setShowBlurWarning] = useState(false);
   const [vendorPrefillSource, setVendorPrefillSource] = useState<'history' | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
-  const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
-  const [sqlError, setSqlError] = useState<string | null>(null);
 
-  const saveMutation = useMutation({
-    mutationFn: async ({ bypassCheck, localFormData }: { bypassCheck: boolean; localFormData: ReceiptForm }) => {
-      if (!user) throw new Error('You must be logged in to save.');
-      const computedHash = await generateDuplicateHash(localFormData.vendor_name, localFormData.transaction_date, localFormData.total_amount);
-
-      if (!bypassCheck && duplicateCandidate === null) {
-        if (!orgId) throw new Error('Organization not loaded — cannot check for duplicates.');
-        const { data: duplicates, error: dupCheckError } = await supabase
-          .from('receipts')
-          .select('id, created_at, vendor_name, total_amount')
-          .eq('duplicate_hash', computedHash)
-          .eq('org_id', orgId);
-
-        if (dupCheckError) throw dupCheckError;
-        if (duplicates && duplicates.length > 0) {
-          setDuplicateCandidate(duplicates[0] as ReceiptRow);
-          return { needsConfirmation: true };
-        }
-      }
-
-      let imageUrl: string | null = null;
-      let integrityHash = '';
-
-      if (imageSrc) {
-        try {
-          const response = await fetch(imageSrc);
-          const arrayBuffer = await response.arrayBuffer();
-          const blob = new Blob([arrayBuffer], { type: 'image/jpeg' });
-          integrityHash = await generateIntegrityHash(arrayBuffer);
-          const filePath = `${user.id}/${Date.now()}-receipt.jpg`;
-
-          const { error: uploadError } = await withRetry(
-            () => supabase.storage.from(STORAGE_BUCKET).upload(filePath, blob, { contentType: 'image/jpeg' }),
-            { maxRetries: 3, delayMs: 1000 },
-          );
-
-          if (!uploadError) {
-            imageUrl = filePath;
-          } else {
-            const error = handleSupabaseError(uploadError);
-            console.warn('Failed to upload image:', error.userMessage);
-          }
-          } catch (err) {
-            const error = handleSupabaseError(err);
-            console.warn('Image upload failed:', error.userMessage);
-            toast.warning('Receipt image upload failed. The receipt will be saved without an image. Upload the image again later.');
-          }
-      }
-
-      if (!integrityHash) {
-        integrityHash = await generateIntegrityHash(new TextEncoder().encode(JSON.stringify(localFormData)).buffer);
-      }
-
-      const payload = {
-        ...localFormData,
-        user_id: user.id,
-        duplicate_hash: computedHash,
-        duplicate_warning: bypassCheck && Boolean(duplicateCandidate),
-        image_url: imageUrl,
-      } as Record<string, unknown>;
-
-      if (!online) {
-        await enqueue({ payload, integrityHash, userId: user.id });
-        return { success: true, offline: true };
-      }
-
-      await saveReceipt(payload, integrityHash, user.id);
-      return { success: true };
-    },
-    onSuccess: (result) => {
-      if (result?.needsConfirmation) return;
-      queryClient.invalidateQueries({ queryKey: ['receipts'] });
-      setDuplicateCandidate(null);
-      setPendingSave(false);
-
-      if (!isBatchProcessing) {
-        confetti({
-          particleCount: 150,
-          spread: 80,
-          origin: { y: 0.6 },
-          colors: ['#bea98e', '#d4c5a9', '#10b981'],
-          ticks: 200,
-          gravity: 1.2,
-        });
-        setShowSuccessOverlay(true);
-        setTimeout(() => setShowSuccessOverlay(false), 600);
-        resetScanner();
-        onSaveSuccess();
-        toast.success(result.offline ? 'Receipt queued offline. Will sync when connection returns.' : 'Receipt saved successfully.');
-      } else {
-        setImageSrc(null);
-        setFormData(createBlankReceiptForm());
-      }
-    },
-    onError: (error: Error) => {
-      setSqlError(error.message || 'A critical database error occurred.');
-    },
-    onSettled: () => {
-      savingRef.current = false;
-      setSaving(false);
-    },
+  const batchProc = useBatchProcessor();
+  const imgProc = useImageProcessor({ isBatchProcessing: batchProc.isBatchProcessing, formData, setFormData });
+  const saveHook = useSaveReceipt({
+    user,
+    orgId,
+    imageSrc: imgProc.imageSrc,
+    formData,
+    online,
+    isBatchProcessing: batchProc.isBatchProcessing,
+    onSaveSuccess,
+    enqueue,
   });
 
   useEffect(() => {
@@ -247,8 +136,8 @@ export function useScannerState(
       }
     }
     loadBusinessUnits();
-    supabase.rpc('get_user_org').then(({ data }) => {
-      if (data) setOrgId(data as unknown as string);
+    getOrgIdString().then((id) => {
+      if (id) setOrgId(id);
     });
     return () => { active = false; };
   }, []);
@@ -295,20 +184,14 @@ export function useScannerState(
     return () => navigator.serviceWorker.removeEventListener('message', handleMessage);
   }, []);
 
-  const canProcess = useMemo(() => Boolean(imageSrc) && !processingAI && !cancelledRef.current, [imageSrc, processingAI]);
+  const canProcess = useMemo(() => Boolean(imgProc.imageSrc) && !processingAI && !cancelledRef.current, [imgProc.imageSrc, processingAI]);
 
   function resetScanner() {
-    setImageSrc(null);
-    setOriginalFileName('');
-    setMimeType('image/jpeg');
+    imgProc.setImageSrc(null);
     setFormData(createBlankReceiptForm());
-    setDuplicateCandidate(null);
-    setPendingSave(false);
+    saveHook.setDuplicateCandidate(null);
     setHasAnalyzed(false);
-    setIsBatchProcessing(false);
-    setBatchQueue([]);
-    setBatchTotal(0);
-    setBatchProgress(0);
+    batchProc.resetBatchState();
     setVendorPrefillSource(null);
     if (cameraInputRef.current) cameraInputRef.current.value = '';
     if (galleryInputRef.current) galleryInputRef.current.value = '';
@@ -389,63 +272,8 @@ export function useScannerState(
     }));
   }
 
-  async function onCapture(file: File) {
-    try {
-      if (file.size > MAX_FILE_SIZE) {
-        toast.error(`File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max is 20MB.`);
-        return;
-      }
-
-      setShowBlurWarning(false);
-      const rawDataUrl = await readFileAsDataUrl(file);
-      const { width, height } = await getImageDimensions(rawDataUrl);
-      const longest = Math.max(width, height);
-      if (longest < MIN_DIMENSION) {
-        toast.warning(`Image is only ${longest}px — CRA recommends at least ${MIN_DIMENSION}px for legible records. Consider a clearer photo.`);
-      }
-
-      const resizedDataUrl = await resizeImage(rawDataUrl, MAX_DIMENSION, JPEG_QUALITY);
-      const score = await computeBlurScore(resizedDataUrl);
-      setBlurScore(score);
-
-      if (score < BLUR_THRESHOLD && !isBatchProcessing) {
-        setShowBlurWarning(true);
-        setImageSrc(resizedDataUrl);
-        setOriginalFileName(file.name);
-        setMimeType(file.type || 'image/jpeg');
-        return;
-      }
-
-      setOriginalFileName(file.name);
-      setMimeType(file.type || 'image/jpeg');
-      setImageSrc(resizedDataUrl);
-      setFormData((prev) => ({
-        ...createBlankReceiptForm(),
-        capture_source: prev.capture_source,
-        usage_type: prev.usage_type,
-        business_use_percent: prev.business_use_percent,
-        business_unit_id: prev.business_unit_id,
-      }));
-      setShowCropper(true);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to capture receipt.');
-    }
-  }
-
-  async function onApplyCroppedImage(cropped: string) {
-    try {
-      const resized = await resizeImage(cropped, MAX_DIMENSION, JPEG_QUALITY);
-      setImageSrc(resized);
-      setShowCropper(false);
-      toast.info('AI Extraction starting...');
-      await onProcessAI(resized);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to apply crop.');
-    }
-  }
-
-  async function onProcessAI(explicitSrc?: string, source: string = 'camera') {
-    const srcToUse = explicitSrc || imageSrc;
+  async function handleProcessAI(explicitSrc?: string, source: string = 'camera') {
+    const srcToUse = explicitSrc || imgProc.imageSrc;
     if (!srcToUse) {
       toast.error('Please capture a receipt first.');
       return;
@@ -470,7 +298,6 @@ export function useScannerState(
       if (cancelledRef.current) { setProcessingAI(false); return; }
       if (!result.success) {
         toast.error(result.error);
-        if (isBatchProcessing) setTimeout(processNextBatchItem, 1000);
         return;
       }
       mergeScanData(result.data as unknown as Record<string, unknown>);
@@ -489,7 +316,7 @@ export function useScannerState(
             setVendorPrefillSource('history');
           }
         }).catch(() => {
-          console.warn('Vendor defaults lookup failed — using AI result as-is');
+          logWarn('Vendor defaults lookup failed — using AI result as-is');
         });
       }
 
@@ -497,9 +324,8 @@ export function useScannerState(
         formContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
 
-      if (isBatchProcessing) {
-        await performSave(true);
-        setTimeout(processNextBatchItem, 1000);
+      if (batchProc.isBatchProcessing) {
+        await saveHook.performSave(true);
       }
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'AI processing failed.';
@@ -509,78 +335,10 @@ export function useScannerState(
     }
   }
 
-  async function performSave(bypassCheck = false, finalFormData?: ReceiptForm) {
-    if (savingRef.current || (!imageSrc && batchQueue.length === 0)) return;
-    savingRef.current = true;
-    setSaving(true);
-    saveMutation.mutate({ bypassCheck, localFormData: finalFormData || formData });
-  }
-
-  async function onSave() {
-    await performSave(false);
-  }
-
-  async function onContinueDuplicateSave() {
-    await performSave(true);
-  }
-
-  function cancelDuplicate() {
-    setDuplicateCandidate(null);
-    setPendingSave(false);
-    setSaving(false);
-    savingRef.current = false;
-  }
-
-  function cancelProcessing() {
-    cancelledRef.current = true;
-    setProcessingAI(false);
-    setIsBatchProcessing(false);
-    setBatchQueue([]);
-    toast.info('Processing cancelled.');
-  }
-
-  async function processNextBatchItem(queue?: File[], total?: number) {
-    const currentQueue = queue || batchQueue;
-    const currentTotal = total || batchTotal;
-    if (currentQueue.length === 0) {
-      setIsBatchProcessing(false);
-      setBatchTotal(0);
-      setBatchProgress(0);
-      toast.success('Batch processing completed.');
-      onSaveSuccess();
-      return;
-    }
-    const [nextFile, ...remaining] = currentQueue;
-    setBatchQueue(remaining);
-    setBatchProgress(currentTotal - remaining.length);
-    try {
-      if (nextFile.size > MAX_FILE_SIZE) {
-        toast.warning(`Skipping ${nextFile.name}: too large (${(nextFile.size / 1024 / 1024).toFixed(1)}MB)`);
-        setTimeout(() => processNextBatchItem(remaining, currentTotal), 500);
-        return;
-      }
-      const rawDataUrl = await readFileAsDataUrl(nextFile);
-      const { width, height } = await getImageDimensions(rawDataUrl);
-      const longest = Math.max(width, height);
-      if (longest < MIN_DIMENSION) {
-        toast.warning(`${nextFile.name}: image is only ${longest}px — consider a clearer photo`);
-      }
-      const resized = await resizeImage(rawDataUrl, MAX_DIMENSION, JPEG_QUALITY);
-      setImageSrc(resized);
-      setOriginalFileName(nextFile.name);
-      setMimeType(nextFile.type || 'image/jpeg');
-      setFormData((prev) => ({
-        ...createBlankReceiptForm(),
-        capture_source: prev.capture_source,
-        usage_type: prev.usage_type,
-        business_use_percent: prev.business_use_percent,
-        business_unit_id: prev.business_unit_id,
-      }));
-      await onProcessAI(resized);
-    } catch (err) {
-      toast.error('Failed to read file: ' + nextFile.name);
-      setTimeout(() => processNextBatchItem(remaining, currentTotal), 1000);
-    }
+  async function handleApplyCroppedImage(cropped: string) {
+    const resized = await imgProc.onApplyCroppedImage(cropped);
+    toast.info('AI Extraction starting...');
+    await handleProcessAI(resized);
   }
 
   async function handleFilesSelected(filesList: FileList | null) {
@@ -619,14 +377,64 @@ export function useScannerState(
     }
 
     if (processedFiles.length === 1) {
-      await onCapture(processedFiles[0]);
+      await imgProc.onCapture(processedFiles[0]);
     } else {
-      setBatchTotal(processedFiles.length);
-      setBatchProgress(1);
-      setIsBatchProcessing(true);
-      setBatchQueue(processedFiles.slice(1));
-      processNextBatchItem(processedFiles, processedFiles.length);
+      batchProc.setIsBatchProcessing(true);
+      batchProc.setBatchTotal(processedFiles.length);
+      batchProc.setBatchProgress(1);
+      batchProc.setBatchQueue(processedFiles.slice(1));
+      await handleProcessNextBatchItem(processedFiles, processedFiles.length);
     }
+  }
+
+  async function handleProcessNextBatchItem(queue: File[], total: number) {
+    if (queue.length === 0) {
+      batchProc.resetBatchState();
+      toast.success('Batch processing completed.');
+      onSaveSuccess();
+      return;
+    }
+
+    const [nextFile, ...remaining] = queue;
+    try {
+      if (nextFile.size > MAX_FILE_SIZE) {
+        toast.warning(`Skipping ${nextFile.name}: too large (${(nextFile.size / 1024 / 1024).toFixed(1)}MB)`);
+        setTimeout(() => handleProcessNextBatchItem(remaining, total), 500);
+        return;
+      }
+
+      const rawDataUrl = await readFileAsDataUrl(nextFile);
+      const { width, height } = await getImageDimensions(rawDataUrl);
+      const longest = Math.max(width, height);
+      if (longest < MIN_DIMENSION) {
+        toast.warning(`${nextFile.name}: image is only ${longest}px — consider a clearer photo`);
+      }
+
+      const resized = await resizeImage(rawDataUrl, MAX_DIMENSION, JPEG_QUALITY);
+      imgProc.setImageSrc(resized);
+      setFormData((prev) => ({
+        ...createBlankReceiptForm(),
+        capture_source: prev.capture_source,
+        usage_type: prev.usage_type,
+        business_use_percent: prev.business_use_percent,
+        business_unit_id: prev.business_unit_id,
+      }));
+
+      batchProc.advanceBatch(remaining, total);
+
+      await handleProcessAI(resized);
+    } catch (err) {
+      toast.error('Failed to read file: ' + nextFile.name);
+    }
+
+    setTimeout(() => handleProcessNextBatchItem(remaining, total), 1000);
+  }
+
+  function cancelProcessing() {
+    cancelledRef.current = true;
+    setProcessingAI(false);
+    batchProc.resetBatchState();
+    toast.info('Processing cancelled.');
   }
 
   return {
@@ -634,49 +442,49 @@ export function useScannerState(
     galleryInputRef,
     screenshotInputRef,
     formContainerRef,
-    imageSrc,
-    originalFileName,
-    mimeType,
+    imageSrc: imgProc.imageSrc,
+    originalFileName: imgProc.originalFileName,
+    mimeType: imgProc.mimeType,
     formData,
     setFormData,
     businessUnits,
     loadingBusinessUnits,
     processingAI,
-    saving,
-    showCropper,
-    setShowCropper,
+    saving: saveHook.saving,
+    showCropper: imgProc.showCropper,
+    setShowCropper: imgProc.setShowCropper,
     showCameraEngine,
     setShowCameraEngine,
-    duplicateCandidate,
+    duplicateCandidate: saveHook.duplicateCandidate,
     hasAnalyzed,
-    batchQueue,
-    batchTotal,
-    batchProgress,
-    isBatchProcessing,
-    blurScore,
-    showBlurWarning,
-    setShowBlurWarning,
+    batchQueue: batchProc.batchQueue,
+    batchTotal: batchProc.batchTotal,
+    batchProgress: batchProc.batchProgress,
+    isBatchProcessing: batchProc.isBatchProcessing,
+    blurScore: imgProc.blurScore,
+    showBlurWarning: imgProc.showBlurWarning,
+    setShowBlurWarning: imgProc.setShowBlurWarning,
     vendorPrefillSource,
     setVendorPrefillSource,
     orgId,
-    showSuccessOverlay,
-    sqlError,
-    setSqlError,
+    showSuccessOverlay: saveHook.showSuccessOverlay,
+    sqlError: saveHook.sqlError,
+    setSqlError: saveHook.setSqlError,
     online,
     canProcess,
     BATCH_LIMIT,
     MAX_DIMENSION,
     JPEG_QUALITY,
     resetScanner,
-    onCapture,
-    onApplyCroppedImage,
-    onProcessAI,
-    performSave,
-    onSave,
-    onContinueDuplicateSave,
-    cancelDuplicate,
-    cancelProcessing,
+    onCapture: imgProc.onCapture,
+    onApplyCroppedImage: handleApplyCroppedImage,
+    onProcessAI: handleProcessAI,
+    performSave: saveHook.performSave,
+    onSave: saveHook.onSave,
+    onContinueDuplicateSave: saveHook.onContinueDuplicateSave,
     handleFilesSelected,
-    setDuplicateCandidate,
+    cancelDuplicate: saveHook.cancelDuplicate,
+    cancelProcessing,
+    setDuplicateCandidate: saveHook.setDuplicateCandidate,
   };
 }

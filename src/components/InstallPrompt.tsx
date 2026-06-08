@@ -1,27 +1,33 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { APP_NAME } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, X } from 'lucide-react';
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 export default function InstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [show, setShow] = useState(false);
 
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
       setShow(true);
     };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    window.addEventListener('beforeinstallprompt', handler as EventListener);
+    return () => window.removeEventListener('beforeinstallprompt', handler as EventListener);
   }, []);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
-    (deferredPrompt as any).prompt();
-    const result = await (deferredPrompt as any).userChoice;
+    deferredPrompt.prompt();
+    const result = await deferredPrompt.userChoice;
     if (result?.outcome === 'accepted') setShow(false);
     setDeferredPrompt(null);
   };
@@ -41,7 +47,7 @@ export default function InstallPrompt() {
               <Download className="h-4 w-4 text-champagne" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-text-primary">Install 9 Star Labs</p>
+              <p className="text-sm font-semibold text-text-primary">Install {APP_NAME}</p>
               <p className="text-xs text-text-muted">Add to your home screen for quick access</p>
             </div>
             <button

@@ -1,6 +1,7 @@
 'use client';
 
 import { ReceiptText, Crown } from 'lucide-react';
+import { APP_NAME } from '@/lib/constants';
 import Link from 'next/link';
 
 interface TopBarProps {
@@ -20,7 +21,7 @@ export default function TopBar({ planLabel, plan, planLoading, children }: TopBa
             <ReceiptText className="h-4 w-4 sm:h-5 sm:w-5 text-sidebar-accent" />
           </div>
           <div>
-            <h1 className="text-sm sm:text-base font-bold tracking-tight text-sidebar-text">9 Star Labs</h1>
+            <h1 className="text-sm sm:text-base font-bold tracking-tight text-sidebar-text">{APP_NAME}</h1>
             <p className="text-[9px] sm:text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-accent">
               CRA-ready records
             </p>

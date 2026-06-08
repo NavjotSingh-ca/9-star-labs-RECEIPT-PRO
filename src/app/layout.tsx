@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import { Toaster } from 'sonner';
+import { APP_NAME, APP_TAGLINE, APP_DESCRIPTION } from '@/lib/constants';
 import NextTopLoader from 'nextjs-toploader';
 import './globals.css';
 import SmoothScroll from '@/components/SmoothScroll';
@@ -15,30 +16,29 @@ const geist = localFont({
 });
 
 export const metadata: Metadata = {
-  title: '9 Star Labs — CRA-Ready Receipt Intelligence',
-  description:
-    'Enterprise-grade Canadian receipt capture with SHA-256 integrity, CRA compliance scoring, and structured audit exports. Built for Canadian businesses and their accountants.',
+  title: `${APP_NAME} — ${APP_TAGLINE}`,
+  description: APP_DESCRIPTION,
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: '9 Star Labs',
+    title: APP_NAME,
   },
   keywords: ['receipt scanner', 'CRA', 'Canadian tax', 'GST', 'HST', 'PST', 'expense tracking', 'audit trail'],
-  authors: [{ name: '9 Star Labs' }],
-  creator: '9 Star Labs',
-  publisher: '9 Star Labs',
+  authors: [{ name: APP_NAME }],
+  creator: APP_NAME,
+  publisher: APP_NAME,
   robots: 'index, follow',
   openGraph: {
-    title: '9 Star Labs — CRA-Ready Receipt Intelligence',
+    title: `${APP_NAME} — ${APP_TAGLINE}`,
     description: 'The CRA-compliant receipt intelligence suite for Canadian contractors.',
     type: 'website',
     locale: 'en_CA',
-    siteName: '9 Star Labs',
+    siteName: APP_NAME,
   },
   twitter: {
     card: 'summary_large_image',
-    title: '9 Star Labs — CRA-Ready Receipt Intelligence',
+    title: `${APP_NAME} — ${APP_TAGLINE}`,
     description: 'The CRA-compliant receipt intelligence suite for Canadian contractors.',
   },
 };
@@ -62,8 +62,8 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="9 Star Labs" />
-        <meta name="application-name" content="9 Star Labs" />
+        <meta name="apple-mobile-web-app-title" content={APP_NAME} />
+        <meta name="application-name" content={APP_NAME} />
         <meta name="msapplication-TileColor" content="#0c0c0c" />
         <meta name="format-detection" content="telephone=no" />
         <link rel="preconnect" href="https://js.stripe.com" />

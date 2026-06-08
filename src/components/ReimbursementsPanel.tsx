@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getReimbursementsPending, updateReceiptApproval } from '@/lib/services/receipts';
 import type { ReceiptRow, UserRole } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ReimbursementsPanelProps {
   role: UserRole;
@@ -93,12 +94,14 @@ export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) 
       const { data } = await supabase.auth.getUser();
       return data;
     },
+    staleTime: Infinity,
   });
 
   const { data: payables = [], isLoading } = useQuery({
     queryKey: ['reimbursements_pending'],
     queryFn: async () => getReimbursementsPending(user?.id ?? ''),
     enabled: !!user?.id && role !== 'Employee',
+    staleTime: 60_000,
   });
 
   const invalidate = useCallback(() => {
@@ -150,8 +153,23 @@ export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) 
 
       {/* Loading */}
       {(isLoading || userLoading) && (
-        <div className="flex items-center justify-center py-16" role="status" aria-live="polite" aria-label="Loading payables">
-          <Loader2 className="h-8 w-8 animate-spin text-champagne" />
+        <div className="space-y-3" role="status" aria-live="polite" aria-label="Loading payables">
+          {[...Array(3)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }}
+              className="flex items-center gap-5 rounded-3xl border border-warning/15 bg-warning/[0.03] p-5"
+            >
+              <Skeleton className="h-12 w-12 flex-shrink-0 rounded-[2rem]" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-4 w-40 rounded-[2rem]" />
+                <Skeleton className="h-3 w-28 rounded-[2rem]" />
+              </div>
+              <Skeleton className="h-8 w-24 rounded-[2rem]" />
+            </motion.div>
+          ))}
         </div>
       )}
 

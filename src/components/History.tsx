@@ -1,28 +1,21 @@
 'use client';
 
-import React, { useMemo, useState, useCallback } from 'react';
-import Image from 'next/image';
+import { useMemo, useState, useCallback } from 'react';
 import {
-  AlertCircle,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  DollarSign,
   Loader2,
-  Receipt,
   RefreshCw,
-  Trash2,
-  X,
-  BrainCircuit,
-  MessageSquare,
-  Send,
+  SearchX,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { Drawer } from 'vaul';
+import dynamic from 'next/dynamic';
 
 import { semanticSearchAction } from '@/app/actions/semantic-search';
-import { updateReceiptApproval, updateReceipt, deleteReceipt, getReceiptsPaginated } from '@/lib/services/receipts';
+import { getReceiptsPaginated, deleteReceipt } from '@/lib/services/receipts';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   AlertDialog,
@@ -35,26 +28,24 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ProfessionalLedger } from '@/components/history/ProfessionalLedger';
+import { StatCards } from '@/components/history/StatCards';
+import { SemanticSearchBar } from '@/components/history/SemanticSearchBar';
 import { ReceiptTableSkeleton } from '@/components/ui/PremiumSkeletons';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { getReceiptImageUrl } from '@/lib/supabase';
 
 import type { ReceiptRow } from '@/lib/types';
 import type { UserRole } from '@/lib/types';
-import { supabase } from '@/lib/supabase';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import {
-  toNumber,
-  formatCurrency,
-  formatDate,
-  categoryColor,
-  confidenceTone,
-  approvalBadge,
-  reimbursementBadge,
-} from '@/lib/ui-utils';
+
+const ReceiptDetailDrawer = dynamic(() => import('@/components/history/ReceiptDetailDrawer'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex min-h-[300px] items-center justify-center" role="status" aria-live="polite" aria-label="Loading receipt details">
+      <Loader2 className="h-8 w-8 animate-spin text-champagne" />
+    </div>
+  ),
+});
 
 /* ─── Contextual Empty States ─── */
 const emptyStateMap: Record<string, { title: string; subtitle: string }> = {
@@ -109,13 +100,15 @@ export default function History({
       
       let approvalStatus: string | undefined = undefined;
       let filterCategory: string | undefined = undefined;
+      let specialFilter: 'missing-bn' | 'flagged-audit' | 'reimbursement' | undefined = undefined;
       
       const normalizedFilter = activeFilter.toLowerCase();
       if (normalizedFilter === 'approved') approvalStatus = 'approved';
       else if (normalizedFilter === 'review' || normalizedFilter === 'pending-review') approvalStatus = 'submitted';
-      else if (normalizedFilter !== 'all' && normalizedFilter !== 'missing' && normalizedFilter !== 'missing-bn' && normalizedFilter !== 'flagged-audit' && normalizedFilter !== 'reimbursement') {
-        filterCategory = activeFilter;
-      }
+      else if (normalizedFilter === 'missing-bn' || normalizedFilter === 'missing') specialFilter = 'missing-bn';
+      else if (normalizedFilter === 'flagged-audit') specialFilter = 'flagged-audit';
+      else if (normalizedFilter === 'reimbursement') specialFilter = 'reimbursement';
+      else if (normalizedFilter !== 'all') filterCategory = activeFilter;
 
       // If semanticMode is on but we have no results from AI yet, don't fetch from DB
       if (semanticMode && !semanticResults) return { receipts: [], totalCount: 0 };
@@ -127,6 +120,7 @@ export default function History({
         offset: pageParam,
         category: filterCategory,
         approvalStatus: approvalStatus,
+        specialFilter,
         search: search.trim() ? search.trim() : undefined,
         semanticIds: semanticMode && semanticResults ? semanticResults : undefined,
       });
@@ -136,66 +130,22 @@ export default function History({
       return pages.length * 25;
     },
     enabled: !!userId,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   });
 
-  const receipts = React.useMemo(() => {
+  const receipts = useMemo(() => {
     if (!infiniteData) return [];
     return infiniteData.pages.flatMap((page) => page.receipts);
   }, [infiniteData]);
 
   const totalCount = infiniteData?.pages[0]?.totalCount || 0;
 
-  const filteredReceipts = useMemo(() => {
-    let items = [...receipts];
-    const normalizedFilter = activeFilter.toLowerCase();
-
-    if (normalizedFilter !== 'all') {
-      if (normalizedFilter === 'missing' || normalizedFilter === 'missing-bn') {
-        items = items.filter(
-          (r) =>
-            !String(r.vendor_tax_number ?? '').trim() ||
-            !String(r.vendor_name ?? '').trim() ||
-            !String(r.transaction_date ?? '').trim() ||
-            toNumber(r.total_amount) <= 0
-        );
-      } else if (normalizedFilter === 'flagged-audit') {
-        items = items.filter(
-          (r) =>
-            r.flagged_for_audit ||
-            r.math_mismatch_warning ||
-            r.duplicate_warning ||
-            r.thermal_warning ||
-            (toNumber(r.cra_readiness_score) > 0 && toNumber(r.cra_readiness_score) < 70)
-        );
-      } else if (normalizedFilter === 'reimbursement') {
-        items = items.filter((r) => r.paid_by === 'employee_cash');
-      }
-    }
-
-    if (semanticMode && semanticResults) {
-      items = items.filter((r) => semanticResults.includes(r.id));
-    }
-
-    return items;
-  }, [receipts, activeFilter, semanticMode, semanticResults]);
-
-  const statCards = useMemo(() => {
-    const totalSpend = filteredReceipts.reduce((s, r) => s + toNumber(r.total_amount), 0);
-    const avgSpend = filteredReceipts.length > 0 ? totalSpend / filteredReceipts.length : 0;
-    const pendingCount = filteredReceipts.filter(r => r.approval_status === 'submitted').length;
-    return [
-      { label: 'Total Receipts', value: filteredReceipts.length.toString(), icon: Receipt, color: 'text-champagne' },
-      { label: 'Total Spend', value: formatCurrency(totalSpend), icon: DollarSign, color: 'text-emerald-light' },
-      { label: 'Avg per Receipt', value: formatCurrency(avgSpend), icon: DollarSign, color: 'text-champagne' },
-      { label: 'Pending', value: pendingCount.toString(), icon: DollarSign, color: 'text-warning' },
-    ];
-  }, [filteredReceipts]);
-
   const handleSelectReceipt = useCallback((receipt: ReceiptRow) => {
-    const idx = filteredReceipts.findIndex(r => r.id === receipt.id);
+    const idx = receipts.findIndex(r => r.id === receipt.id);
     setReceiptIndex(idx >= 0 ? idx : 0);
     setSelectedReceipt(receipt);
-  }, [filteredReceipts]);
+  }, [receipts]);
 
   const handleDelete = useCallback((id: string) => {
     setDeleteTarget(id);
@@ -218,16 +168,16 @@ export default function History({
   }, [deleteTarget, userId, onUpdate, refetch]);
 
   const handlePrevReceipt = useCallback(() => {
-    const newIdx = receiptIndex > 0 ? receiptIndex - 1 : filteredReceipts.length - 1;
+    const newIdx = receiptIndex > 0 ? receiptIndex - 1 : receipts.length - 1;
     setReceiptIndex(newIdx);
-    setSelectedReceipt(filteredReceipts[newIdx]);
-  }, [receiptIndex, filteredReceipts]);
+    setSelectedReceipt(receipts[newIdx]);
+  }, [receiptIndex, receipts]);
 
   const handleNextReceipt = useCallback(() => {
-    const newIdx = receiptIndex < filteredReceipts.length - 1 ? receiptIndex + 1 : 0;
+    const newIdx = receiptIndex < receipts.length - 1 ? receiptIndex + 1 : 0;
     setReceiptIndex(newIdx);
-    setSelectedReceipt(filteredReceipts[newIdx]);
-  }, [receiptIndex, filteredReceipts]);
+    setSelectedReceipt(receipts[newIdx]);
+  }, [receiptIndex, receipts]);
 
   const handleSemanticSearch = async (query: string) => {
     if (!query.trim()) {
@@ -267,77 +217,18 @@ export default function History({
               <RefreshCw className={cn("mr-2 h-4 w-4", (isFetchingNextPage || isRefetching) ? "animate-spin" : "")} />
               Sync
             </Button>
-            <Button
-              onClick={() => setSemanticMode(!semanticMode)}
-              variant={semanticMode ? "default" : "outline"}
-              className="font-bold transition-all"
-            >
-              <BrainCircuit className="mr-2 h-4 w-4" />
-              AI Search
-            </Button>
+            <SemanticSearchBar
+              semanticMode={semanticMode}
+              semanticLoading={semanticLoading}
+              onToggle={() => setSemanticMode(!semanticMode)}
+              onSearch={handleSemanticSearch}
+              onClear={() => { setSemanticMode(false); setSemanticResults(null); setSearch(''); }}
+            />
           </div>
         </div>
 
-        {/* Semantic Search Pulse */}
-        <AnimatePresence>
-          {semanticMode && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="px-2"
-            >
-              <div className="rounded-xl border bg-muted/20 p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                    <BrainCircuit className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-xs font-bold uppercase tracking-widest text-primary">Semantic Audit Engine Active</p>
-                    <input 
-                      type="text"
-                      placeholder="Describe what you're looking for (e.g. 'Fuel receipts over $100 from last March')"
-                      aria-label="AI semantic search query"
-                      className="mt-2 w-full bg-transparent text-sm font-medium outline-none placeholder:text-muted-foreground"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSemanticSearch(e.currentTarget.value);
-                      }}
-                    />
-                    {semanticLoading && (
-                      <div className="mt-2 flex items-center gap-2 text-[10px] text-primary font-bold uppercase tracking-widest animate-pulse" role="status" aria-live="polite">
-                        Analyzing patterns...
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Receipt Quick Stats */}
-        {receipts.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4"
-          >
-            {statCards.map((stat) => (
-              <div
-                key={stat.label}
-                className="flex items-center gap-3 rounded-xl border border-glass-border bg-card px-4 py-3 transition hover:border-glass-border-hover"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-raised">
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                </div>
-                <div>
-                  <p className="text-[11px] font-medium text-text-muted">{stat.label}</p>
-                  <p className="text-sm font-bold tracking-tight text-text-primary tabular-nums">{stat.value}</p>
-                </div>
-              </div>
-            ))}
-          </motion.div>
-        )}
+        {receipts.length > 0 && <StatCards receipts={receipts} />}
 
         {/* The Ledger */}
         {isLoading && !receipts.length ? (
@@ -347,26 +238,34 @@ export default function History({
         ) : receipts.length === 0 ? (
           <div className="flex min-h-[40vh] flex-col items-center justify-center gap-6 rounded-xl border border-dashed bg-muted/10 p-12 text-center" aria-live="polite">
             <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-              <Receipt className="h-10 w-10" />
+              <SearchX className="h-10 w-10" />
             </div>
             <div>
               <h3 className="text-xl font-bold tracking-tight">
-                {emptyStateMap[activeFilter]?.title || 'No records found'}
+                {semanticMode && semanticResults !== null && semanticResults.length === 0
+                  ? 'No AI matches found'
+                  : (emptyStateMap[activeFilter]?.title || 'No records found')}
               </h3>
               <p className="mt-2 text-sm text-muted-foreground max-w-xs">
-                {emptyStateMap[activeFilter]?.subtitle || 'Adjust your filters or scan a new receipt to populate the ledger.'}
+                {semanticMode && semanticResults !== null && semanticResults.length === 0
+                  ? 'Try a different search query or use the traditional search bar.'
+                  : (emptyStateMap[activeFilter]?.subtitle || 'Adjust your filters or scan a new receipt to populate the ledger.')}
               </p>
-              {onScan && activeFilter === 'all' && (
+              {semanticMode && semanticResults !== null && semanticResults.length === 0 ? (
+                <Button onClick={() => { setSemanticMode(false); setSemanticResults(null); setSearch(''); }} variant="outline" className="rounded-full px-6">
+                  Clear AI Search
+                </Button>
+              ) : (onScan && activeFilter === 'all' && (
                 <Button onClick={onScan} className="rounded-full px-6">
                   Scan Receipt
                 </Button>
-              )}
+              ))}
             </div>
           </div>
         ) : (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700" aria-live="polite" aria-atomic="true">
             <ProfessionalLedger 
-              data={filteredReceipts} 
+              data={receipts} 
               onSelect={handleSelectReceipt}
               onDelete={handleDelete}
             />
@@ -403,7 +302,7 @@ export default function History({
           <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[160] flex flex-col rounded-t-2xl border-t bg-background outline-none focus:ring-0 sm:max-w-3xl sm:mx-auto sm:mb-6 sm:rounded-2xl sm:max-h-[95vh] bottom-nav">
             <div className="mx-auto mt-4 h-1.5 w-12 flex-shrink-0 rounded-full bg-muted" />
             
-            {selectedReceipt && filteredReceipts.length > 1 && (
+            {selectedReceipt && receipts.length > 1 && (
               <div className="flex items-center justify-between border-b border-glass-border px-4 py-2">
                 <button
                   type="button"
@@ -414,7 +313,7 @@ export default function History({
                   Previous
                 </button>
                 <span className="text-xs font-medium text-text-muted tabular-nums">
-                  {receiptIndex + 1} of {filteredReceipts.length}
+                  {receiptIndex + 1} of {receipts.length}
                 </span>
                 <button
                   type="button"
@@ -429,8 +328,8 @@ export default function History({
 
             {selectedReceipt && (
               <div className="flex-1 overflow-y-auto px-2">
-                <ErrorBoundary componentName="ReceiptDetailModal">
-                  <ReceiptDetailModal
+                <ErrorBoundary componentName="ReceiptDetailDrawer">
+                  <ReceiptDetailDrawer
                     key={`detail-${selectedReceipt.id}`}
                     receipt={selectedReceipt}
                     onClose={() => setSelectedReceipt(null)}
@@ -472,381 +371,3 @@ export default function History({
   );
 }
 
-/* ─── Detail Modal ─── */
-
-type ReceiptDetailModalProps = {
-  receipt: ReceiptRow;
-  onClose: () => void;
-  role?: UserRole;
-  onUpdate?: () => Promise<void> | void;
-};
-
-function ReceiptDetailModal({ receipt, onClose, role = 'Owner', onUpdate }: ReceiptDetailModalProps) {
-  const score = toNumber(receipt.confidence_score);
-  const tone = confidenceTone(score);
-  const [editing, setEditing] = useState(false);
-  
-  // Full Edit State
-  const [vendorName, setVendorName] = useState(receipt.vendor_name ?? '');
-  const [vendorTaxNumber, setVendorTaxNumber] = useState(receipt.vendor_tax_number ?? receipt.business_number ?? '');
-  const [totalAmount, setTotalAmount] = useState(receipt.total_amount ?? 0);
-  const [transactionDate, setTransactionDate] = useState(receipt.transaction_date ?? '');
-  const [category, setCategory] = useState(receipt.category ?? '');
-  const [notesValue, setNotesValue] = useState(receipt.notes ?? '');
-
-  const [editSaving, setEditSaving] = useState(false);
-  const [editError, setEditError] = useState('');
-  const [editSuccess, setEditSuccess] = useState(false);
-  const [approvalLoading, setApprovalLoading] = useState(false);
-  const [localApproval, setLocalApproval] = useState(receipt.approval_status ?? 'submitted');
-
-  // Comments State
-  const [commentText, setCommentText] = useState('');
-  const [comments, setComments] = useState<{ id: string; comment: string; created_at: string; user_id?: string; user?: { email: string } }[]>([]);
-  const [commentLoading, setCommentLoading] = useState(false);
-
-  React.useEffect(() => {
-    fetch(`/api/receipts/comments?receiptId=${receipt.id}`)
-      .then(res => res.json())
-      .then(data => { if (data.data) setComments(data.data) })
-      .catch(() => toast.error('Failed to load comments.'));
-  }, [receipt.id]);
-
-  async function handlePostComment() {
-    if (!commentText.trim()) return;
-    setCommentLoading(true);
-    try {
-      const res = await fetch('/api/receipts/comments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ receiptId: receipt.id, comment: commentText })
-      });
-      if (res.ok) {
-        setCommentText('');
-        const { data } = await res.json();
-        setComments(prev => [...prev, data]);
-        
-        // Also set status to needs_clarification if Accountant
-        if (role === 'Accountant' && localApproval !== 'needs_clarification') {
-          handleApproval('needs_clarification' as 'approved' | 'rejected'); // cast for now if type doesn't support it
-        }
-      }
-    } finally {
-      setCommentLoading(false);
-    }
-  }
-
-  const approval = approvalBadge(localApproval);
-  const needsReimburse = receipt.paid_by === 'employee_cash';
-  const reimburse = needsReimburse ? reimbursementBadge(receipt.reimbursement_status) : null;
-
-  async function handleApproval(status: 'approved' | 'rejected') {
-    setApprovalLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      await updateReceiptApproval(
-        receipt.id,
-        status,
-        user.id,
-        needsReimburse,
-        receipt.vendor_name || 'Unknown',
-        receipt.transaction_date || ''
-      );
-
-      setLocalApproval(status);
-      if (onUpdate) await onUpdate();
-    } catch (err) {
-      setEditError(err instanceof Error ? err.message : 'Approval failed.');
-    } finally {
-      setApprovalLoading(false);
-    }
-  }
-
-  async function handleSaveEdit() {
-    setEditSaving(true);
-    setEditError('');
-    setEditSuccess(false);
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      await updateReceipt(receipt.id, {
-        vendor_name: vendorName,
-        vendor_tax_number: vendorTaxNumber,
-        business_number: vendorTaxNumber, // Maintain backward compatibility
-        total_amount: Number(totalAmount),
-        transaction_date: transactionDate,
-        category: category,
-        notes: notesValue,
-      }, user.id, receipt);
-
-      setEditSuccess(true);
-      setEditing(false);
-      if (onUpdate) await onUpdate();
-    } catch (err: unknown) {
-      setEditError(err instanceof Error ? err.message : 'Edit failed.');
-    } finally {
-      setEditSaving(false);
-    }
-  }
-
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  async function handleDelete() {
-    setDeleteLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      await deleteReceipt(receipt.id, user.id);
-      
-      onClose();
-      if (onUpdate) await onUpdate();
-    } catch (err) {
-      setEditError(err instanceof Error ? err.message : 'Delete failed.');
-    } finally {
-      setDeleteLoading(false);
-      setShowDeleteConfirm(false);
-    }
-  }
-
-  const [syncLoading, setSyncLoading] = useState<string | null>(null);
-
-  async function handleAccountingSync(provider: 'qbo' | 'xero') {
-    setSyncLoading(provider);
-    try {
-      const resp = await fetch(`/api/integrations/${provider}?action=sync&receiptId=${receipt.id}`, { method: 'POST' });
-      const result = await resp.json();
-      if (!resp.ok) throw new Error(result.error || 'Sync failed');
-      toast.success(`Successfully synced to ${provider.toUpperCase()}`);
-    } catch (err: unknown) {
-      toast.error(`Sync Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setSyncLoading(null);
-    }
-  }
-
-  const [displayUrl, setDisplayUrl] = useState<string | null>(null);
-  const [imageLoading, setImageLoading] = useState(true);
-  const [imageError, setImageError] = useState(false);
-
-  React.useEffect(() => {
-    async function getFreshUrl() {
-      if (!receipt.image_url) { setImageLoading(false); return; }
-      setImageLoading(true);
-      setImageError(false);
-      try {
-        const freshUrl = await getReceiptImageUrl(receipt.image_url);
-        setDisplayUrl(freshUrl);
-      } catch {
-        setImageError(true);
-      } finally {
-        setImageLoading(false);
-      }
-    }
-    getFreshUrl();
-  }, [receipt.image_url]);
-
-  const imageUrl = displayUrl ?? '';
-
-  return (
-      <div className="flex w-full flex-col overflow-hidden pb-12">
-        <div className="flex items-center justify-between gap-3 px-5 py-6">
-          <div className="min-w-0">
-            <h3 className="truncate text-2xl font-black text-text-primary tracking-tight">
-              {receipt.vendor_name ?? 'Unknown Vendor'}
-            </h3>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <p className="text-xs font-bold text-text-muted uppercase tracking-widest">{formatDate(receipt.transaction_date)}</p>
-              <Badge variant="outline" className={cn("rounded-full px-3 py-1 font-black uppercase tracking-widest", approval.cls)}>
-                {approval.label}
-              </Badge>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setShowDeleteConfirm(true)}
-              disabled={deleteLoading}
-              className="h-12 w-12 rounded-[2rem] bg-danger/10 text-danger border-danger/20 hover:bg-danger/20"
-              aria-label="Delete receipt"
-            >
-              {deleteLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Trash2 className="h-5 w-5" />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="h-12 w-12 rounded-[2rem] bg-surface-raised"
-              aria-label="Close receipt details"
-            >
-              <X className="h-6 w-6" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-5 space-y-8">
-          {imageLoading ? (
-            <div className="relative min-h-[300px] rounded-[3rem] border border-glass-border bg-obsidian/20 overflow-hidden shadow-2xl flex items-center justify-center" role="status" aria-live="polite" aria-label="Loading receipt image">
-              <Loader2 className="h-8 w-8 animate-spin text-champagne" />
-            </div>
-          ) : imageError ? (
-            <div className="relative min-h-[300px] rounded-[3rem] border border-danger/20 bg-danger/5 overflow-hidden shadow-2xl flex flex-col items-center justify-center gap-2" role="alert">
-              <AlertCircle className="h-8 w-8 text-danger" />
-              <p className="text-sm text-text-muted">Failed to load receipt image</p>
-              <button
-                type="button"
-                onClick={() => { setImageLoading(true); setImageError(false); getReceiptImageUrl(receipt.image_url || '').then(setDisplayUrl).catch(() => setImageError(true)).finally(() => setImageLoading(false)); }}
-                className="rounded-[2rem] border border-danger/30 px-4 py-1.5 text-xs font-semibold text-danger hover:bg-danger/10"
-              >
-                Retry
-              </button>
-            </div>
-          ) : imageUrl ? (
-            <div className="relative min-h-[300px] rounded-[3rem] border border-glass-border bg-obsidian/20 overflow-hidden shadow-2xl">
-              <Image
-                src={imageUrl}
-                alt="Receipt"
-                fill
-                className="object-contain"
-                unoptimized
-                sizes="(max-width: 768px) 100vw, 50vw"
-              />
-            </div>
-          ) : null}
-
-          <div className="grid gap-6 sm:grid-cols-2">
-            {/* AI Context Card */}
-            <Card className="rounded-xl border bg-card p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-4 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                <BrainCircuit className="h-4 w-4 text-primary" />
-                AI Analysis
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-bold">Confidence Score</span>
-                <span className={cn("text-xl font-bold tabular-nums", tone.label.includes('High') ? 'text-emerald-light' : 'text-warning')}>
-                  {score}%
-                </span>
-              </div>
-              <div className="mt-4 h-2 w-full bg-muted rounded-full overflow-hidden">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${score}%` }}
-                  className={cn("h-full", tone.label.includes('High') ? 'bg-emerald-success' : 'bg-warning')}
-                />
-              </div>
-            </Card>
-
-            {/* Total Card */}
-            <Card className="rounded-xl border bg-primary/10 p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-4 text-xs font-bold uppercase tracking-widest text-primary/80">
-                <DollarSign className="h-4 w-4" />
-                Gross Total
-              </div>
-              <p className="text-4xl font-bold tracking-tight tabular-nums text-primary">
-                {formatCurrency(toNumber(receipt.total_amount), receipt.currency ?? 'CAD')}
-              </p>
-            </Card>
-          </div>
-
-          {/* Audit Data Fields */}
-          <Card className="rounded-xl border bg-card overflow-hidden shadow-sm">
-            <div className="border-b bg-muted/20 px-6 py-4">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Compliance Records</p>
-            </div>
-            <div className="grid gap-x-8 gap-y-6 p-6 sm:grid-cols-2">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Vendor Entity</p>
-                <p className="text-sm font-bold">{vendorName || '—'}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Tax Identification (BN)</p>
-                <p className="text-sm font-bold">{vendorTaxNumber || '—'}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Transaction Date</p>
-                <p className="text-sm font-bold">{formatDate(transactionDate)}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Ledger Category</p>
-                <Badge variant="outline" className={cn("mt-1 rounded-full px-3 py-1 font-bold uppercase tracking-widest", categoryColor(category))}>
-                  {category}
-                </Badge>
-              </div>
-            </div>
-          </Card>
-
-          {/* Clarification Comments Section */}
-          <Card className="rounded-xl border bg-card overflow-hidden shadow-sm">
-            <div className="border-b bg-muted/20 px-6 py-4 flex items-center gap-3">
-              <MessageSquare className="h-4 w-4 text-primary" />
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Clarification & Comments</p>
-            </div>
-            <div className="p-6 flex flex-col gap-4">
-              <div className="space-y-4 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                {comments.length === 0 ? (
-                  <p className="text-xs text-muted-foreground italic">No comments yet.</p>
-                ) : (
-                  comments.map(c => (
-                    <div key={c.id} className="rounded-lg bg-muted/30 p-3 text-sm">
-                      <p className="text-xs font-bold text-muted-foreground mb-1">{c.user?.email || 'User'} <span className="font-normal opacity-70 ml-2">{new Date(c.created_at).toLocaleString()}</span></p>
-                      <p>{c.comment}</p>
-                    </div>
-                  ))
-                )}
-              </div>
-              <div className="flex items-center gap-2 mt-2">
-                <input
-                  type="text"
-                  placeholder="Ask for clarification or add a note..."
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handlePostComment()}
-                  aria-label="Add a comment"
-                  className="flex-1 rounded-lg border bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
-                />
-                <Button
-                  onClick={handlePostComment}
-                  disabled={commentLoading || !commentText.trim()}
-                  size="icon"
-                >
-                  {commentLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Receipt Record</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently remove this receipt from the ledger. The original data will be preserved in the audit trail, but this entry will no longer appear in reports or searches.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              render={<Button variant="outline" className="rounded-xl font-semibold" />}
-            />
-            <AlertDialogAction
-              disabled={deleteLoading}
-              render={<Button variant="destructive" className="rounded-xl font-semibold" />}
-              onClick={handleDelete}
-            >
-              {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Delete Record
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      </div>
-  );
-}

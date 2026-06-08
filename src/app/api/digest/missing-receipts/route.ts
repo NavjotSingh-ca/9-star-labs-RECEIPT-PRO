@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { env } from '@/lib/env';
+import { APP_NAME } from '@/lib/constants';
 import { logError, logInfo } from '@/lib/logger';
 
 /**
@@ -87,7 +88,7 @@ export async function POST(request: Request) {
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
   <div style="background: #1a1a1a; border-radius: 16px; padding: 32px; color: #e5e5e5;">
     <h1 style="color: #bea98e; font-size: 20px; margin: 0 0 8px;">Missing Receipt Alert</h1>
-    <p style="color: #999; font-size: 14px; margin: 0 0 24px;">Weekly digest from 9 Star Labs</p>
+    <p style="color: #999; font-size: 14px; margin: 0 0 24px;">Weekly digest from ${APP_NAME}</p>
     
     <div style="background: #2a2a2a; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
       <p style="color: #f59e0b; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 8px;">Unmatched Transactions</p>
@@ -114,7 +115,7 @@ export async function POST(request: Request) {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              from: env.RESEND_FROM_EMAIL || '9starlaba@gmail.com',
+              from: env.RESEND_FROM_EMAIL,
               to: emails,
               subject: `⚠️ ${transactions.length} bank transaction${transactions.length === 1 ? '' : 's'} missing receipts`,
               html: emailBody,

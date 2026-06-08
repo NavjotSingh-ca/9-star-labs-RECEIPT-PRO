@@ -1,6 +1,7 @@
 'use client';
 
 import { AnimatePresence } from 'framer-motion';
+import { APP_NAME } from '@/lib/constants';
 
 import BatchOverlay from '@/components/scanner/BatchOverlay';
 import CaptureControls from '@/components/scanner/CaptureControls';
@@ -87,7 +88,7 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
 
       <Card className="overflow-hidden border bg-card text-card-foreground shadow-sm">
         <CardHeader className="px-5 py-4 border-b">
-          <CardTitle className="text-lg font-bold">9 Star Labs Scanner</CardTitle>
+          <CardTitle className="text-lg font-bold">{APP_NAME} Scanner</CardTitle>
           <CardDescription className="mt-1 text-sm">
             Capture, crop, extract, verify, and save a CRA-ready receipt record. Up to {s.BATCH_LIMIT} files per batch.
           </CardDescription>
@@ -96,7 +97,7 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
         <CardContent className="space-y-5 p-5">
           {!s.imageSrc ? (
             <CaptureControls
-              onCameraClick={() => s.setShowCameraEngine(true)}
+              onCameraClick={() => s.cameraInputRef.current?.click()}
               onUploadClick={() => s.galleryInputRef.current?.click()}
               onScreenshotClick={() => s.screenshotInputRef.current?.click()}
               batchLimit={s.BATCH_LIMIT}

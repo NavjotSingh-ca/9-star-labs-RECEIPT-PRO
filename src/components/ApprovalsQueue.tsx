@@ -18,6 +18,7 @@ import { getReceiptsPendingApproval, updateReceiptApproval, bulkUpdateApproval }
 import type { ReceiptRow, UserRole } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { getReceiptImageUrl } from '@/lib/supabase';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ApprovalsQueueProps {
   role: UserRole;
@@ -169,6 +170,7 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
     queryKey: ['approvals_pending'],
     queryFn: getReceiptsPendingApproval,
     enabled: role !== 'Employee',
+    staleTime: 60_000,
   });
 
   const invalidate = useCallback(() => {
@@ -366,8 +368,29 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
 
       {/* Loading */}
       {isLoading && (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-champagne" />
+        <div className="space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }}
+              className="rounded-3xl border border-glass-border bg-surface p-5"
+            >
+              <div className="flex gap-4">
+                <Skeleton className="h-6 w-6 flex-shrink-0 rounded-[2rem]" />
+                <Skeleton className="h-16 w-16 flex-shrink-0 rounded-[2rem]" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Skeleton className="h-4 w-36 rounded-[2rem]" />
+                  <Skeleton className="h-3 w-24 rounded-[2rem]" />
+                  <div className="flex gap-2">
+                    <Skeleton className="h-8 w-20 rounded-[2rem]" />
+                    <Skeleton className="h-8 w-20 rounded-[2rem]" />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
         </div>
       )}
 

@@ -1,4 +1,4 @@
-/* ─── Shared Types — 9 Star Labs v2.0 ─── */
+/* ─── Shared Types — v2.0 ─── */
 
 export type CaptureSource = 'camera' | 'upload' | 'email' | 'email_screenshot' | 'bulk-import' | 'accountant-import';
 export type UsageType = 'business' | 'personal' | 'mixed';

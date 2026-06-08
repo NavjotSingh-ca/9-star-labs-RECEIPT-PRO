@@ -4,9 +4,11 @@ import { cookies } from 'next/headers';
 import { getCRAFormData } from '@/lib/services/receipts';
 import { logError } from '@/lib/logger';
 import { env } from '@/lib/env';
+import { APP_NAME } from '@/lib/constants';
+import { z } from 'zod';
 
-// jsPDF runs server-side via Node.js
-import { jsPDF } from 'jspdf';
+const yearSchema = z.coerce.number().int().min(2000).max(2099);
+const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -14,10 +16,19 @@ const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const rawYear = searchParams.get('year');
-  const taxYear = rawYear ? parseInt(rawYear) : new Date().getFullYear() - 1;
-  if (isNaN(taxYear) || taxYear < 2000 || taxYear > 2099) {
+  const taxYear = rawYear ? yearSchema.safeParse(rawYear) : { data: new Date().getFullYear() - 1, success: true };
+  if (!taxYear.success) {
     return NextResponse.json({ error: 'Invalid tax year' }, { status: 400 });
   }
+
+  const rawFrom = searchParams.get('fromDate');
+  const rawTo = searchParams.get('toDate');
+  const fromDate = rawFrom ? dateSchema.safeParse(rawFrom) : null;
+  const toDate = rawTo ? dateSchema.safeParse(rawTo) : null;
+  if ((rawFrom && !fromDate?.success) || (rawTo && !toDate?.success)) {
+    return NextResponse.json({ error: 'Invalid date format (use YYYY-MM-DD)' }, { status: 400 });
+  }
+  const dateRange = fromDate?.success && toDate?.success ? { from: fromDate.data, to: toDate.data } : undefined;
 
   // Auth check
   const cookieStore = await cookies();
@@ -29,14 +40,16 @@ export async function GET(request: Request) {
 
   // Fetch org name
   const { data: orgId } = await supabase.rpc('get_user_org');
-  const orgName = orgId
-    ? (await supabase.from('organizations').select('name').eq('id', orgId).single()).data?.name || '9 Star Labs'
-    : '9 Star Labs';
+  if (!orgId) return NextResponse.json({ error: 'Organization not found', status: 404 }, { status: 404 });
+  const { data: orgRow } = await supabase.from('organizations').select('name').eq('id', orgId).single();
+  if (!orgRow?.name) return NextResponse.json({ error: 'Organization name not configured', status: 404 }, { status: 404 });
+  const orgName = orgRow.name;
 
   try {
-    const cra = await getCRAFormData(taxYear);
+    const cra = await getCRAFormData(taxYear.data, dateRange);
 
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+    const jsPDFMod = await import('jspdf');
+    const doc = new jsPDFMod.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
     const pageW = 215.9;
     const margin = 18;
     const contentW = pageW - margin * 2;

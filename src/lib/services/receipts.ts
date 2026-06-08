@@ -6,7 +6,7 @@ import type { ReceiptRow, Project, AccessCode, UserRole } from '@/lib/types';
 import { getUserRole } from '@/lib/services/roles';
 import { getHistoricalCADRate } from '@/lib/services/fx-rates';
 import { updateVendorDefaults } from '@/lib/services/vendor-defaults';
-import { logError } from '@/lib/logger';
+import { logError, logWarn } from '@/lib/logger';
 
 // ─── Zod Schemas ───
 
@@ -18,7 +18,7 @@ export const lineItemSchema = z.object({
   tax_amount: z.number().nullish().transform((val) => val ?? 0),
   line_total: z.number().nullish().transform((val) => val ?? 0),
   category: z.string().nullish().transform((val) => val ?? ''),
-}).catchall(z.unknown());
+});
 
 export const receiptSchema = z.object({
   id: z.string().nullish().transform((val) => val ?? ''),
@@ -76,15 +76,14 @@ export const receiptSchema = z.object({
   high_audit_risk: z.boolean().optional(),
   fraud_suspicion: z.boolean().optional(),
   fraud_reason: z.string().nullish().transform((val) => val ?? ''),
-}).catchall(z.unknown());
+});
 
 // ─── Receipt Queries ───
 
 
 // Helper to get current organization ID
-async function getOrgId(): Promise<{ id: string } | null> {
-  const id = await getOrgIdString();
-  return id ? { id } : null;
+async function getOrgId(): Promise<string | null> {
+  return await getOrgIdString();
 }
 
 export async function getReceipts(role: UserRole, userId?: string, limit = 1000, offset = 0): Promise<ReceiptRow[]> {
@@ -92,9 +91,8 @@ export async function getReceipts(role: UserRole, userId?: string, limit = 1000,
 
   try {
     // Get org_id for proper tenant isolation
-    const orgData = await getOrgId();
-    if (!orgData) return [];
-    const orgId = orgData.id;
+    const orgId = await getOrgId();
+    if (!orgId) return [];
 
     const result = await withRetry(
       () => {
@@ -138,14 +136,54 @@ export async function getReceiptsPaginated(params: {
   approvalStatus?: string;
   search?: string;
   semanticIds?: string[];
+  specialFilter?: 'missing-bn' | 'flagged-audit' | 'reimbursement';
 }): Promise<{ receipts: ReceiptRow[]; totalCount: number }> {
   if (!params.userId) return { receipts: [], totalCount: 0 };
 
   const orgId = await getOrgId();
   if (!orgId) return { receipts: [], totalCount: 0 };
 
+  // Special filters not supported by the RPC — use direct query
+  if (params.specialFilter) {
+    let query = supabase
+      .from('receipts')
+      .select('*', { count: 'exact', head: false })
+      .eq('org_id', orgId)
+      .eq('is_deleted', false);
+
+    if (params.role === 'Employee') {
+      query = query.eq('user_id', params.userId);
+    }
+
+    switch (params.specialFilter) {
+      case 'missing-bn':
+        query = query.or('vendor_tax_number.is.null,vendor_name.is.null,transaction_date.is.null,total_amount.lte.0');
+        break;
+      case 'flagged-audit':
+        query = query.or('flagged_for_audit.eq.true,math_mismatch_warning.eq.true,duplicate_warning.eq.true,thermal_warning.eq.true,and(cra_readiness_score.gt.0,cra_readiness_score.lt.70)');
+        break;
+      case 'reimbursement':
+        query = query.eq('paid_by', 'employee_cash');
+        break;
+    }
+
+    const { data, error, count } = await query
+      .order('transaction_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .range(params.offset || 0, (params.offset || 0) + (params.limit || 25) - 1);
+
+    if (error) {
+      const supabaseError = handleSupabaseError(error);
+      logError(supabaseError, { action: 'fetch_receipts_paginated_special' });
+      throw supabaseError;
+    }
+
+    const receipts = (data || []).map(r => receiptSchema.parse(r) as ReceiptRow);
+    return { receipts, totalCount: count || 0 };
+  }
+
   const { data, error } = await supabase.rpc('get_receipts_paginated', {
-    p_org_id: orgId.id,
+    p_org_id: orgId,
     p_user_id: params.userId,
     p_role: params.role,
     p_limit: params.limit || 25,
@@ -186,7 +224,7 @@ export const getReceiptsPendingApproval = async (): Promise<ReceiptRow[]> => {
       () => supabase
         .from('receipts')
         .select('*')
-        .eq('org_id', orgId.id)
+        .eq('org_id', orgId)
         .eq('is_deleted', false)
         .eq('approval_status', 'submitted')
         .order('created_at', { ascending: false }),
@@ -223,9 +261,8 @@ export interface DashboardSummary {
 }
 
 export const getDashboardSummary = async (role: UserRole, userId: string): Promise<DashboardSummary> => {
-  const orgData = await getOrgId();
-  if (!orgData) throw new Error('No organization found');
-  const orgId = orgData.id;
+  const orgId = await getOrgId();
+  if (!orgId) throw new Error('No organization found');
 
   // 1. Fetch Core Stats via RPC
   const { data: stats, error: statsError } = await supabase.rpc('get_dashboard_stats', { 
@@ -370,7 +407,7 @@ export const getDailySpend = async (days = 30): Promise<{ date: string; amount: 
   const { data, error } = await supabase
     .from('receipts')
     .select('transaction_date, total_amount')
-    .eq('org_id', orgId.id)
+    .eq('org_id', orgId)
     .eq('is_deleted', false)
     .gte('transaction_date', from)
     .order('transaction_date', { ascending: true });
@@ -404,7 +441,7 @@ export const getReimbursementsPending = async (userId: string): Promise<ReceiptR
     const { data, error } = await supabase
       .from('receipts')
       .select('*')
-      .eq('org_id', orgId.id)
+      .eq('org_id', orgId)
       .eq('is_deleted', false)
       .eq('needs_reimbursement', true)
       .or('reimbursement_status.eq.pending,reimbursement_status.is.null')
@@ -440,7 +477,7 @@ export const createAuditLog = async (userId: string, action: string, details: st
     await withRetry(
       () => supabase.from('audit_logs').insert({
         user_id: userId,
-        org_id: orgId,
+      org_id: orgId,
         action,
         details,
         created_at: new Date().toISOString()
@@ -463,7 +500,7 @@ export const deleteReceipt = async (receiptId: string, userId: string): Promise<
     .from('receipts')
     .select('approval_status, transaction_date')
     .eq('id', receiptId)
-    .eq('org_id', orgId?.id || '')
+    .eq('org_id', orgId || '')
     .single();
 
   if (receipt?.approval_status === 'approved' && receipt.transaction_date) {
@@ -479,7 +516,7 @@ export const deleteReceipt = async (receiptId: string, userId: string): Promise<
     .from('receipts')
     .update({ is_deleted: true, updated_at: new Date().toISOString() })
     .eq('id', receiptId)
-    .eq('org_id', orgId?.id || '');
+    .eq('org_id', orgId || '');
 
   if (role === 'Employee') {
     query = query.eq('user_id', userId);
@@ -527,7 +564,7 @@ export const getProjects = async (): Promise<Project[]> => {
     const { data, error } = await supabase
       .from('projects')
       .select('*')
-      .eq('org_id', orgId.id)
+      .eq('org_id', orgId)
       .order('name', { ascending: true });
     if (error) throw error;
     return (data || []) as Project[];
@@ -541,11 +578,13 @@ export const createProject = async (name: string, code?: string, budgetAmount?: 
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
+    const orgId = await getOrgIdString();
+    if (!orgId) throw new Error('Organization not found');
 
     const { data, error } = await withRetry(
       () => supabase
         .from('projects')
-        .insert({ name, code: code ?? null, user_id: user.id, budget_amount: budgetAmount ?? null })
+        .insert({ name, code: code ?? null, user_id: user.id, org_id: orgId, budget_amount: budgetAmount ?? null })
         .select()
         .single(),
       { maxRetries: 2, delayMs: 500 }
@@ -569,8 +608,11 @@ export const updateProjectBudget = async (projectId: string, budgetAmount: numbe
 
 export const deleteProject = async (projectId: string): Promise<void> => {
   try {
+    const orgId = await getOrgIdString();
+    if (!orgId) throw new Error('Organization not found');
+
     const { error } = await withRetry(
-      () => supabase.from('projects').delete().eq('id', projectId),
+      () => supabase.from('projects').delete().eq('id', projectId).eq('org_id', orgId),
       { maxRetries: 2, delayMs: 500 }
     );
     if (error) throw handleSupabaseError(error);
@@ -657,7 +699,7 @@ export const updateReceiptApproval = async (
 
   // Get org_id for scoping and audit log
   const orgData = await getOrgId();
-  const orgId = orgData ? orgData.id : null;
+  if (!orgData) throw new Error('No organization found');
 
   const updatePayload: Record<string, unknown> = {
     approval_status: status,
@@ -672,15 +714,15 @@ export const updateReceiptApproval = async (
     .from('receipts')
     .update(updatePayload)
     .eq('id', receiptId)
-    .eq('org_id', orgId || ''); // Defense-in-depth
+    .eq('org_id', orgData || ''); // Defense-in-depth
 
   if (error) throw new Error(`Failed to update receipt: ${error.message}`);
 
   // HIGH-3: Always include org_id in audit logs
-  await supabase.from('audit_logs').insert({
-    user_id: userId,
-    org_id: orgId || null,
-    action: `receipt${status}`,
+    await supabase.from('audit_logs').insert({
+      user_id: userId,
+      org_id: orgData || null,
+      action: `receipt${status}`,
     details: `Receipt ${status}: ${vendorName} (${transactionDate}) by ${verifiedRole}`,
   });
 };
@@ -699,14 +741,14 @@ export const bulkUpdateApproval = async (
 
     // HIGH-2: Scope by org_id for defense-in-depth
     const orgData = await getOrgId();
-    const orgId = orgData?.id ?? null;
+    if (!orgData) throw new Error('No organization found');
 
     const { error } = await withRetry(
       () => supabase
         .from('receipts')
         .update({ approval_status: status, updated_at: new Date().toISOString() })
         .in('id', receiptIds)
-        .eq('org_id', orgId || ''), // HIGH-2: explicit org scoping
+        .eq('org_id', orgData || ''), // HIGH-2: explicit org scoping
       { maxRetries: 2, delayMs: 500 }
     );
     if (error) throw handleSupabaseError(error);
@@ -714,7 +756,7 @@ export const bulkUpdateApproval = async (
     // HIGH-3: Include org_id in audit log
     await supabase.from('audit_logs').insert({
       user_id: userId,
-      org_id: orgId || null,
+      org_id: orgData || null,
       action: `bulk_${status}`,
       details: `Bulk ${status}: ${receiptIds.length} receipts by ${userId}`,
     });
@@ -735,11 +777,11 @@ export const updateReceipt = async (
 ) => {
   // Get org_id for history record
   const orgData = await getOrgId();
-  const orgId = orgData?.id ?? null;
+  if (!orgData) throw new Error('No organization found');
 
   // C10: Archive full snapshot to receipt_history FIRST (compensation if next step fails)
   const archivePayload = {
-    org_id: orgId,
+    org_id: orgData,
     receipt_id: originalReceipt.id,
     user_id: originalReceipt.user_id,
     vendor_name: originalReceipt.vendor_name,
@@ -780,7 +822,7 @@ export const updateReceipt = async (
     .from('receipts')
     .update(updatePayload)
     .eq('id', receiptId)
-    .eq('org_id', orgId || '');
+    .eq('org_id', orgData || '');
 
   // C10: Compensation — if update fails, delete the orphaned history record
   if (updateError) {
@@ -790,7 +832,7 @@ export const updateReceipt = async (
 
   await supabase.from('audit_logs').insert({
     user_id: userId,
-    org_id: orgId || null,
+    org_id: orgData || null,
     action: 'receiptedited',
     details: `Receipt updated: ${Object.keys(updatedData).join(', ')} modified for ${originalReceipt.vendor_name}. Previous version archived.`,
   });
@@ -862,7 +904,7 @@ export const saveReceipt = async (
       .single();
     previousHash = lastLog?.event_hash ?? null;
   } catch {
-    console.warn('Previous hash lookup failed — starting fresh Merkle chain');
+    logWarn('Previous hash lookup failed — starting fresh Merkle chain');
     previousHash = null;
   }
 
@@ -876,7 +918,7 @@ export const saveReceipt = async (
 
   // Fetch org_id for explicit tenant isolation (C6: don't rely on DB trigger)
   const orgData = await getOrgId();
-  const orgId = orgData ? orgData.id : null;
+  const orgId = orgData || null;
 
   // Always force server-controlled values
   sanitizedPayload.user_id = userId;
@@ -944,7 +986,7 @@ export const getBankTransactions = async () => {
   const { data, error } = await supabase
     .from('bank_transactions')
     .select('*')
-    .eq('org_id', orgId.id)
+    .eq('org_id', orgId)
     .order('date', { ascending: false });
     
   if (error) throw handleSupabaseError(error);
@@ -958,7 +1000,7 @@ export const getUnmatchedBankCount = async (): Promise<number> => {
   const { count, error } = await supabase
     .from('bank_transactions')
     .select('*', { count: 'exact', head: true })
-    .eq('org_id', orgId.id)
+    .eq('org_id', orgId)
     .is('matched_receipt_id', null)
     .eq('is_reconciled', false);
     
@@ -976,7 +1018,7 @@ export const confirmBankMatch = async (
   if (!orgId) {
     const orgData = await getOrgId();
     if (!orgData) throw new Error('Could not determine organization ID');
-    orgId = orgData.id;
+    orgId = orgId;
   }
   const { error } = await supabase
     .from('bank_transactions')
@@ -1030,18 +1072,18 @@ export interface CRAFormData {
   dateRange: { from: string; to: string };
 }
 
-export async function getCRAFormData(taxYear: number): Promise<CRAFormData> {
+export async function getCRAFormData(taxYear: number, dateRange?: { from: string; to: string }): Promise<CRAFormData> {
   const orgId = await getOrgId();
   if (!orgId) throw new Error('No organization found');
 
-  const fromDate = `${taxYear}-01-01`;
-  const toDate = `${taxYear}-12-31`;
+  const fromDate = dateRange?.from ?? `${taxYear}-01-01`;
+  const toDate = dateRange?.to ?? `${taxYear}-12-31`;
 
   // Fetch all receipts for the tax year
   const { data: receipts, error: rxErr } = await supabase
     .from('receipts')
     .select('total_amount, cad_equivalent, tax_amount, pst_amount, category, vendor_name, business_number, currency')
-    .eq('org_id', orgId.id)
+    .eq('org_id', orgId)
     .eq('is_deleted', false)
     .gte('transaction_date', fromDate)
     .lte('transaction_date', toDate);
@@ -1079,7 +1121,7 @@ export async function getCRAFormData(taxYear: number): Promise<CRAFormData> {
   const { data: mileageLogs } = await supabase
     .from('mileage_logs')
     .select('distance_km, total_amount, vehicle_id')
-    .eq('org_id', orgId.id)
+    .eq('org_id', orgId)
     .gte('trip_date', fromDate)
     .lte('trip_date', toDate);
 

@@ -5,7 +5,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { env } from '@/lib/env';
-import { logError, logInfo } from '@/lib/logger';
+import { logError, logInfo, logWarn } from '@/lib/logger';
 
 const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -335,7 +335,7 @@ Return the corrected JSON only. Keep the same schema.`;
     }
   } catch {
     // AI self-correction failed — return original Gemini output
-    console.warn('AI self-correction failed — using original results');
+    logWarn('AI self-correction failed — using original results');
     return firstPass;
   }
 }
@@ -470,7 +470,7 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
   try {
     await supabaseClient.from('scan_attempts').insert({ user_id: userId });
   } catch {
-    console.warn('scan_attempts insert skipped — table may not exist');
+    logWarn('scan_attempts insert skipped — table may not exist');
   }
 
   const payload = preparePayload(validImage);

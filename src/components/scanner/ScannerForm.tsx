@@ -596,7 +596,7 @@ export default function ScannerForm({
         <div className="flex items-center justify-between border-b border-glass-border px-5 py-3">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Line Items</p>
           <button type="button" onClick={() => append({ description: '', quantity: 1, unit_price: 0, tax_rate: 0, tax_amount: 0, line_total: 0 })} className="inline-flex items-center gap-1.5 rounded-[2rem] bg-surface-raised px-2.5 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-glass-border-hover hover:text-text-primary">
-            <Plus className="h-3 w-3" /> Add Item
+            <Plus className="h-3 w-3" aria-hidden="true" /> Add Item
           </button>
         </div>
         <div className="divide-y divide-glass-border shrink-0">

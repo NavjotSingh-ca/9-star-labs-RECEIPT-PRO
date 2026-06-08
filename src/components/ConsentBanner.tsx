@@ -17,6 +17,15 @@ export function ConsentBanner() {
     if (!existing) setVisible(true);
   }, []);
 
+  useEffect(() => {
+    if (!visible) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleAccept();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [visible]);
+
   const handleAccept = async () => {
     localStorage.setItem(STORAGE_KEY, new Date().toISOString());
     setVisible(false);
@@ -65,7 +74,8 @@ export function ConsentBanner() {
           transition={{ duration: 0.3, ease: 'easeOut' }}
           className="fixed bottom-6 left-4 right-4 z-[200] mx-auto max-w-lg"
         >
-          <div className="rounded-2xl border border-glass-border bg-card p-5 shadow-2xl backdrop-blur-xl">
+          <div           className="rounded-2xl border border-glass-border bg-card p-5 shadow-2xl backdrop-blur-xl"
+          aria-live="assertive">
             <div className="flex items-start gap-3">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-champagne/15">
                 <ShieldCheck className="h-4 w-4 text-champagne" />

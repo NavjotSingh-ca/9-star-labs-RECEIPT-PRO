@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   AlertCircle,
+  ChevronDown,
   Download,
   Edit3,
   Eye,
@@ -13,9 +14,13 @@ import {
   ShieldCheck,
   Trash2,
 } from 'lucide-react';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { formatDate } from '@/lib/ui-utils';
+import { Button } from '@/components/ui/button';
 import type { AuditLogRow } from '@/lib/types';
+
+const PAGE_SIZE = 50;
 
 function getActionMeta(action?: string) {
   const normalized = (action ?? '').toLowerCase();
@@ -78,47 +83,47 @@ function getActionMeta(action?: string) {
   };
 }
 
+interface PageResult {
+  logs: AuditLogRow[];
+  nextOffset: number | undefined;
+}
+
+async function fetchAuditLogsPage({ pageParam = 0 }): Promise<PageResult> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user?.id) return { logs: [], nextOffset: undefined };
+
+  const { data, error } = await supabase
+    .from('audit_logs')
+    .select('*')
+    .eq('user_id', session.user.id)
+    .order('created_at', { ascending: false })
+    .range(pageParam, pageParam + PAGE_SIZE - 1);
+
+  if (error) throw error;
+  const logs = (data ?? []) as AuditLogRow[];
+  const nextOffset = logs.length < PAGE_SIZE ? undefined : pageParam + PAGE_SIZE;
+  return { logs, nextOffset };
+}
+
 export default function AuditTrail() {
-  const [logs, setLogs] = useState<AuditLogRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
+  const {
+    data: pages,
+    isLoading,
+    error,
+    refetch,
+    isFetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    initialPageParam: 0,
+    queryKey: ['audit_logs'],
+    queryFn: fetchAuditLogsPage,
+    getNextPageParam: (lastPage) => lastPage.nextOffset,
+    staleTime: 30_000,
+  });
 
-  const loadLogs = async () => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session?.user?.id) {
-        setLogs([]);
-        setError('You must be signed in to view the audit trail.');
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-
-      setLogs((data ?? []) as AuditLogRow[]);
-    } catch (err: unknown) {
-      setLogs([]);
-      setError(err instanceof Error ? err.message : 'Failed to load audit trail.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadLogs();
-  }, []);
+  const logs = pages?.pages.flatMap((p) => p.logs) ?? [];
 
   return (
     <div className="space-y-4 fade-in" role="region" aria-label="Audit trail">
@@ -132,11 +137,11 @@ export default function AuditTrail() {
 
         <button
           type="button"
-          onClick={loadLogs}
-          disabled={loading}
+          onClick={() => refetch()}
+          disabled={isFetching}
           className="inline-flex items-center gap-2 rounded-[2rem] border border-glass-border bg-surface px-3 py-2 text-sm font-medium text-text-secondary shadow-sm transition hover:border-glass-border-hover hover:text-champagne disabled:opacity-50"
         >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
           <span>Refresh</span>
         </button>
       </div>
@@ -153,7 +158,7 @@ export default function AuditTrail() {
         </div>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 rounded-[3rem] border border-glass-border bg-surface">
           <Loader2 className="h-8 w-8 animate-spin text-champagne" />
           <p className="text-sm font-medium text-text-secondary">Loading audit events…</p>
@@ -164,7 +169,7 @@ export default function AuditTrail() {
             <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-danger" />
             <div>
               <p className="text-sm font-semibold text-danger">Could not load audit trail</p>
-              <p className="mt-1 text-sm text-danger">{error}</p>
+              <p className="mt-1 text-sm text-danger">{error instanceof Error ? error.message : 'Failed to load audit trail.'}</p>
             </div>
           </div>
         </div>
@@ -216,6 +221,24 @@ export default function AuditTrail() {
               </div>
             );
           })}
+
+          {hasNextPage && (
+            <div className="flex justify-center pt-2 pb-8">
+              <Button
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                variant="outline"
+                className="px-8 font-bold"
+              >
+                {isFetchingNextPage ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <ChevronDown className="mr-2 h-4 w-4" />
+                )}
+                Load More Events
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

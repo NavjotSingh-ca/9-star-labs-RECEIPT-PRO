@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { APP_NAME } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -75,7 +76,7 @@ export default function CommandPalette({ onAction }: CommandPaletteProps) {
                 <input
                   type="text"
                   autoFocus
-                  placeholder="Search 9 Star Labs — Type a command..."
+                  placeholder="Search {APP_NAME} — Type a command..."
                   aria-label="Search commands"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}

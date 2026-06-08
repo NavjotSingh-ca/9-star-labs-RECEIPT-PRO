@@ -28,7 +28,8 @@ export async function semanticSearchAction(query: string) {
 
   // Get org_id for proper tenant isolation
   const { data: orgData } = await supabase.rpc('get_user_org');
-  const orgId = orgData as unknown as string;
+  const orgId = typeof orgData === 'string' ? orgData : null;
+  if (!orgId) return [];
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });

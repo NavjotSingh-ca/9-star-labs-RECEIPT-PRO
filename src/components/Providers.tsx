@@ -6,6 +6,7 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { useState, useEffect } from 'react';
 import { MotionConfig } from 'framer-motion';
 import { ThemeProvider } from './ThemeProvider';
+import { logWarn } from '@/lib/logger';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   // Register Service Worker
@@ -13,7 +14,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').catch((err) => {
-          console.warn('SW registration skipped — offline queuing unavailable:', err?.message || err);
+          logWarn('SW registration skipped — offline queuing unavailable: ' + (err?.message || err));
         });
       });
     }

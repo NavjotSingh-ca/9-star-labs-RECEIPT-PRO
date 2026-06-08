@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { env } from '@/lib/env';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { logInfo, logWarn, logError } from '@/lib/logger';
 
 const stripe = env.STRIPE_SECRET_KEY
   ? new Stripe(env.STRIPE_SECRET_KEY)
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
         const plan = (session.metadata?.plan as 'free' | 'starter' | 'pro' | 'business' | 'enterprise') || 'pro';
 
         if (!orgId) {
-          console.warn('[Stripe Webhook] No org_id in session metadata');
+          logWarn('[Stripe Webhook] No org_id in session metadata');
           return NextResponse.json({ received: true });
         }
 
@@ -173,7 +174,7 @@ export async function POST(request: Request) {
       }
 
       default:
-        console.log(`[Stripe Webhook] Unhandled event: ${event.type}`);
+        logInfo(`[Stripe Webhook] Unhandled event: ${event.type}`);
     }
 
     // MED-7: Record processed event for idempotency

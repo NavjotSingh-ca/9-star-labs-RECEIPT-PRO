@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, KeyRound, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Loader2, KeyRound, AlertCircle, CheckCircle2, ShieldOff } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +31,9 @@ export default function SecuritySettings() {
   const [verifyCode, setVerifyCode] = useState('');
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [unenrollTarget, setUnenrollTarget] = useState<string | null>(null);
+  const [unenrollChallengeId, setUnenrollChallengeId] = useState<string | null>(null);
+  const [unenrollCode, setUnenrollCode] = useState('');
+  const [unenrolling, setUnenrolling] = useState(false);
 
   useEffect(() => {
     loadFactors();
@@ -91,19 +94,52 @@ export default function SecuritySettings() {
     }
   }
 
-  async function unenrollFactor(id: string) {
-    setLoading(true);
+  async function startUnenrollChallenge(id: string) {
+    setError('');
+    setUnenrollCode('');
+    setUnenrolling(true);
     try {
-      const { error } = await supabase.auth.mfa.unenroll({ factorId: id });
+      const challenge = await supabase.auth.mfa.challenge({ factorId: id });
+      if (challenge.error) throw challenge.error;
+      setUnenrollChallengeId(challenge.data.id);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to start verification challenge.');
+      setUnenrolling(false);
+    }
+  }
+
+  async function verifyAndUnenroll() {
+    if (!unenrollTarget || !unenrollChallengeId || unenrollCode.length !== 6) return;
+    setError('');
+    setUnenrolling(true);
+    try {
+      const verify = await supabase.auth.mfa.verify({
+        factorId: unenrollTarget,
+        challengeId: unenrollChallengeId,
+        code: unenrollCode,
+      });
+      if (verify.error) throw verify.error;
+
+      const { error } = await supabase.auth.mfa.unenroll({ factorId: unenrollTarget });
       if (error) throw error;
+
       setSuccess('MFA factor removed.');
       await loadFactors();
+      setUnenrollTarget(null);
+      setUnenrollChallengeId(null);
+      setUnenrollCode('');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
-      setLoading(false);
-      setUnenrollTarget(null);
+      setUnenrolling(false);
     }
+  }
+
+  function cancelUnenroll() {
+    setUnenrollTarget(null);
+    setUnenrollChallengeId(null);
+    setUnenrollCode('');
+    setUnenrolling(false);
   }
 
   return (
@@ -214,27 +250,57 @@ export default function SecuritySettings() {
 
             </div>
           )}
-      <AlertDialog open={!!unenrollTarget} onOpenChange={(open) => { if (!open) setUnenrollTarget(null); }}>
+      <AlertDialog open={!!unenrollTarget} onOpenChange={(open) => { if (!open) cancelUnenroll(); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Disable MFA</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to disable Multi-Factor Authentication? This decreases your account security. You will no longer be prompted for a code when signing in.
+              {!unenrollChallengeId
+                ? 'Are you sure you want to disable Multi-Factor Authentication?'
+                : 'Enter the 6-digit code from your authenticator app to confirm.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              render={<button className="rounded-[2rem] border border-glass-border px-4 py-2 text-sm font-medium text-text-secondary hover:bg-surface-raised" />}
-            />
-            <AlertDialogAction
-              disabled={loading}
-              render={<button className="rounded-[2rem] bg-danger px-4 py-2 text-sm font-bold text-white hover:bg-danger/80 disabled:opacity-50" />}
-              onClick={() => unenrollTarget && unenrollFactor(unenrollTarget)}
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2 inline" /> : null}
-              Disable MFA
-            </AlertDialogAction>
-          </AlertDialogFooter>
+
+          {!unenrollChallengeId ? (
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                render={<button className="rounded-[2rem] border border-glass-border px-4 py-2 text-sm font-medium text-text-secondary hover:bg-surface-raised" />}
+              />
+              <AlertDialogAction
+                disabled={unenrolling}
+                render={<button className="rounded-[2rem] bg-danger px-4 py-2 text-sm font-bold text-white hover:bg-danger/80 disabled:opacity-50" />}
+                onClick={() => unenrollTarget && startUnenrollChallenge(unenrollTarget)}
+              >
+                {unenrolling ? <Loader2 className="h-4 w-4 animate-spin mr-2 inline" /> : <ShieldOff className="h-4 w-4 mr-2 inline" />}
+                Continue
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          ) : (
+            <div className="space-y-4 px-1">
+              <input
+                type="text"
+                value={unenrollCode}
+                onChange={(e) => setUnenrollCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="w-full rounded-[2rem] border border-glass-border bg-surface-hover px-4 py-3 text-center text-lg tracking-[0.5em] text-text-primary outline-none focus:border-champagne/40"
+                placeholder="000000"
+                maxLength={6}
+                autoFocus
+              />
+              <AlertDialogFooter>
+                <AlertDialogCancel
+                  render={<button className="rounded-[2rem] border border-glass-border px-4 py-2 text-sm font-medium text-text-secondary hover:bg-surface-raised" />}
+                />
+                <AlertDialogAction
+                  disabled={unenrolling || unenrollCode.length !== 6}
+                  render={<button className="rounded-[2rem] bg-danger px-4 py-2 text-sm font-bold text-white hover:bg-danger/80 disabled:opacity-50" />}
+                  onClick={verifyAndUnenroll}
+                >
+                  {unenrolling ? <Loader2 className="h-4 w-4 animate-spin mr-2 inline" /> : <ShieldOff className="h-4 w-4 mr-2 inline" />}
+                  Verify & Disable
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </div>
+          )}
         </AlertDialogContent>
       </AlertDialog>
     </>

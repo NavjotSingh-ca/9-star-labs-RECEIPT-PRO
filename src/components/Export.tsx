@@ -1,7 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { APP_NAME } from '@/lib/constants';
 import { toast } from 'sonner';
+import { usePlan } from '@/hooks/use-plan';
+import { PlanGate } from '@/components/plan-gate';
 import {
   AlertTriangle,
   Download,
@@ -13,185 +16,19 @@ import {
 } from 'lucide-react';
 
 import type { ReceiptRow } from '@/lib/types';
-import { toNumber } from '@/lib/ui-utils';
 import { formatDineroIntl } from '@/lib/finance-utils';
-import { format } from 'date-fns';
 import { getReceiptImageUrl } from '@/lib/supabase';
+import {
+  getVendor, getDate, getCategory, getTotal, getGST, getPST, getBN, getImageUrl, getHash,
+  formatDateInput, withinRange, buildCSV, buildIDEACSV, buildLogbook,
+} from '@/lib/export-cra';
 
 interface ExportProps {
   receipts: ReceiptRow[];
 }
 
-function getVendor(r: ReceiptRow): string {
-  return String(r.vendor_name ?? 'Unknown Vendor').trim() || 'Unknown Vendor';
-}
-
-function getDate(r: ReceiptRow): string {
-  return String(r.transaction_date ?? '').trim();
-}
-
-function getCategory(r: ReceiptRow): string {
-  return String(r.category ?? 'Uncategorized').trim() || 'Uncategorized';
-}
-
-function getTotal(r: ReceiptRow): number {
-  return toNumber(r.total_amount);
-}
-
-function getGST(r: ReceiptRow): number {
-  return toNumber(r.tax_amount);
-}
-
-function getPST(r: ReceiptRow): number {
-  return toNumber(r.pst_amount);
-}
-
-function getBN(r: ReceiptRow): string {
-  return String(r.vendor_tax_number ?? '').trim();
-}
-
-function getImageUrl(r: ReceiptRow): string {
-  return String(r.image_url ?? '').trim();
-}
-
-function getHash(r: ReceiptRow): string {
-  return String(r.integrity_hash ?? '').trim();
-}
-
-function formatDateInput(date: Date): string {
-  return format(date, 'yyyy-MM-dd');
-}
-
-function withinRange(r: ReceiptRow, from: string, to: string): boolean {
-  const date = getDate(r);
-  if (!date) return false;
-  if (from && date < from) return false;
-  if (to && date > to) return false;
-  return true;
-}
-
-function csvEscape(value: unknown): string {
-  const s = value === null || value === undefined ? '' : String(value);
-  return `"${s.replace(/"/g, '""')}"`;
-}
-
-function stringifyLineItems(lineItems: ReceiptRow['line_items']): string {
-  if (!lineItems) return '';
-  if (typeof lineItems === 'string') return lineItems;
-  try {
-    return JSON.stringify(lineItems);
-  } catch {
-    return '';
-  }
-}
-
-function buildCSV(receipts: ReceiptRow[]): string {
-  const headers = [
-    'Date', 'Vendor', 'Vendor Address', 'Category', 'Payment Method',
-    'Card Last 4', 'Currency', 'Exchange Rate', 'CAD Equivalent',
-    'Subtotal', 'GST', 'PST', 'Total',
-    'Business Number (GST/BN)', 'Business Use %', 'Job Code', 'Vehicle ID',
-    'Document Type', 'Notes', 'Paid By', 'Reimbursement Status', 'Approval Status',
-    'AI Fraud Suspicion', 'AI Fraud Reason', 'Blur Score',
-    'Line Items', 'Integrity Hash', 'Image URL', 'Is Reconciled',
-  ];
-
-  const rows = receipts.map((r) => [
-    getDate(r),
-    getVendor(r),
-    String(r.vendor_address ?? ''),
-    getCategory(r),
-    String(r.payment_method ?? ''),
-    String(r.card_last_four ?? ''),
-    String(r.currency ?? 'CAD'),
-    toNumber(r.exchange_rate ?? 1).toFixed(4),
-    r.cad_equivalent != null ? toNumber(r.cad_equivalent).toFixed(2) : '',
-    toNumber(r.subtotal).toFixed(2),
-    getGST(r).toFixed(2),
-    getPST(r).toFixed(2),
-    getTotal(r).toFixed(2),
-    getBN(r),
-    toNumber(r.business_use_percent ?? 100).toFixed(0),
-    String(r.job_code ?? ''),
-    String(r.vehicle_id ?? ''),
-    String(r.document_type ?? 'receipt'),
-    String(r.notes ?? ''),
-    String(r.paid_by ?? ''),
-    String(r.reimbursement_status ?? ''),
-    String(r.approval_status ?? ''),
-    r.fraud_suspicion ? 'TRUE' : 'FALSE',
-    String(r.fraud_reason ?? ''),
-    r.blur_score != null ? toNumber(r.blur_score).toFixed(1) : '',
-    stringifyLineItems(r.line_items),
-    getHash(r),
-    getImageUrl(r),
-    'is_reconciled' in r ? 'TRUE' : 'FALSE',
-  ]);
-
-  return '\ufeff' + [headers.map(csvEscape).join(','), ...rows.map((row) => row.map(csvEscape).join(','))].join('\n');
-}
-
-function buildIDEACSV(receipts: ReceiptRow[]): string {
-  const headers = [
-    'Integrity Hash (SHA-256)', 'User ID', 'Transaction Date', 'Vendor Name', 
-    'Vendor Tax Number', 'Subtotal', 'Taxes', 'Total Amount', 'Job Code', 'Approval Status'
-  ];
-
-  const rows = receipts.map((r) => [
-    getHash(r),
-    String(r.user_id ?? 'Unknown'),
-    getDate(r),
-    getVendor(r),
-    getBN(r),
-    toNumber(r.subtotal).toFixed(2),
-    (getGST(r) + getPST(r)).toFixed(2),
-    getTotal(r).toFixed(2),
-    String(r.job_code ?? ''),
-    String(r.approval_status ?? ''),
-  ]);
-
-  return '\ufeff' + [headers.map(csvEscape).join(','), ...rows.map((row) => row.map(csvEscape).join(','))].join('\n');
-}
-
-function buildLogbook(receipts: ReceiptRow[]): string {
-  const headers = [
-    'Filename', 'Date', 'Vendor', 'Total (Original)', 'Currency',
-    'CAD Equivalent', 'Exchange Rate', 'Document Type', 'SHA-256 Hash',
-    'Blur Score', 'Approval Status', 'Estimate Warning',
-  ];
-
-  const rows = receipts
-    .filter((r) => getImageUrl(r) || getHash(r))
-    .map((r) => {
-      const filename = (() => {
-        const url = getImageUrl(r);
-        if (url) {
-          const last = url.split('/').pop() || `${r.id}.jpg`;
-          return last.split('?')[0];
-        }
-        return `${r.id}.jpg`;
-      })();
-
-      return [
-        filename,
-        getDate(r),
-        getVendor(r),
-        getTotal(r).toFixed(2),
-        String(r.currency ?? 'CAD'),
-        r.cad_equivalent != null ? toNumber(r.cad_equivalent).toFixed(2) : getTotal(r).toFixed(2),
-        toNumber(r.exchange_rate ?? 1).toFixed(4),
-        String(r.document_type ?? 'receipt'),
-        getHash(r),
-        r.blur_score != null ? toNumber(r.blur_score).toFixed(1) : 'N/A',
-        String(r.approval_status ?? 'submitted'),
-        r.document_type === 'estimate' ? 'NON-DEDUCTIBLE ESTIMATE' : '',
-      ];
-    });
-
-  return '\ufeff' + [headers.map(csvEscape).join(','), ...rows.map((row) => row.map(csvEscape).join(','))].join('\n');
-}
-
 export default function Export({ receipts }: ExportProps) {
+  const { plan } = usePlan();
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [zipping, setZipping] = useState(false);
@@ -246,7 +83,10 @@ export default function Export({ receipts }: ExportProps) {
     try {
       setGeneratingPdf(true);
       const year = new Date().getFullYear() - 1; // Default to last year
-      const response = await fetch(`/api/cra/generate?year=${year}`);
+      const params = new URLSearchParams({ year: String(year) });
+      if (fromDate) params.set('fromDate', fromDate);
+      if (toDate) params.set('toDate', toDate);
+      const response = await fetch(`/api/cra/generate?${params}`);
       
       if (!response.ok) {
         throw new Error('Failed to generate PDF');
@@ -283,7 +123,7 @@ export default function Export({ receipts }: ExportProps) {
       zip.file(
         'README.txt',
         [
-          '9 Star Labs — CRA Audit Package',
+          '{APP_NAME} — CRA Audit Package',
           '================================================',
           '',
           'This package is prepared for CRA recordkeeping and audit support under IC05-1R1.',
@@ -309,7 +149,7 @@ export default function Export({ receipts }: ExportProps) {
           '- Do not delete source files while an audit hold is active.',
           '- Keep exported packages alongside original source records.',
           '',
-          'Generated by 9 Star Labs — CRA-Ready Receipt Intelligence',
+          'Generated by {APP_NAME} — CRA-Ready Receipt Intelligence',
           'Contact: 9starlaba@gmail.com',
         ].join('\n')
       );
@@ -357,11 +197,12 @@ export default function Export({ receipts }: ExportProps) {
   }
 
   return (
-    <section className="space-y-5 fade-in" role="region" aria-label="Export receipts">
+    <PlanGate plan={plan} feature="hasExports">
+      <section className="space-y-5 fade-in" role="region" aria-label="Export receipts">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-champagne">Export center</p>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">CRA Export — 9 Star Labs</h2>
+          <h2 className="mt-1 text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">CRA Export — {APP_NAME}</h2>
         </div>
 
         <div className="rounded-[3rem] border border-glass-border bg-surface px-3 py-2 text-xs font-medium text-text-secondary shadow-sm">
@@ -525,6 +366,7 @@ export default function Export({ receipts }: ExportProps) {
           </div>
         </div>
       </div>
-    </section>
+      </section>
+    </PlanGate>
   );
 }

@@ -46,7 +46,7 @@ export function CategoryDonut({ data }: CategoryDonutProps) {
       </CardHeader>
       <CardContent className="pt-4">
         <div className="flex flex-col sm:flex-row items-center gap-6">
-          <div className="h-[220px] w-[220px] flex-shrink-0">
+          <div className="h-[220px] w-[220px] flex-shrink-0" role="img" aria-label="Spending by category">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie

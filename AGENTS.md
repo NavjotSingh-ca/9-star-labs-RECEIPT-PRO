@@ -151,12 +151,24 @@ When no more tasks exist or I need fresh direction, the user can take `task-orac
 - **PHASE 0.6 (z.any cleanup)** — Replaced 3 `z.any()` with `z.unknown()` in receipt/line item schemas in `receipts.ts`.
 - **PHASE 0.7 (JSZip lazy load)** — Converted static `import JSZip from 'jszip'` to dynamic `await import('jszip')` in both `Export.tsx` and `useScannerState.ts`.
 - **PHASE 1.1 (Auth proxy)** — Completed `src/proxy.ts` with auth redirect: unauthenticated users on non-public paths redirected to `/`, `getUser()` session refresh retained.
+- **MileageTracker form refactor** — Replaced 12 `useState` + manual validation with `useForm` + Zod schemas + `htmlFor`/`id` labels.
+- **History.tsx decomposition** — Extracted `StatCards` + `SemanticSearchBar` to `src/components/history/`. File: 445→372 lines.
+- **AuditTrail pagination** — `useQuery` (hardcoded limit 100) → `useInfiniteQuery` (50-row pages, "Load More").
+- **Confetti throttling** — Fires only for first 5 scans per session (`sessionStorage`), decreasing particle count.
+- **Dashboard prefetch** — `queryClient.prefetchQuery` for `dashboard_summary` + `daily_spend` post-auth.
+- **Skeleton loaders** — `ApprovalsQueue` + `ReimbursementsPanel`: spinners → matching skeleton cards.
+- **Scanner chunk prefetch** — Dynamic `import('@/components/Scanner')` on dashboard tab.
+- **TOTP MFA unenrollment** — `security/page.tsx`: requires TOTP `challenge`+`verify` before `unenroll`.
+- **Export data route streaming** — `export/data/route.ts`: refactored from `Promise.all` + in-memory JSON to `ReadableStream`-based JSON generator, avoiding Lambda memory limits.
+- **OpenAPI spec v2** — `openapi.json`: expanded to cover all 16 routes with full parameters, responses, and descriptions. `docs/route.ts`: merged with Swagger UI HTML page, routes by Accept header (JSON for API clients, HTML/SwaggerUI for browsers).
+- **`.audit-tasks.md` cleanup** — 47 items marked DONE; 0 pending. All audit tasks resolved.
+- **Storybook setup** — Installed Storybook 10.4.2 + @storybook/nextjs 10.4.2 with 8.6.x addons. Wrote 17 story files across `ui/` primitives and chart components (.storybook/main.ts, preview.tsx, utils.tsx). `npx tsc --noEmit` passes. Build blocked upstream: addon ecosystem hasn't released v10-compatible addon releases (gh#32836). Stories + config preserved; run `npm update` when addon v10 ships.
 
 ### In Progress
 - (none)
 
 ### Blocked
-- (none)
+- **Storybook build** — `npx storybook build` and `npx storybook dev` fail because addon-essentials/addon-a11y/addon-interactions haven't published v10-compatible releases yet. Error from gh#32836. Stories and config are in place; will work once addon authors ship v10 releases.
 
 ## Key Decisions
 - Date-based delete protection moved from RLS policy to `BEFORE DELETE` trigger.
@@ -176,9 +188,10 @@ When no more tasks exist or I need fresh direction, the user can take `task-orac
 - **Scanner refactoring** follows the pattern of: hook (state+logic) + thin component (render only). The hook owns all state, mutations, effects, and callbacks. The component imports it and delegates.
 
 ## Next Steps
-- All PHASE 0.x and PHASE 1.1 tasks complete. Run `task-oracle-prompt.md` through an external AI to generate the next batch of prioritized tasks.
 - Run `setup.sql` against Supabase to apply schema changes if not already applied.
 - Build and deploy the Next.js application.
+- Run `task-oracle-prompt.md` through an external AI to generate the next batch of prioritized tasks when ready.
+- When Storybook addon authors publish v10-compatible releases, run `npm update` and `npx storybook build`.
 
 ## Critical Context
 - The existing database has `transaction_date` as `date` type (not `text`).

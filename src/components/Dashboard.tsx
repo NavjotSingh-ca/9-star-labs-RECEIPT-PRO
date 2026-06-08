@@ -18,10 +18,25 @@ import {
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
-import { SpendingChart } from '@/components/charts/SpendingChart';
-import { DailySpendChart } from '@/components/charts/DailySpendChart';
-import { CategoryDonut } from '@/components/charts/CategoryDonut';
-import { Sparkline } from '@/components/charts/Sparkline';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const SpendingChart = dynamic(() => import('@/components/charts/SpendingChart').then(m => ({ default: m.SpendingChart })), {
+  ssr: false,
+  loading: () => <Skeleton className="h-48 w-full rounded-xl" />,
+});
+const DailySpendChart = dynamic(() => import('@/components/charts/DailySpendChart').then(m => ({ default: m.DailySpendChart })), {
+  ssr: false,
+  loading: () => <Skeleton className="h-64 w-full rounded-xl" />,
+});
+const CategoryDonut = dynamic(() => import('@/components/charts/CategoryDonut').then(m => ({ default: m.CategoryDonut })), {
+  ssr: false,
+  loading: () => <Skeleton className="h-64 w-full rounded-xl" />,
+});
+const Sparkline = dynamic(() => import('@/components/charts/Sparkline').then(m => ({ default: m.Sparkline })), {
+  ssr: false,
+  loading: () => <Skeleton className="h-12 w-24 rounded" />,
+});
 import {
   Card as ShadcnCard,
 } from '@/components/ui/card';
@@ -96,6 +111,7 @@ export default function Dashboard({
     queryFn: () => getDashboardSummary(role, userId!),
     enabled: !!userId,
     retry: false,
+    staleTime: 30_000,
   });
 
   const chartData = useMemo(() => {

@@ -30,6 +30,13 @@ const envSchema = z.object({
   NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1).optional(),
   NEXT_PUBLIC_POSTHOG_HOST: z.string().url().optional().default('https://app.posthog.com'),
 }).superRefine((data, ctx) => {
+  if (data.RESEND_API_KEY && !data.RESEND_FROM_EMAIL) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'RESEND_FROM_EMAIL is required when RESEND_API_KEY is set — email sender address must be configured',
+      path: ['RESEND_FROM_EMAIL'],
+    });
+  }
   if (data.QBO_CLIENT_ID && !data.TOKEN_ENCRYPTION_KEY) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,

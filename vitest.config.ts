@@ -6,6 +6,13 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     exclude: ['node_modules'],
+    coverage: {
+      thresholds: {
+        lines: 60,
+        functions: 60,
+        branches: 50,
+      },
+    },
   },
   resolve: {
     alias: {

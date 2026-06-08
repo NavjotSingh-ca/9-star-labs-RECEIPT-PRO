@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { setUserRole } from '@/lib/services/roles';
 import {
@@ -16,6 +16,7 @@ import {
   User,
   AlertCircle,
 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface TeamMember {
   userId: string;
@@ -37,99 +38,78 @@ const roleIcons: Record<string, React.ReactNode> = {
   Employee: <User className="h-3.5 w-3.5 text-text-muted" />,
 };
 
+async function fetchTeam(): Promise<{ members: TeamMember[]; callerRole: string }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error('Not authenticated');
+
+  const res = await fetch('/api/team', {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+  if (!res.ok) throw new Error('Failed to load team');
+  return res.json();
+}
+
 export default function TeamSettings() {
-  const [loading, setLoading] = useState(true);
-  const [members, setMembers] = useState<TeamMember[]>([]);
-  const [callerRole, setCallerRole] = useState<string>('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [removing, setRemoving] = useState<string | null>(null);
-  const [changingRole, setChangingRole] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const loadTeam = useCallback(async () => {
-    try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) { setError('Not authenticated'); setLoading(false); return; }
+  const { data, isLoading } = useQuery({
+    queryKey: ['team'],
+    queryFn: fetchTeam,
+    staleTime: 30_000,
+  });
+
+  const members = data?.members ?? [];
+  const callerRole = data?.callerRole ?? '';
+  const isOwner = callerRole === 'Owner';
+
+  const removeMutation = useMutation({
+    mutationFn: async (userId: string) => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) { setError('Not authenticated'); setLoading(false); return; }
-
-      const res = await fetch('/api/team', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      if (!res.ok) { setError('Failed to load team'); setLoading(false); return; }
-
-      const data = await res.json();
-      setMembers(data.members ?? []);
-      setCallerRole(data.callerRole ?? '');
-    } catch {
-      setError('Failed to load team');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { loadTeam(); }, [loadTeam]);
-
-  const handleRemove = async (userId: string) => {
-    setRemoving(userId);
-    setError('');
-    setSuccess('');
-    try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) return;
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) return;
+      if (!session?.access_token) throw new Error('Not authenticated');
 
       const res = await fetch('/api/team', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ userId }),
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to remove member');
+        const d = await res.json();
+        throw new Error(d.error || 'Failed to remove member');
       }
-
-      setMembers(prev => prev.filter(m => m.userId !== userId));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team'] });
       setSuccess('Member removed');
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to remove member');
-    } finally {
-      setRemoving(null);
-    }
-  };
+    },
+    onError: (err: Error) => setError(err.message),
+  });
 
-  const handleRoleChange = async (userId: string, newRole: string) => {
-    setChangingRole(userId);
-    setError('');
-    setSuccess('');
-    try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user?.id) return;
-
+  const roleMutation = useMutation({
+    mutationFn: async ({ userId, newRole }: { userId: string; newRole: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) throw new Error('Not authenticated');
       await setUserRole(userId, newRole as 'Owner' | 'Accountant' | 'Employee', user.id);
-      setMembers(prev => prev.map(m => m.userId === userId ? { ...m, role: newRole } : m));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team'] });
       setSuccess('Role updated');
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to update role');
-    } finally {
-      setChangingRole(null);
-    }
-  };
+    },
+    onError: (err: Error) => setError(err.message),
+  });
 
-  if (loading) {
+  const handleRemove = (userId: string) => removeMutation.mutate(userId);
+  const handleRoleChange = (userId: string, newRole: string) => roleMutation.mutate({ userId, newRole });
+
+  if (isLoading) {
     return (
       <div className="flex min-h-[200px] items-center justify-center" role="status" aria-live="polite" aria-label="Loading team">
         <Loader2 className="h-6 w-6 animate-spin text-champagne" />
       </div>
     );
   }
-
-  const isOwner = callerRole === 'Owner';
 
   return (
     <div className="space-y-6">
@@ -199,14 +179,14 @@ export default function TeamSettings() {
                   <div className="relative group">
                     <button
                       type="button"
-                      disabled={changingRole === member.userId}
+                      disabled={roleMutation.isPending}
                       className="flex items-center gap-1.5 rounded-lg border border-glass-border bg-surface px-2.5 py-1.5 text-xs font-medium text-text-secondary transition hover:bg-surface-hover disabled:opacity-50"
                       onClick={() => {
                         const next = member.role === 'Employee' ? 'Accountant' : 'Employee';
                         handleRoleChange(member.userId, next);
                       }}
                     >
-                      {changingRole === member.userId ? (
+                      {roleMutation.isPending ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
                       ) : (
                         <UserCog className="h-3 w-3" />
@@ -217,12 +197,12 @@ export default function TeamSettings() {
 
                   <button
                     type="button"
-                    disabled={removing === member.userId}
+                    disabled={removeMutation.isPending}
                     className="flex items-center gap-1.5 rounded-lg border border-transparent px-2.5 py-1.5 text-xs font-medium text-danger/70 transition hover:bg-danger/5 hover:text-danger disabled:opacity-50"
                     onClick={() => handleRemove(member.userId)}
                     title="Remove from organization"
                   >
-                    {removing === member.userId ? (
+                    {removeMutation.isPending ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
                     ) : (
                       <Trash2 className="h-3 w-3" />
@@ -235,7 +215,7 @@ export default function TeamSettings() {
           </div>
         ))}
 
-        {members.length === 0 && !loading && (
+        {members.length === 0 && !isLoading && (
           <div className="flex flex-col items-center justify-center py-12 text-text-muted">
             <Users className="mb-3 h-10 w-10 opacity-40" />
             <p className="text-sm font-medium">No team members yet</p>

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { APP_NAME } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAppStore } from '@/lib/store';
+import { useAppStore, type Tab } from '@/lib/store';
 import {
   LayoutDashboard,
   Camera,
@@ -27,8 +28,6 @@ import {
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import type { UserRole } from '@/lib/types';
-
-type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'more';
 
 interface SidebarProps {
   activeTab: Tab;
@@ -57,6 +56,8 @@ function NavLink({
     <button
       type="button"
       onClick={onClick}
+      aria-label={label}
+      title={label}
       className={`relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
         active
           ? 'bg-sidebar-active text-sidebar-text'
@@ -64,29 +65,16 @@ function NavLink({
       } ${collapsed ? 'justify-center px-2' : ''}`}
     >
       {active && (
-        <>
-          <motion.div
-            layoutId="sidebar-active-pill"
-            className="absolute inset-0 rounded-lg bg-sidebar-active"
-            transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-          />
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-sidebar-accent" />
-        </>
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-sidebar-accent" />
       )}
       <span className="relative z-10 flex-shrink-0">{icon}</span>
-      <AnimatePresence mode="wait">
-        {!collapsed && (
-          <motion.span
-            initial={{ opacity: 0, width: 0 }}
-            animate={{ opacity: 1, width: 'auto' }}
-            exit={{ opacity: 0, width: 0 }}
-            transition={{ duration: 0.15 }}
-            className="relative z-10 overflow-hidden whitespace-nowrap"
-          >
-            {label}
-          </motion.span>
-        )}
-      </AnimatePresence>
+      <span
+        className={`relative z-10 overflow-hidden whitespace-nowrap transition-all duration-200 ${
+          collapsed ? 'max-w-0 opacity-0' : 'max-w-40 opacity-100'
+        }`}
+      >
+        {label}
+      </span>
     </button>
   );
 }
@@ -171,22 +159,16 @@ export default function Sidebar({
         <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-sidebar-accent/15">
           <ReceiptText className="h-5 w-5 text-sidebar-accent" />
         </div>
-        <AnimatePresence mode="wait">
-          {!collapsed && (
-            <motion.div
-              initial={{ opacity: 0, width: 0 }}
-              animate={{ opacity: 1, width: 'auto' }}
-              exit={{ opacity: 0, width: 0 }}
-              transition={{ duration: 0.15 }}
-              className="overflow-hidden"
-            >
-              <h1 className="text-base font-bold tracking-tight text-sidebar-text whitespace-nowrap">9 Star Labs</h1>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-accent whitespace-nowrap">
-                CRA-ready records
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div
+          className={`overflow-hidden transition-all duration-200 ${
+            collapsed ? 'max-w-0 opacity-0' : 'max-w-40 opacity-100'
+          }`}
+        >
+          <h1 className="text-base font-bold tracking-tight text-sidebar-text whitespace-nowrap">{APP_NAME}</h1>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-accent whitespace-nowrap">
+            CRA-ready records
+          </p>
+        </div>
       </div>
 
       {/* Navigation */}
@@ -231,6 +213,7 @@ export default function Sidebar({
         {/* Billing & Plan */}
         <Link
           href="/settings/billing"
+          aria-label="Billing"
           className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition mb-1 ${collapsed ? 'justify-center' : ''}`}
           title={collapsed ? `Billing · ${planLabel}` : undefined}
         >
@@ -250,6 +233,7 @@ export default function Sidebar({
         {/* Organization */}
         <Link
           href="/settings/org"
+          aria-label="Organization"
           className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition mb-2 ${collapsed ? 'justify-center' : ''}`}
           title={collapsed ? 'Organization' : undefined}
         >
@@ -330,7 +314,7 @@ export default function Sidebar({
                       <ReceiptText className="h-5 w-5 text-sidebar-accent" />
                     </div>
                     <div>
-                      <h1 className="text-base font-bold tracking-tight text-sidebar-text">9 Star Labs</h1>
+                      <h1 className="text-base font-bold tracking-tight text-sidebar-text">{APP_NAME}</h1>
                       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-accent">CRA-ready records</p>
                     </div>
                   </div>

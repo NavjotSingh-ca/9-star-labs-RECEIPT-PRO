@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { Wifi, WifiOff, CloudUpload } from 'lucide-react';
@@ -8,10 +9,29 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function OfflineIndicator() {
   const { online } = useNetworkStatus();
   const { queueCount } = useOfflineQueue();
+  const [showOffline, setShowOffline] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!online) {
+      if (!timerRef.current) {
+        timerRef.current = setTimeout(() => setShowOffline(true), 2000);
+      }
+    } else {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      setShowOffline(false);
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [online]);
 
   return (
     <AnimatePresence>
-      {!online ? (
+      {showOffline ? (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -23,7 +43,7 @@ export default function OfflineIndicator() {
           <WifiOff className="h-3.5 w-3.5" />
           <span>You are offline. {queueCount > 0 ? `${queueCount} receipts queued.` : 'Changes will sync when connection returns.'}</span>
         </motion.div>
-      ) : queueCount > 0 ? (
+      ) : online && queueCount > 0 ? (
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
