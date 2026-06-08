@@ -210,10 +210,8 @@ export default function ScannerForm({
   const canSave = hasAnalyzed && isConfirmed && !saving;
 
   return (
-    <div className="w-full min-h-screen bg-obsidian flex flex-col">
-      {/* Image preview/upload area - passed via props or handled in parent */}
-      
-      <form onSubmit={handleSubmit(performSave)} className="flex-1 flex flex-col overflow-hidden">
+    <div className="w-full">
+      <form onSubmit={handleSubmit(performSave)}>
         {/* Header */}
         <div className="p-4 border-b border-glass-border bg-surface-raised">
           <h3 className="text-lg font-bold text-text-primary">Review Data</h3>
@@ -223,8 +221,8 @@ export default function ScannerForm({
         {/* Receipt Quota Counter */}
         <QuotaBar />
 
-        {/* Form fields - scrollable */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-surface">
+        {/* Form fields */}
+        <div className="p-4 space-y-6 bg-surface">
 
       {/* Vendor Pre-Fill Banner */}
       {vendorPrefillSource === 'history' && (
@@ -668,7 +666,7 @@ export default function ScannerForm({
       </section>
     </div>
 
-        {/* Buttons - sticky at bottom */}
+        {/* Buttons */}
         <div className="sticky bottom-0 bg-surface border-t border-glass-border p-4 space-y-3 z-20">
           {!isMathValid && hasAnalyzed && (
             <div className="flex items-center gap-2 rounded-[2rem] bg-danger/10 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-danger border border-danger/20">

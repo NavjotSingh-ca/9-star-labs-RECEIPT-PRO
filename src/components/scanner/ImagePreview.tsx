@@ -32,7 +32,7 @@ export default function ImagePreview({
   formContent,
 }: ImagePreviewProps) {
   return (
-    <div className={hasAnalyzed ? 'grid h-full gap-6 lg:grid-cols-2' : 'mx-auto flex max-w-2xl flex-col gap-6'}>
+    <div className={hasAnalyzed ? 'grid gap-6 lg:grid-cols-2' : 'mx-auto flex max-w-2xl flex-col gap-6'}>
       <div className="space-y-4">
         <Card className="overflow-hidden shadow-md border bg-card">
           <div className="flex items-center justify-between border-b px-6 py-4 bg-muted/20">

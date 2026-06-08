@@ -86,16 +86,15 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
         )}
       </AnimatePresence>
 
-      <Card className="overflow-hidden border bg-card text-card-foreground shadow-sm">
-        <CardHeader className="px-5 py-4 border-b">
-          <CardTitle className="text-lg font-bold">{APP_NAME} Scanner</CardTitle>
-          <CardDescription className="mt-1 text-sm">
-            Capture, crop, extract, verify, and save a CRA-ready receipt record. Up to {s.BATCH_LIMIT} files per batch.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="space-y-5 p-5">
-          {!s.imageSrc ? (
+      {!s.imageSrc ? (
+        <Card className="border bg-card text-card-foreground shadow-sm">
+          <CardHeader className="px-5 py-4 border-b">
+            <CardTitle className="text-lg font-bold">{APP_NAME} Scanner</CardTitle>
+            <CardDescription className="mt-1 text-sm">
+              Capture, crop, extract, verify, and save a CRA-ready receipt record. Up to {s.BATCH_LIMIT} files per batch.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5 p-5">
             <CaptureControls
               onCameraClick={() => s.cameraInputRef.current?.click()}
               onUploadClick={() => s.galleryInputRef.current?.click()}
@@ -103,57 +102,57 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
               batchLimit={s.BATCH_LIMIT}
               maxDimension={s.MAX_DIMENSION}
             />
-          ) : (
-            <>
-              {s.isBatchProcessing && (
-                <BatchOverlay progress={s.batchProgress} total={s.batchTotal} />
-              )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-5">
+          {s.isBatchProcessing && (
+            <BatchOverlay progress={s.batchProgress} total={s.batchTotal} />
+          )}
 
-              {!s.showCropper && (
-                <>
-                {s.processingAI && (
-                  <div className="flex justify-center pb-3">
-                    <button
-                      type="button"
-                      onClick={s.cancelProcessing}
-                      className="rounded-full border border-danger/30 bg-danger/10 px-4 py-1.5 text-xs font-semibold text-danger transition hover:bg-danger/20"
-                    >
-                      Cancel Processing
-                    </button>
-                  </div>
-                )}
-                <ImagePreview
-                  imageSrc={s.imageSrc}
-                  originalFileName={s.originalFileName}
-                  processingAI={s.processingAI}
-                  hasAnalyzed={s.hasAnalyzed}
-                  canProcess={s.canProcess}
-                  formContainerRef={s.formContainerRef}
-                  fileName="receipt.jpg"
-                  onCrop={() => s.setShowCropper(true)}
-                  onReset={s.resetScanner}
-                  onProcessAI={() => s.onProcessAI()}
-                  formContent={
-                    s.hasAnalyzed && (
-                      <ScannerForm
-                        formData={s.formData}
-                        setFormData={s.setFormData}
-                        businessUnits={s.businessUnits}
-                        saving={s.saving || s.processingAI || s.loadingBusinessUnits}
-                        onSave={() => s.performSave(false, s.formData)}
-                        hasAnalyzed={s.hasAnalyzed}
-                        vendorPrefillSource={s.vendorPrefillSource}
-                        onDismissPrefill={() => s.setVendorPrefillSource(null)}
-                      />
-                    )
-                  }
-                />
-                </>
-              )}
+          {!s.showCropper && (
+            <>
+            {s.processingAI && (
+              <div className="flex justify-center pb-3">
+                <button
+                  type="button"
+                  onClick={s.cancelProcessing}
+                  className="rounded-full border border-danger/30 bg-danger/10 px-4 py-1.5 text-xs font-semibold text-danger transition hover:bg-danger/20"
+                >
+                  Cancel Processing
+                </button>
+              </div>
+            )}
+            <ImagePreview
+              imageSrc={s.imageSrc}
+              originalFileName={s.originalFileName}
+              processingAI={s.processingAI}
+              hasAnalyzed={s.hasAnalyzed}
+              canProcess={s.canProcess}
+              formContainerRef={s.formContainerRef}
+              fileName="receipt.jpg"
+              onCrop={() => s.setShowCropper(true)}
+              onReset={s.resetScanner}
+              onProcessAI={() => s.onProcessAI()}
+              formContent={
+                s.hasAnalyzed && (
+                  <ScannerForm
+                    formData={s.formData}
+                    setFormData={s.setFormData}
+                    businessUnits={s.businessUnits}
+                    saving={s.saving || s.processingAI || s.loadingBusinessUnits}
+                    onSave={() => s.performSave(false, s.formData)}
+                    hasAnalyzed={s.hasAnalyzed}
+                    vendorPrefillSource={s.vendorPrefillSource}
+                    onDismissPrefill={() => s.setVendorPrefillSource(null)}
+                  />
+                )
+              }
+            />
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
       {s.showCropper && s.imageSrc && (
         <ManualCropper
