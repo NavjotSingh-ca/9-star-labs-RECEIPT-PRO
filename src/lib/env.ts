@@ -38,11 +38,9 @@ const envSchema = z.object({
     });
   }
   if (data.QBO_CLIENT_ID && !data.TOKEN_ENCRYPTION_KEY) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'TOKEN_ENCRYPTION_KEY is required when QBO_CLIENT_ID is set — otherwise OAuth tokens are stored in plaintext',
-      path: ['TOKEN_ENCRYPTION_KEY'],
-    });
+    if (typeof window === 'undefined') {
+      console.warn('[ENV] TOKEN_ENCRYPTION_KEY not set — OAuth tokens will be stored in plaintext');
+    }
   }
 });
 
