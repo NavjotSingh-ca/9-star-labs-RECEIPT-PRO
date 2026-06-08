@@ -12,10 +12,10 @@ import {
 import { createBlankReceiptForm } from '@/components/scanner/types';
 import type { ReceiptForm } from '@/components/scanner/types';
 
-export const MAX_DIMENSION = 1600;
+export const MAX_DIMENSION = 2400;
 export const MIN_DIMENSION = 600;
 export const MAX_FILE_SIZE = 20 * 1024 * 1024;
-export const JPEG_QUALITY = 0.6;
+export const JPEG_QUALITY = 0.85;
 const DEFAULT_BLUR_THRESHOLD = 40;
 
 interface UseImageProcessorDeps {
