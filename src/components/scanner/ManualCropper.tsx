@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Crop, RotateCcw, X } from 'lucide-react';
+import { Check, RotateCcw, X } from 'lucide-react';
 
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import type { CropRect, ManualCropperProps } from './types';
@@ -199,8 +199,8 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
       <div className="flex-none border-b border-glass-border bg-surface px-5 py-4 z-10" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <div className="min-w-0">
-            <h3 className="text-lg font-black uppercase tracking-widest text-text-primary">Precision Crop</h3>
-            <p className="mt-1 truncate text-[10px] uppercase tracking-widest text-text-muted opacity-60">{fileName}</p>
+            <h3 className="text-lg font-semibold text-text-primary">Crop</h3>
+            <p className="mt-0.5 truncate text-xs text-text-muted">{fileName}</p>
           </div>
           <button 
             type="button"
@@ -220,7 +220,7 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
       >
         <div
           ref={overlayRef}
-          className="relative max-h-full max-w-full overflow-hidden rounded-[3rem] border border-glass-border/30 bg-black touch-none shadow-[0_0_100px_rgba(0,0,0,0.8)]"
+          className="relative max-h-full max-w-full overflow-hidden rounded-xl border border-glass-border/30 bg-black touch-none"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={stopDragging}
@@ -238,51 +238,40 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
 
           {crop && (
             <div
-              className="pointer-events-none absolute border-2 border-champagne bg-transparent shadow-[0_0_0_9999px_rgba(0,0,0,0.7)]"
+              className="pointer-events-none absolute border-2 border-champagne shadow-[0_0_0_9999px_rgba(0,0,0,0.7)]"
               style={cropStyle}
-            >
-              {/* Corner Accents */}
-              <div className="absolute -left-1 -top-1 h-6 w-6 border-l-4 border-t-4 border-champagne" />
-              <div className="absolute -right-1 -top-1 h-6 w-6 border-r-4 border-t-4 border-champagne" />
-              <div className="absolute -left-1 -bottom-1 h-6 w-6 border-l-4 border-b-4 border-champagne" />
-              <div className="absolute -right-1 -bottom-1 h-6 w-6 border-r-4 border-b-4 border-champagne" />
-
-              <div className="absolute left-1/2 top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-full bg-champagne px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-obsidian shadow-2xl">
-                <Crop className="h-3.5 w-3.5" />
-                Selected
-              </div>
-            </div>
+            />
           )}
         </div>
         
         {!crop && (
-          <p className="mt-6 text-xs font-bold uppercase tracking-widest text-text-muted/40 animate-pulse">
-            Draw a box to select the receipt
+          <p className="mt-4 text-xs text-text-muted/50">
+            Tap and drag to select the receipt area
           </p>
         )}
       </div>
 
-      {/* Footer (Fixed Dock) */}
+      {/* Footer */}
       <div 
-        className="fixed bottom-0 left-0 right-0 z-[210] border-t border-glass-border bg-obsidian/80 p-4 pb-safe-bottom backdrop-blur-3xl shadow-[0_-20px_60px_rgba(0,0,0,0.9)]"
+        className="fixed bottom-0 left-0 right-0 z-[210] border-t border-glass-border bg-black px-4 py-3 pb-safe-bottom"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mx-auto max-w-lg flex items-center justify-between gap-4">
+        <div className="mx-auto flex max-w-md items-center justify-between gap-3">
           <button
             type="button"
             onClick={() => setCrop(null)}
-            className="flex h-[3.5rem] w-[3.5rem] items-center justify-center rounded-[2rem] border border-glass-border bg-surface text-text-secondary transition hover:bg-surface-hover hover:scale-105 active:scale-95"
+            className="flex h-11 w-11 items-center justify-center rounded-lg border border-glass-border bg-surface text-text-secondary transition hover:bg-surface-hover"
             title="Reset Crop"
             aria-label="Reset crop"
           >
-            <RotateCcw className="h-6 w-6" />
+            <RotateCcw className="h-5 w-5" />
           </button>
 
-          <div className="flex flex-1 items-center gap-4">
+          <div className="flex flex-1 items-center gap-3">
             <button
               type="button"
               onClick={onCancel}
-              className="flex h-[3.5rem] flex-1 items-center justify-center rounded-[2rem] border border-glass-border bg-surface text-xs font-bold uppercase tracking-widest text-text-muted transition hover:bg-surface-hover"
+              className="flex h-11 flex-1 items-center justify-center rounded-lg border border-glass-border bg-surface text-sm font-medium text-text-muted transition hover:bg-surface-hover"
             >
               Cancel
             </button>
@@ -291,9 +280,9 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
               type="button"
               onClick={applyCrop}
               disabled={!crop}
-              className="flex h-[3.5rem] flex-1 items-center justify-center gap-3 rounded-[1.25rem] bg-emerald-success px-6 text-xs font-black uppercase tracking-widest text-white shadow-2xl shadow-emerald-success/20 transition hover:bg-emerald-success/90 hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-success px-5 text-sm font-semibold text-white transition hover:bg-emerald-success/90 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              <Check className="h-5 w-5" />
+              <Check className="h-4 w-4" />
               Apply
             </button>
           </div>
