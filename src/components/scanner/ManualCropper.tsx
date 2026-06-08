@@ -34,45 +34,46 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
   }, [imageSrc]);
 
   function syncBounds() {
-    const rect = imageRef.current?.getBoundingClientRect();
+    const rect = overlayRef.current?.getBoundingClientRect();
     if (!rect) return;
-    setImageBounds({
-      width: rect.width,
-      height: rect.height,
-    });
+    setImageBounds({ width: rect.width, height: rect.height });
+  }
+
+  function getOverlayRect() {
+    return overlayRef.current?.getBoundingClientRect() ?? null;
+  }
+
+  function getCropBounds(): { width: number; height: number } {
+    const rect = imageRef.current?.getBoundingClientRect();
+    if (!rect) return imageBounds;
+    return { width: rect.width, height: rect.height };
   }
 
   function clampRect(next: CropRect): CropRect {
-    const width = Math.max(20, Math.min(next.width, imageBounds.width));
-    const height = Math.max(20, Math.min(next.height, imageBounds.height));
-    const x = Math.max(0, Math.min(next.x, imageBounds.width - width));
-    const y = Math.max(0, Math.min(next.y, imageBounds.height - height));
-
+    const bounds = getCropBounds();
+    const width = Math.max(30, Math.min(next.width, bounds.width));
+    const height = Math.max(30, Math.min(next.height, bounds.height));
+    const x = Math.max(0, Math.min(next.x, bounds.width - width));
+    const y = Math.max(0, Math.min(next.y, bounds.height - height));
     return { x, y, width, height };
   }
 
   function getPoint(clientX: number, clientY: number) {
-    const rect = overlayRef.current?.getBoundingClientRect();
+    const rect = getOverlayRect();
     if (!rect) return null;
-
-    return {
-      x: clientX - rect.left,
-      y: clientY - rect.top,
-    };
+    return { x: clientX - rect.left, y: clientY - rect.top };
   }
 
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
     if (!overlayRef.current) return;
-
     const point = getPoint(event.clientX, event.clientY);
     if (!point) return;
 
+    const bounds = getCropBounds();
     const isInsideExisting =
       crop &&
-      point.x >= crop.x &&
-      point.x <= crop.x + crop.width &&
-      point.y >= crop.y &&
-      point.y <= crop.y + crop.height;
+      point.x >= crop.x && point.x <= crop.x + crop.width &&
+      point.y >= crop.y && point.y <= crop.y + crop.height;
 
     dragState.current = {
       mode: isInsideExisting ? 'move' : 'new',
@@ -85,8 +86,8 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
       const starter = clampRect({
         x: point.x,
         y: point.y,
-        width: 20,
-        height: 20,
+        width: Math.max(bounds.width * 0.4, 60),
+        height: Math.max(bounds.height * 0.4, 60),
       });
       setCrop(starter);
     }
@@ -97,35 +98,30 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
   function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
     const mode = dragState.current.mode;
     if (!mode) return;
-
     const point = getPoint(event.clientX, event.clientY);
     if (!point) return;
 
     if (mode === 'new') {
-      const startX = dragState.current.startX;
-      const startY = dragState.current.startY;
-
+      const s = dragState.current;
       const next: CropRect = {
-        x: Math.min(startX, point.x),
-        y: Math.min(startY, point.y),
-        width: Math.abs(point.x - startX),
-        height: Math.abs(point.y - startY),
+        x: Math.min(s.startX, point.x),
+        y: Math.min(s.startY, point.y),
+        width: Math.abs(point.x - s.startX),
+        height: Math.abs(point.y - s.startY),
       };
-
       setCrop(clampRect(next));
       return;
     }
 
-    if (mode === 'move' && dragState.current.originCrop) {
-      const dx = point.x - dragState.current.startX;
-      const dy = point.y - dragState.current.startY;
-
+    if (mode === 'move') {
+      const origin = dragState.current.originCrop;
+      if (!origin) return;
       const next: CropRect = {
-        ...dragState.current.originCrop,
-        x: dragState.current.originCrop.x + dx,
-        y: dragState.current.originCrop.y + dy,
+        x: origin.x + (point.x - dragState.current.startX),
+        y: origin.y + (point.y - dragState.current.startY),
+        width: origin.width,
+        height: origin.height,
       };
-
       setCrop(clampRect(next));
     }
   }
@@ -134,7 +130,6 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
     if (event && overlayRef.current?.hasPointerCapture(event.pointerId)) {
       overlayRef.current.releasePointerCapture(event.pointerId);
     }
-
     dragState.current.mode = null;
   }
 
@@ -220,7 +215,7 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
       >
         <div
           ref={overlayRef}
-          className="relative max-h-full max-w-full overflow-hidden rounded-xl border border-glass-border/30 bg-black touch-none"
+          className="relative inline-flex max-h-full max-w-full overflow-hidden rounded-xl border border-glass-border/30 bg-black touch-none"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={stopDragging}
@@ -230,7 +225,7 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
             ref={imageRef}
             src={imageSrc}
             alt="Crop source"
-            className="max-h-[60vh] max-w-full h-auto w-auto object-contain select-none opacity-90"
+            className="max-h-[80vh] max-w-full h-auto w-auto select-none opacity-90"
             onLoad={syncBounds}
           />
 

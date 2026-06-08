@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, CheckCircle2, DollarSign, FileText, Hash, Plus, Trash2, Info, Loader2, Gauge, Sparkles } from 'lucide-react';
@@ -95,6 +95,8 @@ export default function ScannerForm({
   onDismissPrefill,
 }: ScannerFormProps & { hasAnalyzed?: boolean }) {
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [fraudDismissed, setFraudDismissed] = useState(false);
+  const fraudSeenRef = useRef(false);
 
   // Initialize RHF
   const { register, control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<ReceiptFormValues>({
@@ -177,6 +179,26 @@ export default function ScannerForm({
   }, [formData.subtotal, formData.tax_amount, formData.pst_amount, formData.total_amount]);
 
   const canSave = hasAnalyzed && isConfirmed && !saving;
+
+  // Auto-dismiss fraud anomaly when user edits relevant fields
+  useEffect(() => {
+    if (fraudSuspicion && hasAnalyzed) {
+      fraudSeenRef.current = true;
+    }
+    if (fraudSeenRef.current && fraudSuspicion) {
+      const hasUserEdit =
+        String(formData.vendor_name ?? '') !== String(rawFormData.vendor_name ?? '') ||
+        Number(formData.total_amount) !== Number(rawFormData.total_amount) ||
+        String(formData.transaction_date ?? '') !== String(rawFormData.transaction_date ?? '') ||
+        String(formData.vendor_address ?? '') !== String(rawFormData.vendor_address ?? '') ||
+        String(formData.business_number ?? '') !== String(rawFormData.business_number ?? '');
+      if (hasUserEdit) {
+        setFraudDismissed(true);
+        setValue('fraud_suspicion', false as any);
+        setValue('fraud_reason', '' as any);
+      }
+    }
+  }, [formData.vendor_name, formData.total_amount, formData.transaction_date, formData.vendor_address, formData.business_number, fraudSuspicion, hasAnalyzed]);
 
   return (
     <div className="w-full">
@@ -266,15 +288,29 @@ export default function ScannerForm({
           )}
 
           {/* Core AI Flags */}
-          {fraudSuspicion && (
-            <div className="rounded-lg border border-danger/30 bg-danger/[0.08] px-3.5 py-2.5">
+          {fraudSuspicion && !fraudDismissed && (
+            <div className="rounded-lg border border-danger/40 bg-danger/[0.06] px-4 py-3 shadow-sm">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-danger" />
-                <div>
-                  <p className="text-sm font-bold text-danger">AI Anomaly Detected</p>
-                  <p className="mt-1 text-xs leading-relaxed text-danger">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-danger/20 text-danger mt-0.5 text-[10px] font-bold">!</div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="rounded bg-danger/15 px-1.5 py-0.5 text-[10px] font-mono font-bold text-danger/80 tracking-wide">ANOMALY-001</span>
+                    <span className="text-[11px] font-semibold text-danger">AI Flagged</span>
+                  </div>
+                  <p className="text-xs leading-relaxed text-danger/90 font-mono">
                     {fraudReason}
                   </p>
+                </div>
+              </div>
+            </div>
+          )}
+          {fraudDismissed && (
+            <div className="rounded-lg border border-champagne/20 bg-champagne/[0.04] px-3.5 py-2.5">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-champagne" />
+                <div>
+                  <p className="text-sm font-semibold text-champagne">Anomaly dismissed — review your changes manually</p>
+                  <p className="mt-0.5 text-xs text-text-muted">The flagged fields were edited. Verify the corrected values before saving.</p>
                 </div>
               </div>
             </div>
