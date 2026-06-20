@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
+import Image from 'next/image';
 import { supabase, getOrgIdString } from '@/lib/supabase';
 import { Loader2, Save, AlertCircle, CheckCircle2, Link2, RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
@@ -184,8 +185,9 @@ function OrgSettings() {
                 <h3 className="text-lg font-bold mb-4">Business Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Business Name</label>
+                    <label htmlFor="org-business-name" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Business Name</label>
                     <Input
+                      id="org-business-name"
                       type="text"
                       value={settings.business_name}
                       onChange={(e) => setSettings({ ...settings, business_name: e.target.value })}
@@ -193,8 +195,9 @@ function OrgSettings() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">CRA Business Number (GST/BN)</label>
+                    <label htmlFor="org-business-number" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">CRA Business Number (GST/BN)</label>
                     <Input
+                      id="org-business-number"
                       type="text"
                       value={settings.business_number}
                       onChange={(e) => setSettings({ ...settings, business_number: e.target.value })}
@@ -237,7 +240,7 @@ function OrgSettings() {
                   <div className="flex items-center justify-between rounded-xl border bg-muted/20 p-4">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 overflow-hidden rounded-xl bg-white p-1">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/23/QuickBooks_Logo.svg" alt="QBO" className="h-full w-full object-contain" />
+                        <Image src="https://upload.wikimedia.org/wikipedia/commons/2/23/QuickBooks_Logo.svg" alt="QBO" width={40} height={40} className="h-full w-full object-contain" />
                       </div>
                       <div>
                         <p className="text-sm font-bold">QuickBooks Online</p>
@@ -269,7 +272,7 @@ function OrgSettings() {
                   <div className="flex items-center justify-between rounded-xl border bg-muted/20 p-4">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 overflow-hidden rounded-xl bg-[#00b7e2] p-1">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/9/9f/Xero_software_logo.svg" alt="Xero" className="h-full w-full object-contain" />
+                        <Image src="https://upload.wikimedia.org/wikipedia/commons/9/9f/Xero_software_logo.svg" alt="Xero" width={40} height={40} className="h-full w-full object-contain" />
                       </div>
                       <div>
                         <p className="text-sm font-bold">Xero</p>

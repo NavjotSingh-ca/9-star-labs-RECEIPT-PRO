@@ -1,7 +1,16 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { env } from '@/lib/env';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { encryptToken, decryptToken } from '@/lib/encryption';
+import { logError } from '@/lib/logger';
+import { encryptToken } from '@/lib/encryption';
+
+const callbackQuerySchema = z.object({
+  code: z.string().min(1),
+  state: z.string().uuid(),
+  realmId: z.string().regex(/^\d+$/),
+  error: z.string().optional(),
+});
 
 const QBO_CLIENT_ID = env.QBO_CLIENT_ID || '';
 const QBO_CLIENT_SECRET = env.QBO_CLIENT_SECRET || '';
@@ -10,17 +19,23 @@ const QBO_REDIRECT_URI = `${env.NEXT_PUBLIC_SITE_URL}/api/qbo/callback`;
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const code = searchParams.get('code');
-    const state = searchParams.get('state');
-    const realmId = searchParams.get('realmId');
-    const error = searchParams.get('error');
+    const raw = {
+      code: searchParams.get('code'),
+      state: searchParams.get('state'),
+      realmId: searchParams.get('realmId'),
+      error: searchParams.get('error'),
+    };
+    const parsed = callbackQuerySchema.safeParse(raw);
+
+    if (!parsed.success) {
+      const qboError = raw.error ? encodeURIComponent(raw.error) : 'invalid_params';
+      return NextResponse.redirect(`${env.NEXT_PUBLIC_SITE_URL}/settings/org?qbo_error=${qboError}`);
+    }
+
+    const { code, state, realmId, error } = parsed.data;
 
     if (error) {
       return NextResponse.redirect(`${env.NEXT_PUBLIC_SITE_URL}/settings/org?qbo_error=${encodeURIComponent(error)}`);
-    }
-
-    if (!code || !state || !realmId) {
-      return NextResponse.redirect(`${env.NEXT_PUBLIC_SITE_URL}/settings/org?qbo_error=missing_params`);
     }
 
     if (!QBO_CLIENT_ID || !QBO_CLIENT_SECRET) {
@@ -69,7 +84,7 @@ export async function GET(request: Request) {
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
-      console.error('[QBO Callback] Token exchange failed:', errorText);
+      logError(errorText, { action: 'qbo_token_exchange' });
       return NextResponse.redirect(`${env.NEXT_PUBLIC_SITE_URL}/settings/org?qbo_error=token_exchange`);
     }
 
@@ -93,7 +108,7 @@ export async function GET(request: Request) {
 
     return NextResponse.redirect(`${env.NEXT_PUBLIC_SITE_URL}/settings/org?qbo_success=1`);
   } catch (err: unknown) {
-    console.error('[QBO Callback]', err);
+    logError(err, { action: 'qbo_oauth_callback' });
     return NextResponse.redirect(`${env.NEXT_PUBLIC_SITE_URL}/settings/org?qbo_error=server`);
   }
 }

@@ -72,7 +72,7 @@ export function CategoryDonut({ data }: CategoryDonutProps) {
                     fontWeight: 'bold',
                     boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                   }}
-                  formatter={(value: any) => [cad.format(Number(value)), 'Spend']}
+                  formatter={(value) => [cad.format(Number(value)), 'Spend']}
                 />
               </PieChart>
             </ResponsiveContainer>

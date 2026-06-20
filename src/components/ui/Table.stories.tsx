@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/nextjs';
 import React from 'react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell, TableCaption } from './table';
 import { Badge } from './badge';

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { env } from '@/lib/env';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { logError } from '@/lib/logger';
 import { decryptToken, encryptToken } from '@/lib/encryption';
 
 const QBO_CLIENT_ID = env.QBO_CLIENT_ID || '';
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
-      console.error('[QBO Refresh] Failed:', errorText);
+      logError(errorText, { action: 'qbo_token_refresh' });
       return NextResponse.json({ error: 'Token refresh failed' }, { status: 500 });
     }
 
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
-    console.error('[QBO Refresh]', err);
+    logError(err, { action: 'qbo_token_refresh' });
     return NextResponse.json({ error: 'Token refresh failed' }, { status: 500 });
   }
 }

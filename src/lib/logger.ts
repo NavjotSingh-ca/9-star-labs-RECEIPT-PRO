@@ -44,7 +44,7 @@ export function logError(error: unknown, context?: LogContext): void {
   const entry: LogEntry = {
     timestamp: new Date().toISOString(),
     level: 'error',
-    message: error instanceof Error ? error.message : 'Unknown error',
+    message: error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error',
     error: error instanceof Error ? {
       name: error.name,
       message: error.message,

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/nextjs';
 import { Sparkline } from './Sparkline';
 import { MOCK_SPARKLINE } from '../../../.storybook/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';

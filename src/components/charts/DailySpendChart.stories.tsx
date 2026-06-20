@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/nextjs';
 import { DailySpendChart } from './DailySpendChart';
 import { withProviders, MOCK_DAILY_SPEND } from '../../../.storybook/utils';
 

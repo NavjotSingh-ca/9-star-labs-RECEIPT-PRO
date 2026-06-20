@@ -65,7 +65,7 @@ export default function TermsPage() {
 
         <div className="rounded-[2.5rem] border border-glass-border bg-card p-8 sm:p-14">
           <div className="mb-10 flex items-start gap-5 border-b border-glass-border pb-10">
-            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-[2rem] bg-champagne/15 champagne-glow">
+            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-champagne/15 shadow-[0_0_24px_-4px_rgba(203,182,155,0.2)]">
               <FileSignature className="h-8 w-8 text-champagne" />
             </div>
             <div>

@@ -156,14 +156,14 @@ export interface ScannerFormProps {
   setFormData: (data: ReceiptForm) => void;
   businessUnits: BusinessUnit[];
   saving: boolean;
-  onSave: () => void;
+  onSave: (data?: ReceiptForm) => void;
   hasAnalyzed?: boolean;
   vendorPrefillSource?: 'history' | null;
   onDismissPrefill?: () => void;
 }
 
 export interface CameraEngineProps {
-  onCapture: (file: File) => void;
+  onCapture: (file: File) => Promise<void> | void;
   onClose: () => void;
 }
 

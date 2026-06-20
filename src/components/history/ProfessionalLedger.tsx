@@ -5,6 +5,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { ArrowUpDown, Eye, FileDown, MoreHorizontal, Search, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,14 +24,22 @@ interface ProfessionalLedgerProps {
   data: ReceiptRow[];
   onSelect: (receipt: ReceiptRow) => void;
   onDelete: (id: string) => void;
+  selectedIds?: string[];
+  onSelectionChange?: (ids: string[]) => void;
 }
 
-export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data, onSelect, onDelete }: ProfessionalLedgerProps) {
+export const ProfessionalLedger = React.memo(function ProfessionalLedger({ 
+  data, 
+  onSelect, 
+  onDelete,
+  selectedIds = [],
+  onSelectionChange
+}: ProfessionalLedgerProps) {
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [globalFilter, setGlobalFilter] = useState('');
   const parentRef = useRef<HTMLDivElement>(null);
-  const { data: unitMap = {} } = useQuery({
+  const { data: unitMap = {}, isLoading: unitsLoading } = useQuery({
     queryKey: ['business_units'],
     queryFn: async () => {
       const { data: units } = await supabase
@@ -72,6 +81,33 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
     }
   }
 
+  const allSelected = useMemo(() => 
+    rows.length > 0 && rows.every(r => selectedIds.includes(r.id)),
+    [rows, selectedIds]
+  );
+
+  const someSelected = useMemo(() => 
+    selectedIds.length > 0 && !allSelected,
+    [selectedIds, allSelected]
+  );
+
+  function toggleAll() {
+    if (allSelected) {
+      onSelectionChange?.([]);
+    } else {
+      onSelectionChange?.(rows.map(r => r.id));
+    }
+  }
+
+  function toggleOne(id: string, e?: React.MouseEvent | React.KeyboardEvent) {
+    e?.stopPropagation();
+    if (selectedIds.includes(id)) {
+      onSelectionChange?.(selectedIds.filter(i => i !== id));
+    } else {
+      onSelectionChange?.([...selectedIds, id]);
+    }
+  }
+
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
@@ -97,9 +133,16 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
       </div>
 
       <div ref={parentRef} className="rounded-xl border bg-card overflow-auto max-h-[65vh]">
-        <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative', width: '100%', minWidth: 700 }}>
+        <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative', width: '100%', minWidth: 800 }}>
           {/* Header */}
           <div className="sticky top-0 z-10 flex items-stretch bg-surface-raised border-b border-glass-border text-[10px] font-bold uppercase tracking-tight text-text-muted">
+            <div className="w-12 px-6 flex items-center justify-center">
+              <Checkbox 
+                checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+                onCheckedChange={() => toggleAll()}
+                aria-label="Select all"
+              />
+            </div>
             <button type="button" onClick={() => toggleSort('vendor_name')} className="flex-[2] px-6 py-3 text-left flex items-center gap-1 hover:text-text-primary transition">
               Vendor {sortField === 'vendor_name' && <ArrowUpDown className="h-3 w-3" />}
             </button>
@@ -118,11 +161,12 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
           {rows.length ? (
             virtualizer.getVirtualItems().map((virtualRow) => {
               const row = rows[virtualRow.index];
+              const isSelected = selectedIds.includes(row.id);
               return (
                 <div
                   key={row.id}
                   className={`absolute left-0 w-full flex items-stretch border-b border-glass-border cursor-pointer transition-colors ${
-                    virtualRow.index % 2 === 0 ? 'bg-surface-raised/50' : 'bg-surface-raised/30'
+                    isSelected ? 'bg-champagne/10' : virtualRow.index % 2 === 0 ? 'bg-surface-raised/50' : 'bg-surface-raised/30'
                   } hover:bg-champagne/5 focus-visible:outline-2 focus-visible:outline-champagne/60 focus-visible:outline-offset-[-2px]`}
                   style={{ height: `${virtualRow.size}px`, transform: `translateY(${virtualRow.start}px)` }}
                   onClick={() => onSelect(row)}
@@ -131,10 +175,17 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({ data,
                   role="button"
                   data-index={virtualRow.index}
                 >
+                  <div className="w-12 px-6 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox 
+                      checked={isSelected}
+                      onCheckedChange={() => toggleOne(row.id)}
+                      aria-label={`Select receipt from ${row.vendor_name}`}
+                    />
+                  </div>
                   <div className="flex-[2] px-6 py-3 flex flex-col justify-center">
                     <span className="font-bold text-foreground text-sm">{row.vendor_name || 'Unknown Vendor'}</span>
                     <span className="text-[10px] text-muted-foreground">
-                      {row.business_unit_id ? (unitMap[row.business_unit_id] || row.business_unit_id.slice(0, 8) + '...') : 'Main Unit'}
+                      {row.business_unit_id ? (unitsLoading ? 'Loading...' : unitMap[row.business_unit_id] || row.business_unit_id.slice(0, 8) + '...') : 'Main Unit'}
                     </span>
                   </div>
                   <div className="flex-[1] px-6 py-3 flex items-center text-sm font-medium">

@@ -3,13 +3,13 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import {
   AlertCircle,
   CheckCircle2,
   Clock,
   DollarSign,
   ImageIcon,
-  Loader2,
   ThumbsDown,
   ThumbsUp,
 } from 'lucide-react';
@@ -192,7 +192,7 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
         r?.transaction_date ?? ''
       );
     },
-    onMutate: async ({ id, status }) => {
+    onMutate: async ({ id }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['approvals_pending'] });
 
@@ -207,11 +207,9 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
       // Return context with previous data
       return { previousPending };
     },
-    onError: (err, variables, context) => {
-      // Rollback to previous value on error
-      if (context?.previousPending) {
-        queryClient.setQueryData(['approvals_pending'], context.previousPending);
-      }
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Approval failed');
+      // Rollback handled by queryClient default behavior
     },
     onSuccess: invalidate,
   });
@@ -222,26 +220,8 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
       if (!user) throw new Error('Not authenticated');
       await bulkUpdateApproval([...selected], status, user.id);
     },
-    onMutate: async (status) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['approvals_pending'] });
-
-      // Snapshot previous value
-      const previousPending = queryClient.getQueryData(['approvals_pending']) as ReceiptRow[];
-
-      // Optimistically update to the new value
-      queryClient.setQueryData(['approvals_pending'], (old: ReceiptRow[] = []) =>
-        old.filter((r) => !selected.has(r.id))
-      );
-
-      // Return context with previous data
-      return { previousPending };
-    },
-    onError: (err, variables, context) => {
-      // Rollback to previous value on error
-      if (context?.previousPending) {
-        queryClient.setQueryData(['approvals_pending'], context.previousPending);
-      }
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Bulk approval failed');
     },
     onSuccess: () => {
       setSelected(new Set());

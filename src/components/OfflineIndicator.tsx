@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
-import { Wifi, WifiOff, CloudUpload } from 'lucide-react';
+import { WifiOff, CloudUpload } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function OfflineIndicator() {
@@ -22,7 +22,7 @@ export default function OfflineIndicator() {
         clearTimeout(timerRef.current);
         timerRef.current = null;
       }
-      setShowOffline(false);
+      timerRef.current = setTimeout(() => setShowOffline(false), 0);
     }
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);

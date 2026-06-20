@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { env } from '@/lib/env';
 import { APP_NAME } from '@/lib/constants';
 import { logError, logInfo } from '@/lib/logger';
+import { checkRateLimit, addRateLimitHeaders } from '@/lib/rate-limiter';
 
 /**
  * Missing Receipt Email Digest
@@ -14,6 +15,15 @@ import { logError, logInfo } from '@/lib/logger';
  * Requires: SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY
  */
 export async function POST(request: Request) {
+  // Rate limit: 3 requests per 5 min
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
+  const rl = checkRateLimit(`missing_receipt_digest:${ip}`, 3, 300_000);
+  if (!rl.allowed) {
+    const headers = new Headers();
+    addRateLimitHeaders(headers, rl);
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: Object.fromEntries(headers) });
+  }
+
   // Verify cron secret or internal auth
   const authHeader = request.headers.get('authorization');
   const cronSecret = env.CRON_SECRET;

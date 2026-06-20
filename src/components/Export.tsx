@@ -19,7 +19,7 @@ import type { ReceiptRow } from '@/lib/types';
 import { formatDineroIntl } from '@/lib/finance-utils';
 import { getReceiptImageUrl } from '@/lib/supabase';
 import {
-  getVendor, getDate, getCategory, getTotal, getGST, getPST, getBN, getImageUrl, getHash,
+  getTotal, getGST, getPST, getImageUrl,
   formatDateInput, withinRange, buildCSV, buildIDEACSV, buildLogbook,
 } from '@/lib/export-cra';
 
@@ -212,8 +212,9 @@ export default function Export({ receipts }: ExportProps) {
 
       <div className="grid gap-3 rounded-3xl border border-glass-border bg-surface p-4 shadow-sm sm:grid-cols-2">
         <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-muted">From</label>
+          <label htmlFor="export-from" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-muted">From</label>
           <input
+            id="export-from"
             type="date"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
@@ -222,14 +223,18 @@ export default function Export({ receipts }: ExportProps) {
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-muted">To</label>
+          <label htmlFor="export-to" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-muted">To</label>
           <input
+            id="export-to"
             type="date"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
             className="w-full rounded-[2rem] border border-glass-border bg-surface-raised px-4 py-3 text-sm text-text-primary outline-none transition focus:border-champagne/40 focus:ring-2 focus:ring-champagne/15"
           />
         </div>
+        {fromDate && toDate && fromDate > toDate && (
+          <p className="col-span-full text-xs font-semibold text-danger" role="alert">Start date is after end date. No data will be shown.</p>
+        )}
       </div>
 
       <div className="grid gap-3 lg:grid-cols-3">

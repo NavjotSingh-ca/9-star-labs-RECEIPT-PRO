@@ -19,7 +19,6 @@ if (typeof document !== 'undefined' && !document.getElementById(geistStyleId)) {
 }
 
 /* ─── Theme Decorator ─── */
-const THEME_TOGGLE_ID = 'storybook-theme-toggle';
 
 /* Inline <style> for data-theme attribute support */
 const themeStyleId = 'storybook-theme-style';

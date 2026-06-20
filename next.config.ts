@@ -1,12 +1,13 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
-const sentryConfig: NextConfig = {
+const config: NextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       { protocol: 'https', hostname: '**.supabase.co' },
       { protocol: 'https', hostname: '**.supabase.in' },
+      { protocol: 'https', hostname: 'upload.wikimedia.org' },
     ],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
@@ -28,22 +29,37 @@ const sentryConfig: NextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=()' },
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
           { key: 'X-DNS-Prefetch-Control', value: 'on' },
-          {
-            key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://*.posthog.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in; media-src 'self' blob:; connect-src 'self' https://*.supabase.co https://*.supabase.in https://generativelanguage.googleapis.com https://api.resend.com https://*.posthog.com https://js.stripe.com wss://*.supabase.co; font-src 'self' data:; frame-src https://js.stripe.com; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'",
-          },
         ],
       },
     ];
   },
 };
 
-export default withSentryConfig(sentryConfig, {
+// Wrap with bundle analyzer when ANALYZE=true
+const wrapped = /* @__PURE__ */ (() => {
+  if (process.env.ANALYZE === 'true') {
+    return async (cfg: NextConfig) => {
+      const { default: withBundleAnalyzer } = await import('@next/bundle-analyzer');
+      return withBundleAnalyzer({ enabled: true })(cfg);
+    };
+  }
+  return (cfg: NextConfig) => cfg;
+})();
+
+export default withSentryConfig(wrapped(config) as NextConfig, {
   silent: true,
   org: process.env.SENTRY_ORG || '',
   project: process.env.SENTRY_PROJECT || '',
   widenClientFileUpload: true,
   tunnelRoute: '/monitoring',
-  disableLogger: true,
-  automaticVercelMonitors: false,
+  // Build-time tree-shaking/instrumentation options moved under `webpack.*`.
+  // These only take effect under the webpack bundler; this project builds with
+  // Turbopack, where they are no-ops, but we keep them configured so they apply
+  // automatically if a webpack build is ever used.
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+    automaticVercelMonitors: false,
+  },
 });

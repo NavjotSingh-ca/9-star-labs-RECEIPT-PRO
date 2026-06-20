@@ -1,0 +1,16 @@
+{
+  "recommendations": [
+    "bradlc.vscode-tailwindcss",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "formulahendry.auto-rename-tag",
+    "github.vscode-github-actions",
+    "ms-playwright.playwright",
+    "stripe.vscode-stripe",
+    "supabase.vscode-supabase",
+    "unifiedjs.vscode-mdx",
+    "vitest.explorer",
+    "wayou.vscode-todo-highlight",
+    "yoavbls.pretty-ts-errors"
+  ]
+}

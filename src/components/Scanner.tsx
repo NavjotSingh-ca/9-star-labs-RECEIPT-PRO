@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { APP_NAME } from '@/lib/constants';
 
@@ -18,59 +19,49 @@ import type { ScannerProps } from '@/components/scanner/types';
 import { useScannerState } from '@/components/scanner/hooks/useScannerState';
 
 export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
-  const s = useScannerState(user, onSaveSuccess);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const screenshotInputRef = useRef<HTMLInputElement | null>(null);
+  const formContainerRef = useRef<HTMLDivElement | null>(null);
+  const s = useScannerState(user, onSaveSuccess, { cameraInputRef, galleryInputRef, screenshotInputRef, formContainerRef });
 
   return (
     <div className="space-y-4 fade-in">
       <input
-        ref={s.cameraInputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
         className="hidden"
         tabIndex={-1}
         aria-hidden="true"
-        onChange={async (event) => {
-          await s.handleFilesSelected(event.target.files);
-          if (s.cameraInputRef.current) s.cameraInputRef.current.value = '';
-        }}
+        onChange={s.handleCameraChange}
       />
       <input
-        ref={s.galleryInputRef}
+        ref={galleryInputRef}
         type="file"
         multiple
         accept="image/*,.zip,application/pdf"
         className="hidden"
         tabIndex={-1}
         aria-hidden="true"
-        onChange={async (event) => {
-          await s.handleFilesSelected(event.target.files);
-          if (s.galleryInputRef.current) s.galleryInputRef.current.value = '';
-        }}
+        onChange={s.handleGalleryChange}
       />
       <input
-        ref={s.screenshotInputRef}
+        ref={screenshotInputRef}
         type="file"
         accept="image/*"
         className="hidden"
         tabIndex={-1}
         aria-hidden="true"
-        onChange={async (event) => {
-          const file = event.target.files?.[0];
-          if (file) {
-            await s.onCapture(file);
-            s.setFormData(prev => ({ ...prev, capture_source: 'email_screenshot' }));
-            setTimeout(() => s.onProcessAI(undefined, 'email_screenshot'), 500);
-          }
-          if (s.screenshotInputRef.current) s.screenshotInputRef.current.value = '';
-        }}
+        onChange={s.handleScreenshotChange}
       />
 
       <AnimatePresence>
         {s.showBlurWarning && (
           <BlurWarning
             blurScore={s.blurScore}
-            onRetake={() => { s.setShowBlurWarning(false); s.cameraInputRef.current?.click(); }}
+            onRetake={() => { s.setShowBlurWarning(false); cameraInputRef.current?.click(); }}
             onUseAnyway={() => {
               s.setShowBlurWarning(false);
               s.setFormData(prev => ({
@@ -96,9 +87,9 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
           </CardHeader>
           <CardContent className="space-y-5 p-5">
             <CaptureControls
-              onCameraClick={() => s.cameraInputRef.current?.click()}
-              onUploadClick={() => s.galleryInputRef.current?.click()}
-              onScreenshotClick={() => s.screenshotInputRef.current?.click()}
+              onCameraClick={() => cameraInputRef.current?.click()}
+              onUploadClick={() => galleryInputRef.current?.click()}
+              onScreenshotClick={() => screenshotInputRef.current?.click()}
               batchLimit={s.BATCH_LIMIT}
               maxDimension={s.MAX_DIMENSION}
             />
@@ -129,7 +120,6 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
               processingAI={s.processingAI}
               hasAnalyzed={s.hasAnalyzed}
               canProcess={s.canProcess}
-              formContainerRef={s.formContainerRef}
               fileName="receipt.jpg"
               onCrop={() => s.setShowCropper(true)}
               onReset={s.resetScanner}
@@ -141,7 +131,7 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
                     setFormData={s.setFormData}
                     businessUnits={s.businessUnits}
                     saving={s.saving || s.processingAI || s.loadingBusinessUnits}
-                    onSave={() => s.performSave(false, s.formData)}
+                    onSave={(data) => s.performSave(false, data || s.formData)}
                     hasAnalyzed={s.hasAnalyzed}
                     vendorPrefillSource={s.vendorPrefillSource}
                     onDismissPrefill={() => s.setVendorPrefillSource(null)}
@@ -179,8 +169,8 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
 
       {s.showCameraEngine && (
         <CameraEngine
-          onCapture={(file) => {
-            s.onCapture(file);
+          onCapture={async (file) => {
+            await s.onCapture(file);
             s.setShowCameraEngine(false);
           }}
           onClose={() => s.setShowCameraEngine(false)}

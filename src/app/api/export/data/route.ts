@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { logError, logInfo } from '@/lib/logger';
+import { logError } from '@/lib/logger';
 import { env } from '@/lib/env';
 import { APP_NAME } from '@/lib/constants';
+import { withRateLimit } from '@/lib/rate-limiter';
 
 async function* jsonChunks(
   user: { id: string; email?: string | null; created_at?: string | null },
@@ -96,7 +97,7 @@ async function* jsonChunks(
   yield '}';
 }
 
-export async function GET(request: Request) {
+async function exportHandler(request: Request): Promise<Response> {
   try {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -154,3 +155,5 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Export failed' }, { status: 500 });
   }
 }
+
+export const GET = withRateLimit(exportHandler, { maxTokens: 5, windowMs: 120_000, keyPrefix: 'export_data' });

@@ -1,8 +1,6 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod/v4';
 import {
   Loader2, Eye, EyeOff, Mail, Lock, ReceiptText, AlertCircle, CheckCircle2,
   Sparkles, ArrowRight,
@@ -13,30 +11,8 @@ import { Button } from '@/components/ui/button';
 import { passwordRequirements } from '@/hooks/usePasswordStrength';
 import type { UseFormReturn } from 'react-hook-form';
 
-const signinSchema = z.object({
-  email: z.string().email('Enter a valid email address'),
-  password: z.string().min(1, 'Password is required'),
-  rememberMe: z.boolean().optional(),
-});
-
-const signupSchema = z.object({
-  email: z.string().email('Enter a valid email address'),
-  password: z
-    .string()
-    .min(8, 'At least 8 characters')
-    .regex(/[A-Z]/, 'One uppercase letter')
-    .regex(/[0-9]/, 'One number')
-    .regex(/[^A-Za-z0-9]/, 'One special character'),
-  inviteCode: z
-    .string()
-    .regex(/^\d{0,6}$/, '6-digit code')
-    .optional()
-    .or(z.literal('')),
-  accepted: z.boolean().refine(v => v === true, 'Accept the terms to continue'),
-});
-
-type SignInData = z.infer<typeof signinSchema>;
-type SignUpData = z.infer<typeof signupSchema>;
+interface SignInData { email: string; password: string; rememberMe?: boolean }
+interface SignUpData { email: string; password: string; inviteCode?: string; accepted: boolean }
 
 interface AuthFormProps {
   mode: 'signin' | 'signup';
@@ -75,7 +51,7 @@ export default function AuthForm({
             <ReceiptText className="h-7 w-7 text-champagne" />
           </div>
           <h1 className="text-2xl font-bold text-white">{APP_NAME}</h1>
-          <p className="text-xs text-text-muted mt-1">CRA-Ready Receipt Intelligence</p>
+          <p className="text-xs text-zinc-400 mt-1">CRA-Ready Receipt Intelligence</p>
         </div>
 
         <AnimatePresence mode="wait">
@@ -119,7 +95,7 @@ export default function AuthForm({
                   <div className="w-full border-t border-white/[0.06]" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="bg-[#0c0c0c] px-3 text-text-muted">or continue with email</span>
+                  <span className="bg-[#0c0c0c] px-3 text-zinc-400">or continue with email</span>
                 </div>
               </div>
 
@@ -139,7 +115,7 @@ export default function AuthForm({
                   <div className="space-y-1.5">
                     <label htmlFor="signin-email" className="text-xs font-semibold uppercase tracking-[0.12em] text-champagne-dim">Email</label>
                     <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted pointer-events-none" />
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
                       <input
                         id="signin-email"
                         {...signinForm.register('email')}
@@ -161,7 +137,7 @@ export default function AuthForm({
                   <div className="space-y-1.5">
                     <label htmlFor="signin-password" className="text-xs font-semibold uppercase tracking-[0.12em] text-champagne-dim">Password</label>
                     <div className="relative">
-                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted pointer-events-none" />
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
                       <input
                         id="signin-password"
                         {...signinForm.register('password')}
@@ -178,7 +154,7 @@ export default function AuthForm({
                         type="button"
                         aria-label="Toggle password visibility"
                         onClick={onTogglePassword}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary transition"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-text-secondary transition"
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -195,7 +171,7 @@ export default function AuthForm({
                         type="checkbox"
                         className="h-4 w-4 rounded border-white/20 bg-white/[0.03] text-champagne focus:ring-champagne/20 focus:ring-offset-0 accent-champagne"
                       />
-                      <span className="text-xs text-text-muted group-hover:text-text-secondary transition-colors">Remember me</span>
+                      <span className="text-xs text-zinc-400 group-hover:text-text-secondary transition-colors">Remember me</span>
                     </label>
                     <button
                       type="button"
@@ -224,7 +200,7 @@ export default function AuthForm({
                   <div className="space-y-1.5">
                     <label htmlFor="signup-email" className="text-xs font-semibold uppercase tracking-[0.12em] text-champagne-dim">Email</label>
                     <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted pointer-events-none" />
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
                       <input
                         id="signup-email"
                         {...signupForm.register('email')}
@@ -246,7 +222,7 @@ export default function AuthForm({
                   <div className="space-y-1.5">
                     <label htmlFor="signup-password" className="text-xs font-semibold uppercase tracking-[0.12em] text-champagne-dim">Create password</label>
                     <div className="relative">
-                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted pointer-events-none" />
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
                       <input
                         id="signup-password"
                         {...signupForm.register('password')}
@@ -263,7 +239,7 @@ export default function AuthForm({
                         type="button"
                         aria-label="Toggle password visibility"
                         onClick={onTogglePassword}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary transition"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-text-secondary transition"
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -298,7 +274,7 @@ export default function AuthForm({
                                 ) : (
                                   <div className="h-3 w-3 rounded-full border border-white/20 shrink-0" />
                                 )}
-                                <span className={cn('text-[11px]', met ? 'text-text-secondary' : 'text-text-muted')}>
+                                <span className={cn('text-[11px]', met ? 'text-text-secondary' : 'text-zinc-400')}>
                                   {req.label}
                                 </span>
                               </div>
@@ -322,7 +298,7 @@ export default function AuthForm({
                       maxLength={6}
                       className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2.5 text-sm text-white outline-none transition placeholder:text-white/15 focus:border-champagne/40 focus:ring-1 focus:ring-champagne/15 font-mono tracking-[0.3em] text-center"
                     />
-                    <p className="text-[11px] text-text-muted">Enter the 6-digit code if you were invited by a workspace owner</p>
+                    <p className="text-[11px] text-zinc-400">Enter the 6-digit code if you were invited by a workspace owner</p>
                   </div>
 
                   <button
@@ -367,10 +343,10 @@ export default function AuthForm({
                   onClick={() => {
                     onModeChange(mode === 'signin' ? 'signup' : 'signin');
                   }}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-text-muted hover:text-champagne transition-colors"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-champagne transition-colors"
                 >
                   {mode === 'signin' ? (
-                    <>Don't have an account? <span className="text-champagne underline underline-offset-2">Sign up</span></>
+                    <>Don&apos;t have an account? <span className="text-champagne underline underline-offset-2">Sign up</span></>
                   ) : (
                     <>Already have an account? <span className="text-champagne underline underline-offset-2">Sign in</span></>
                   )}

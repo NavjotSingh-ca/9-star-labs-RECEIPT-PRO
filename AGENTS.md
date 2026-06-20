@@ -14,6 +14,55 @@ Maintain the Leduc Receipt Pro codebase as production-ready with all identified 
 - All `process.env` usages must use validated `env` object from `@/lib/env`
 - Do not push to GitHub without explicit user approval first
 - Chrome DevTools MCP (`chrome-devtools-mcp`) installed globally for browser debugging
+- Never import something without verifying it exists in package.json
+- Never use `any` — find the real type
+- Never swallow errors with empty catch blocks
+
+### Token Discipline
+- If a file is over 200 lines, read only the relevant section with grep first
+- Clear mental context when switching between unrelated tasks — re-read task from scratch
+- When referencing code, use exact file:line format, never describe vaguely
+
+### Learning Loop
+- After every bug fix, add one line to `docs/LESSONS.md`: "Bug: X — Cause: Y — Fix: Z"
+- Before starting any task involving auth or payments, read `docs/LESSONS.md` first
+- If you discover a pattern that caused 2+ bugs, add it to the Never Do list
+
+### Acceptance Criteria
+- Before starting: write exactly what "done" looks like in 2-3 bullet points
+- At the end: verify each bullet is actually true before reporting done
+- If any bullet is not true, keep working
+
+## The Prime Directive
+You are not just completing tasks — you are building a production system that real users depend on. Every decision (naming, errors, types, structure) must reflect that weight.
+Before finishing: "If this broke at 2am and paged a developer, would they understand what went wrong and how to fix it within 5 minutes?" If no — fix it.
+
+## MCP Servers Available
+These MCP servers are configured in `~/.config/opencode/opencode.jsonc` and available as tools:
+
+- **`supabase`** (remote + OAuth) — Supabase DB queries, migrations, schema browsing, docs search, edge functions, storage. Authenticate with `opencode mcp auth supabase` (opens browser). Read-only mode by default.
+- **`@21st-dev/magic`** (local) — UI component generation. Use with `/ui` commands. Generates production-ready shadcn/ui primitives with multiple variations.
+- **`sequential-thinking`** (local) — Structured multi-step reasoning for complex problem-solving. Use `sequential_thinking` tool when breaking down intricate architecture decisions or debugging flows.
+- **`context7`** (remote, free) — Up-to-date library documentation for Next.js, Supabase, shadcn, Recharts, etc. Trigger with `use context7` in prompt. No API key needed (free tier with rate limits).
+- **`github`** (local, disabled) — GitHub MCP for PRs, issues, code search. Enable after installing `gh` CLI or setting `GITHUB_TOKEN` env var.
+
+## Agents Available
+Configured in `~/.config/opencode/opencode.jsonc`. Switch with `@agentname`:
+- **`@plan`** — Senior architect. Reads files, writes specs, asks questions. Never writes code.
+- **`@build`** — Senior engineer. Implements plans with production-quality code.
+- **`@review`** — Code reviewer. Finds bugs, security issues, quality problems with file:line refs.
+- **`@debug`** — Bug fixer. Traces call stack, finds root cause, minimal fix only.
+- **`@jester-security`** — Security auditor. Finds injections, auth bypasses, data leaks.
+- **`@jester-performance`** — Performance engineer. Finds N+1 queries, memory leaks, slow paths.
+- **`@jester-logic`** — QA engineer. Finds edge cases, missing error handlers, broken business logic.
+
+## Superpowers Skills Available
+Installed via `~/.config/opencode/node_modules/superpowers` (v5.1.0). These skills load automatically when relevant:
+- `writing-plans`, `executing-plans`, `verification-before-completion`
+- `systematic-debugging`, `test-driven-development`
+- `requesting-code-review`, `receiving-code-review`
+- `subagent-driven-development`, `dispatching-parallel-agents`
+- `finishing-a-development-branch`, `brainstorming`
 
 ## Design System (Visual Identity Overhaul)
 ### Personality
@@ -79,7 +128,7 @@ This section defines how I operate when the user has asked me to continuously im
 6. **Exhaustion**: When all `pending` tasks are done, stop and write "ALL TASKS COMPLETE" in the final message. Await the user's next instruction or a fresh oracle prompt
 
 ### Task Oracle
-When no more tasks exist or I need fresh direction, the user can take `task-oracle-prompt.md` to any AI. That AI will analyze the codebase and return prioritized task items. The user pastes them back to me, I add them to the todo list, and the loop continues.
+When no more tasks exist or I need fresh direction, the user can take `PROJECT_BRIEF.md` to any AI. That AI will analyze the codebase and return prioritized task items. The user pastes them back to me, I add them to the todo list, and the loop continues.
 
 ### Priority Order
 - CRITICAL > HIGH > MEDIUM > LOW
@@ -144,7 +193,7 @@ When no more tasks exist or I need fresh direction, the user can take `task-orac
 - **Dashboard narrative restructure** — Removed "Financial Fortress" / "v10.0 Elite" salesy branding. Hero metric (This Month's Spend) at top full-width with large number + MoM trend badge + sparkline. Secondary KPI row → daily trend chart → categories + tax → alerts. Cleaner, faster narrative flow.
 - **Settings layout** — All 3 settings pages (billing, org, security) stripped of AuroraBackground and back buttons. Use shared settings layout with sidebar nav + content pane. Mobile: segment tabs.
 - **MobileNav → 4 tabs** — Simplified to Home, Records, Scan (center FAB), More. Scan button pulses when no receipts.
-- **Research prompt** — `research-prompts.md` created with deep research prompt on Scanner UX (state machines, camera patterns, batch UX, error recovery, performance).
+- **Scanner UX research** — Deep research done on Scanner UX (state machines, camera patterns, batch UX, error recovery, performance). Findings incorporated into `useScannerState.ts` and `components/scanner/`.
 - **CSS fixes** — `--font-sans` in `@theme` now references `var(--font-geist)` (was hardcoded "Geist Variable" string). Scrollbar thumb uses `var(--glass-border)` / `var(--glass-border-hover)` (was hardcoded white that was invisible in light mode).
 - **PHASE 0.4 (Stripe types)** — Replaced `as unknown as {...}` casts with proper `as unknown as { field?: type }` access patterns. Stripe v22 types don't include `current_period_end` on `Subscription` or `subscription` on `Invoice` as directly accessible properties.
 - **PHASE 0.5 (getOrgId cleanup)** — Replaced 2 `supabase.rpc('get_user_org')` + `as unknown as string` casts with `getOrgIdString()` in `receipts.ts`.
@@ -162,17 +211,61 @@ When no more tasks exist or I need fresh direction, the user can take `task-orac
 - **Export data route streaming** — `export/data/route.ts`: refactored from `Promise.all` + in-memory JSON to `ReadableStream`-based JSON generator, avoiding Lambda memory limits.
 - **OpenAPI spec v2** — `openapi.json`: expanded to cover all 16 routes with full parameters, responses, and descriptions. `docs/route.ts`: merged with Swagger UI HTML page, routes by Accept header (JSON for API clients, HTML/SwaggerUI for browsers).
 - **`.audit-tasks.md` cleanup** — 47 items marked DONE; 0 pending. All audit tasks resolved.
-- **Storybook setup** — Installed Storybook 10.4.2 + @storybook/nextjs 10.4.2 with 8.6.x addons. Wrote 17 story files across `ui/` primitives and chart components (.storybook/main.ts, preview.tsx, utils.tsx). `npx tsc --noEmit` passes. Build blocked upstream: addon ecosystem hasn't released v10-compatible addon releases (gh#32836). Stories + config preserved; run `npm update` when addon v10 ships.
+- **Storybook** — Installed Storybook 10.4.2 + @storybook/nextjs 10.4.2 with 8.6.x addons. Wrote 17 story files across `ui/` primitives and chart components (.storybook/main.ts, preview.tsx, utils.tsx). `npx tsc --noEmit` passes. `npx storybook build` succeeds. Accessible on localhost:6006 via `npm run storybook`.
+- **Stability sprint (codex/stability-sprint)** — Eliminated all 56 `react-hooks/refs` React Compiler errors by separating ref creation from hook return in Scanner/useScannerState. Fixed ~38 unused variable/import warnings across 25+ files. Fixed ConsentBanner useCallback, useEffect exhaustive-deps in useScannerState/ScannerForm. Removed dead code from ReceiptDetailDrawer. Removed unused checkPage parameter in CRA route. Quality gates: `tsc --noEmit` 0 errors, `vitest run` 18/18 passing, `eslint` 0 errors (8 non-blocking warnings remain: 5 `<img>` best-practice + 3 third-party lib incompatibilities).
 
 ### In Progress
 - (none)
 
 ### Blocked
-- **Storybook build** — `npx storybook build` and `npx storybook dev` fail because addon-essentials/addon-a11y/addon-interactions haven't published v10-compatible releases yet. Error from gh#32836. Stories and config are in place; will work once addon authors ship v10 releases.
+- **Storybook** — `npx storybook build` and `npx storybook dev` both succeed. Build output goes to `storybook-static/`.
+
+## Multi-Agent Coordination
+
+All agents communicate via `.agent-coordination/AGENT_BOARD.md` (single file). Coordination files in `.agent-coordination/`.
+
+### Quick Reference
+1. **Read**: Read `.agent-coordination/AGENT_BOARD.md` first — see what agents are doing
+2. **Append**: Append your status to the Communication Log section (bottom) with `**YYYY-MM-DD HH:MM UTC [AgentName]**: message`
+3. **Claim**: Edit `.agent-coordination/tasks.json` — set task to `in_progress` with your agent name
+4. **Lock**: Add file paths to `.agent-coordination/registry.json` → `locks` before editing (max 30 min)
+5. **Unlock**: Remove locks after writing
+6. **Complete**: Mark task `completed` in `tasks.json`
+7. **Discuss**: Important decisions go in AGENT_BOARD.md Key Decisions section — let others weigh in
+
+### File Lock Registry
+`.agent-coordination/registry.json` tracks which agent holds which files. Never edit a file locked by another agent. Locks older than 30 min can be broken after verifying the holder is unresponsive.
+
+### Shared Task Board
+`.agent-coordination/tasks.json` is the source of truth for what needs doing. Agents auto-promote, claim, and complete tasks here.
+
+## Infrastructure
+
+### CI/CD
+`.github/workflows/ci.yml` — 4-job pipeline:
+1. **quality**: `tsc --noEmit` + `eslint` + `vitest run`
+2. **build**: `next build`
+3. **security**: `audit-ci` for high/critical vulns
+4. **e2e**: Playwright tests on Chromium
+
+### VS Code
+Recommended extensions and debug configurations in `.vscode/`. Open the project root to activate.
+
+### Dependency Updates
+Renovate (configured in `renovate.json`) auto-creates PRs. Patches auto-merge; majors require manual review.
+
+### Prettier
+`.prettierrc` with Tailwind CSS plugin. Run `npm run format` to auto-format.
+
+### Local Supabase
+`docker/docker-compose.yml` runs Supabase local + Mailpit for local email testing.
+
+### Security
+Report vulnerabilities to `security@9starlabs.ca` per `SECURITY.md`.
 
 ## Key Decisions
 - Date-based delete protection moved from RLS policy to `BEFORE DELETE` trigger.
-- `setup.sql` is the single source of truth for schema.
+- `supabase/setup.sql` is the single source of truth for schema.
 - Token encryption uses AES-256-GCM (format `enc:iv:authTag:ciphertext`).
 - `CRON_SECRET` made fail-closed.
 - CSP removed in dev mode (Turbopack nonce bug).
@@ -186,12 +279,26 @@ When no more tasks exist or I need fresh direction, the user can take `task-orac
 - `danger`, `warning`, `info` tokens added to `@theme` block for Tailwind v4 opacity modifier support (e.g., `bg-danger/10`).
 - `supabase-admin.ts` uses Proxy for lazy initialization — client created lazily at first property access, not module import time. Fixes build error where env var missing during page data collection.
 - **Scanner refactoring** follows the pattern of: hook (state+logic) + thin component (render only). The hook owns all state, mutations, effects, and callbacks. The component imports it and delegates.
+- **Refs separated from hook returns** — React Compiler flags ref access during render when refs and state are bundled in the same return object. Pattern: create refs in the component, pass them as parameters to the hook. The hook never returns ref objects. This eliminates `react-hooks/refs` errors.
 
-## Next Steps
-- Run `setup.sql` against Supabase to apply schema changes if not already applied.
-- Build and deploy the Next.js application.
-- Run `task-oracle-prompt.md` through an external AI to generate the next batch of prioritized tasks when ready.
-- When Storybook addon authors publish v10-compatible releases, run `npm update` and `npx storybook build`.
+## Self-Loop Protocol (Autonomous Mode)
+This section defines how I operate when the user has asked me to continuously improve the codebase without interruption.
+
+### Loop Rules
+1. **Auto-promote**: After completing a task, mark it done in `todowrite` and immediately promote the next `pending` item to `in_progress`
+2. **Build gate**: Run `npx tsc --noEmit` after every file change. If it fails, fix the error before moving on
+3. **Full build**: Run `npx next build` every 3-5 task items to catch production issues early
+4. **Blockers**: If a task is blocked (missing data, requires user decision), log the reason in task notes, mark it `cancelled`, skip to the next unblocked task
+5. **Resume**: This file is the state checkpoint. If context resets, the next session reads this file, picks the first `pending` task, and continues
+6. **Exhaustion**: When all `pending` tasks are done, stop and write "ALL TASKS COMPLETE" in the final message. Await the user's next instruction or a fresh oracle prompt
+
+### Task Oracle
+When no more tasks exist or I need fresh direction, the user can take `PROJECT_BRIEF.md` to any AI. That AI will analyze the codebase and return prioritized task items. The user pastes them back to me, I add them to the todo list, and the loop continues.
+
+### Priority Order
+- CRITICAL > HIGH > MEDIUM > LOW
+- Within severity: Infrastructure > UX > Features > Architecture > Moonshots
+- Quick wins (Phase 0) first, then Phase 1, 2, 3, 4, 5 sequentially
 
 ## Critical Context
 - The existing database has `transaction_date` as `date` type (not `text`).
@@ -227,7 +334,7 @@ A comprehensive, AI-ready project brief covering architecture, design system, fe
 - `C:\Users\navjo\leduc-receipt-pro\src\components\ThemeToggle.tsx`: Animated Sun/Moon toggle — switches between light and dark, defaults to system
 - `C:\Users\navjo\leduc-receipt-pro\src\components\scanner\hooks\useScannerState.ts`: Scanner state machine hook (628 lines) — all state, mutations, effects, and callbacks
 - `C:\Users\navjo\leduc-receipt-pro\src\lib\supabase-admin.ts`: Proxy-based lazy init admin client — build-safe, doesn't throw at import
-- `C:\Users\navjo\leduc-receipt-pro\research-prompts.md`: Deep research prompt for Scanner UX modernization
+- `.agent-coordination/AGENT_BOARD.md`: Agent communications hub — single file all agents read and write
 - `C:\Users\navjo\leduc-receipt-pro\src\app\settings\layout.tsx`: Settings sidebar nav + content pane layout (desktop) / segment tabs (mobile)
 - `C:\Users\navjo\leduc-receipt-pro\src\components\charts\DailySpendChart.tsx`: 30-day bar chart with champagne top accent
 - `C:\Users\navjo\leduc-receipt-pro\src\components\charts\CategoryDonut.tsx`: Donut with 5 top categories + legend

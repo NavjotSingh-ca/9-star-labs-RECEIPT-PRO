@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Loader2, RefreshCw, ScanLine } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -11,7 +12,6 @@ interface ImagePreviewProps {
   processingAI: boolean;
   hasAnalyzed: boolean;
   canProcess: boolean;
-  formContainerRef: React.RefObject<HTMLDivElement | null>;
   fileName: string;
   onCrop: () => void;
   onReset: () => void;
@@ -53,9 +53,11 @@ export default function ImagePreview({
           </div>
 
           <div className="relative bg-black group overflow-hidden">
-            <img
+            <Image
               src={imageSrc}
               alt="Captured receipt"
+              width={800}
+              height={600}
               className="max-h-[60vh] w-full object-contain transition-transform duration-700 group-hover:scale-[1.02] sm:max-h-[70vh]"
             />
             {processingAI && (

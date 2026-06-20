@@ -152,13 +152,14 @@
 │       ├── ui-utils.ts               # approvalBadge(), categoryColor()
 │       ├── utils.ts                  # Misc utilities
 │       └── validations.ts            # Zod schemas
-├── setup.sql                         # Single source of truth for schema, RLS, triggers, functions, indexes
-├── proxy.ts                          # Dev proxy (CSP, nonce, dev mode CSP removal)
+├── proxy.ts                          # Edge middleware (auth guard, CSP, rate-limit)
 ├── next.config.ts                    # Next.js config
 ├── postcss.config.mjs
 ├── tsconfig.json
 ├── .env.example                      # 16 documented env vars
-├── research-prompts.md               # Deep research prompts (scanner UX, legal, offline-first)
+├── COMMS.md                          # Agent communications hub
+├── supabase/
+│   └── setup.sql                     # Single source of truth for schema, RLS, triggers, functions, indexes
 └── AGENTS.md                         # This file — dev instructions
 ```
 

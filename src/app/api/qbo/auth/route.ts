@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { env } from '@/lib/env';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { logError } from '@/lib/logger';
 import crypto from 'crypto';
 
 const QBO_CLIENT_ID = env.QBO_CLIENT_ID || '';
@@ -66,8 +67,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ url: authUrl.toString() });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'QBO auth failed';
-    console.error('[QBO Auth]', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    logError(err, { action: 'qbo_oauth_init' });
+    return NextResponse.json({ error: 'QBO authentication failed' }, { status: 500 });
   }
 }

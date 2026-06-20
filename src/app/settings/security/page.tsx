@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { Loader2, KeyRound, AlertCircle, CheckCircle2, ShieldOff } from 'lucide-react';
 import {
@@ -211,7 +212,7 @@ export default function SecuritySettings() {
                         <p className="text-sm text-text-secondary">Scan this QR code with your authenticator app.</p>
                         
                         <div className="flex justify-center rounded-[2rem] bg-white p-4 max-w-[200px] mx-auto">
-                          <img src={qrCode} alt="QR Code" className="w-full h-auto" />
+                          <Image src={qrCode} alt="QR Code" width={200} height={200} className="w-full h-auto" />
                         </div>
 
                         <div>

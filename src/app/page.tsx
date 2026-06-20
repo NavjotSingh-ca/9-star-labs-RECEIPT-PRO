@@ -13,7 +13,6 @@ import {
   ReceiptText,
   TrendingUp,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import dynamic from 'next/dynamic';
@@ -22,15 +21,50 @@ import InviteModal from '@/components/InviteModal';
 import Export from '@/components/Export';
 import ApprovalsQueue from '@/components/ApprovalsQueue';
 import ReimbursementsPanel from '@/components/ReimbursementsPanel';
+import { 
+  DashboardSkeleton, 
+  ReceiptTableSkeleton, 
+  ScannerSkeleton, 
+  CardSkeleton 
+} from '@/components/ui/PremiumSkeletons';
 
-const Dashboard = dynamic(() => import('@/components/Dashboard'), { ssr: false });
-const History = dynamic(() => import('@/components/History'), { ssr: false });
-const Scanner = dynamic(() => import('@/components/Scanner'), { ssr: false });
-const AuditTrail = dynamic(() => import('@/components/AuditTrail'), { ssr: false });
-const BankReconciliation = dynamic(() => import('@/components/BankReconciliation'), { ssr: false });
-const MileageTracker = dynamic(() => import('@/components/MileageTracker'), { ssr: false });
-const ProjectManager = dynamic(() => import('@/components/ProjectManager'), { ssr: false });
-const AnomalyDashboard = dynamic(() => import('@/components/AnomalyDashboard'), { ssr: false });
+const Dashboard = dynamic(() => import('@/components/Dashboard'), { 
+  ssr: false, 
+  loading: () => <DashboardSkeleton /> 
+});
+const History = dynamic(() => import('@/components/History'), { 
+  ssr: false, 
+  loading: () => <ReceiptTableSkeleton /> 
+});
+const Scanner = dynamic(() => import('@/components/Scanner'), { 
+  ssr: false, 
+  loading: () => <ScannerSkeleton /> 
+});
+const AuditTrail = dynamic(() => import('@/components/AuditTrail'), { 
+  ssr: false, 
+  loading: () => <ReceiptTableSkeleton /> 
+});
+const BankReconciliation = dynamic(() => import('@/components/BankReconciliation'), { 
+  ssr: false, 
+  loading: () => <CardSkeleton /> 
+});
+const MileageTracker = dynamic(() => import('@/components/MileageTracker'), { 
+  ssr: false, 
+  loading: () => <CardSkeleton /> 
+});
+const ProjectManager = dynamic(() => import('@/components/ProjectManager'), { 
+  ssr: false, 
+  loading: () => <CardSkeleton /> 
+});
+const AnomalyDashboard = dynamic(() => import('@/components/AnomalyDashboard'), { 
+  ssr: false, 
+  loading: () => <DashboardSkeleton /> 
+});
+const ReportsPage = dynamic(() => import('@/components/reports/ReportsPage').then((m) => m.ReportsPage), {
+  ssr: false,
+  loading: () => <CardSkeleton />,
+});
+
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ConsentBanner } from '@/components/ConsentBanner';
@@ -44,7 +78,6 @@ import { OnboardingTour } from '@/components/OnboardingTour';
 import Sidebar from '@/components/layout/Sidebar';
 import MobileNav from '@/components/layout/MobileNav';
 import TopBar from '@/components/layout/TopBar';
-import PageHeader from '@/components/layout/PageHeader';
 import MoreSheet from '@/components/layout/MoreSheet';
 import { supabase } from '@/lib/supabase';
 import { usePlan } from '@/hooks/use-plan';
@@ -72,17 +105,11 @@ const tabVariants = {
   exit: { opacity: 0, y: -8 },
 };
 
-const showToast = (type: 'success' | 'error' | 'info', msg: string) => {
-  if (type === 'success') toast.success(msg);
-  else if (type === 'error') toast.error(msg);
-  else toast.info(msg);
-};
-
 function FullPageLoader() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-obsidian" role="status" aria-live="polite" aria-label="Loading application">
       <div className="flex flex-col items-center gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-[3rem] bg-champagne/15 champagne-glow">
+        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-champagne/15 shadow-[0_0_24px_-4px_rgba(203,182,155,0.2)]">
           <ReceiptText className="h-8 w-8 text-champagne" />
         </div>
         <Loader2 className="h-6 w-6 animate-spin text-champagne" />
@@ -111,10 +138,10 @@ function AuditHUD({ receipts }: { receipts: ReceiptRow[] }) {
   }, [receipts]);
 
   return (
-    <div className="liquid-glass rounded-[3rem] px-4 py-3" role="status" aria-label="Tax recoverable this month">
+    <div className="rounded-lg border border-glass-border bg-surface px-4 py-3" role="status" aria-label="Tax recoverable this month">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-[2rem] bg-emerald-success/30">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-success/30">
             <TrendingUp className="h-4 w-4 text-emerald-light" />
           </div>
           <div>
@@ -135,11 +162,10 @@ function AuditHUD({ receipts }: { receipts: ReceiptRow[] }) {
 }
 
 function AppContent() {
-  const router = useRouter();
   const [hasMounted, setHasMounted] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useQueryState('tab', parseAsStringEnum<Tab>(['dashboard', 'receipts', 'scan', 'export', 'audit', 'reconcile', 'mileage', 'approvals', 'payables', 'projects', 'alerts', 'more']).withDefault('dashboard'));
+  const [activeTab, setActiveTab] = useQueryState('tab', parseAsStringEnum<Tab>(['dashboard', 'receipts', 'scan', 'export', 'audit', 'reconcile', 'mileage', 'approvals', 'payables', 'projects', 'alerts', 'reports', 'more']).withDefault('dashboard'));
   const storeTab = useAppStore((s) => s.setActiveTab);
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const touchStartX = useRef<number>(0);
@@ -340,7 +366,6 @@ function AppContent() {
   }, [setTabWithUrl]);
 
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const isPrivileged = role !== 'Employee';
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -396,7 +421,7 @@ function AppContent() {
           <p className="text-xs text-text-muted mb-4">Check your connection and try again.</p>
           <button
             onClick={() => fetchReceipts()}
-            className="rounded-[2rem] bg-champagne px-5 py-2 text-xs font-bold text-obsidian hover:bg-champagne-dim transition"
+            className="rounded-lg bg-champagne px-5 py-2 text-xs font-bold text-obsidian hover:bg-champagne-dim transition"
           >
             Retry
           </button>
@@ -487,6 +512,12 @@ function AppContent() {
               <AnomalyDashboard />
             </ErrorBoundary>
           );
+        case 'reports':
+          return (
+            <ErrorBoundary componentName="ReportsPage">
+              <ReportsPage orgId={userId ?? ''} />
+            </ErrorBoundary>
+          );
         case 'more':
           return null;
         default:
@@ -544,15 +575,15 @@ function AppContent() {
         </TopBar>
 
         {/* Main content */}
-        <main
-          id="main-content"
+        <div
           className="flex-1 overflow-y-auto px-4 pb-28 pt-16 sm:px-6 lg:pb-8 lg:pt-6 xl:px-8 relative"
-          role="main"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
-          {/* Subtle ambient gradient at top */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-gradient-to-b from-champagne/10 to-transparent" aria-hidden="true" />
+          {/* Premium ambient gradient at top */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[600px] bg-gradient-to-b from-[var(--champagne)]/[0.06] via-[var(--champagne)]/[0.02] to-transparent" aria-hidden="true" />
+          <div className="pointer-events-none absolute -left-32 -top-32 h-64 w-64 rounded-full bg-champagne/5 blur-3xl" aria-hidden="true" />
+          <div className="pointer-events-none absolute -right-32 top-64 h-48 w-48 rounded-full bg-champagne/3 blur-3xl" aria-hidden="true" />
           <div className="mx-auto max-w-6xl relative">
             {/* Audit HUD */}
             {!receiptsLoading && receipts.length > 0 && role !== 'Employee' && (
@@ -592,7 +623,7 @@ function AppContent() {
               {tabContent}
             </AnimatePresence>
           </div>
-        </main>
+        </div>
 
         {/* Mobile bottom nav */}
         <MobileNav activeTab={activeTab} onTabChange={setTabWithUrl} role={role} noReceipts={receipts.length === 0} />
@@ -621,7 +652,7 @@ function AppContent() {
       <Drawer.Root open={showInviteModal} onOpenChange={setShowInviteModal}>
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-sm" />
-          <Drawer.Content aria-label="Invite team member" className="fixed bottom-0 left-0 right-0 z-[160] flex flex-col rounded-t-[3rem] border-t border-glass-border bg-surface outline-none focus:ring-0 bottom-nav">
+          <Drawer.Content aria-label="Invite team member" className="fixed bottom-0 left-0 right-0 z-[160] flex flex-col rounded-t-lg border-t border-glass-border bg-surface outline-none focus:ring-0 bottom-nav">
             <div className="mx-auto mt-4 h-1.5 w-12 flex-shrink-0 rounded-full bg-glass-border" />
             <div className="p-6">
               <InviteModal

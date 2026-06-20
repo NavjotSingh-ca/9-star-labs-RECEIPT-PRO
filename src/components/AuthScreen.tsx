@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -45,7 +45,7 @@ export default function AuthScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
-  const [gradientIndex, setGradientIndex] = useState(0);
+  const [gradientIndex] = useState(0);
   const [inviteCode, setInviteCode] = useState('');
 
   const signinForm = useForm<SignInData>({
@@ -60,10 +60,6 @@ export default function AuthScreen() {
 
   const password = signupForm.watch('password');
   const strength = usePasswordStrength(password);
-
-  const rotateGradient = useCallback(() => {
-    setGradientIndex((i) => (i + 1) % gradients.length);
-  }, []);
 
   const handleSignIn = async (data: SignInData) => {
     setLoading(true);

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { AlertCircle, BrainCircuit, DollarSign, Loader2, MessageSquare, Send, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { updateReceiptApproval, updateReceipt, deleteReceipt } from '@/lib/services/receipts';
+import { updateReceiptApproval, deleteReceipt } from '@/lib/services/receipts';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +24,7 @@ import { getReceiptImageUrl } from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
 import { useEffect } from 'react';
 import type { ReceiptRow, UserRole } from '@/lib/types';
-import { toNumber, formatCurrency, formatDate, categoryColor, confidenceTone, approvalBadge, reimbursementBadge } from '@/lib/ui-utils';
+import { toNumber, formatCurrency, formatDate, categoryColor, confidenceTone, approvalBadge } from '@/lib/ui-utils';
 
 interface ReceiptDetailModalProps {
   receipt: ReceiptRow;
@@ -36,20 +36,13 @@ interface ReceiptDetailModalProps {
 export default function ReceiptDetailDrawer({ receipt, onClose, role = 'Owner', onUpdate }: ReceiptDetailModalProps) {
   const score = toNumber(receipt.confidence_score);
   const tone = confidenceTone(score);
-  const [editing, setEditing] = useState(false);
-  
-  const [vendorName, setVendorName] = useState(receipt.vendor_name ?? '');
-  const [vendorTaxNumber, setVendorTaxNumber] = useState(receipt.vendor_tax_number ?? receipt.business_number ?? '');
-  const [totalAmount, setTotalAmount] = useState(receipt.total_amount ?? 0);
-  const [transactionDate, setTransactionDate] = useState(receipt.transaction_date ?? '');
-  const [category, setCategory] = useState(receipt.category ?? '');
-  const [notesValue, setNotesValue] = useState(receipt.notes ?? '');
-
-  const [editSaving, setEditSaving] = useState(false);
-  const [editError, setEditError] = useState('');
-  const [editSuccess, setEditSuccess] = useState(false);
-  const [approvalLoading, setApprovalLoading] = useState(false);
+  const [vendorName] = useState(receipt.vendor_name ?? '');
+  const [vendorTaxNumber] = useState(receipt.vendor_tax_number ?? receipt.business_number ?? '');
+  const [transactionDate] = useState(receipt.transaction_date ?? '');
+  const [category] = useState(receipt.category ?? '');
   const [localApproval, setLocalApproval] = useState(receipt.approval_status ?? 'submitted');
+  const [, setApprovalLoading] = useState(false);
+  const [, setEditError] = useState('');
 
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<{ id: string; comment: string; created_at: string; user_id?: string; user?: { email: string } }[]>([]);
@@ -86,7 +79,6 @@ export default function ReceiptDetailDrawer({ receipt, onClose, role = 'Owner', 
 
   const approval = approvalBadge(localApproval);
   const needsReimburse = receipt.paid_by === 'employee_cash';
-  const reimburse = needsReimburse ? reimbursementBadge(receipt.reimbursement_status) : null;
 
   async function handleApproval(status: 'approved' | 'rejected') {
     setApprovalLoading(true);
@@ -108,35 +100,6 @@ export default function ReceiptDetailDrawer({ receipt, onClose, role = 'Owner', 
     }
   }
 
-  async function handleSaveEdit() {
-    setEditSaving(true);
-    setEditError('');
-    setEditSuccess(false);
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      await updateReceipt(receipt.id, {
-        vendor_name: vendorName,
-        vendor_tax_number: vendorTaxNumber,
-        business_number: vendorTaxNumber,
-        total_amount: Number(totalAmount),
-        transaction_date: transactionDate,
-        category: category,
-        notes: notesValue,
-      }, user.id, receipt);
-
-      setEditSuccess(true);
-      setEditing(false);
-      if (onUpdate) await onUpdate();
-    } catch (err: unknown) {
-      setEditError(err instanceof Error ? err.message : 'Edit failed.');
-    } finally {
-      setEditSaving(false);
-    }
-  }
-
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -155,22 +118,6 @@ export default function ReceiptDetailDrawer({ receipt, onClose, role = 'Owner', 
     } finally {
       setDeleteLoading(false);
       setShowDeleteConfirm(false);
-    }
-  }
-
-  const [syncLoading, setSyncLoading] = useState<string | null>(null);
-
-  async function handleAccountingSync(provider: 'qbo' | 'xero') {
-    setSyncLoading(provider);
-    try {
-      const resp = await fetch(`/api/integrations/${provider}?action=sync&receiptId=${receipt.id}`, { method: 'POST' });
-      const result = await resp.json();
-      if (!resp.ok) throw new Error(result.error || 'Sync failed');
-      toast.success(`Successfully synced to ${provider.toUpperCase()}`);
-    } catch (err: unknown) {
-      toast.error(`Sync Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setSyncLoading(null);
     }
   }
 

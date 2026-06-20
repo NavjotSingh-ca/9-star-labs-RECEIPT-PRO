@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { env } from '@/lib/env';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { logError } from '@/lib/logger';
 
 const stripe = env.STRIPE_SECRET_KEY
   ? new Stripe(env.STRIPE_SECRET_KEY)
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: session.url });
   } catch (err: unknown) {
-    console.error('[Stripe Portal]', err);
+    logError(err, { action: 'stripe_portal' });
     return NextResponse.json({ error: 'Portal session failed' }, { status: 500 });
   }
 }

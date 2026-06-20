@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { ACTIONS, EVENTS, useJoyride } from 'react-joyride';
+import { useJoyride } from 'react-joyride';
 
 const steps = [
   {

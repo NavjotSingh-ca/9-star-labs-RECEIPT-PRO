@@ -6,9 +6,18 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { useState, useEffect } from 'react';
 import { MotionConfig } from 'framer-motion';
 import { ThemeProvider } from './ThemeProvider';
-import { logWarn } from '@/lib/logger';
+import { logWarn, logError } from '@/lib/logger';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
+  // Global unhandled promise rejection handler
+  useEffect(() => {
+    const handler = (event: PromiseRejectionEvent) => {
+      logError(event.reason, { action: 'unhandled_promise_rejection' });
+    };
+    window.addEventListener('unhandledrejection', handler);
+    return () => window.removeEventListener('unhandledrejection', handler);
+  }, []);
+
   // Register Service Worker
   useEffect(() => {
     if ('serviceWorker' in navigator) {

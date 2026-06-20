@@ -14,6 +14,9 @@ import {
   FileSearch,
   Gauge,
   Landmark,
+  TrendingUp,
+  Sparkles,
+  Percent,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
@@ -23,19 +26,19 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const SpendingChart = dynamic(() => import('@/components/charts/SpendingChart').then(m => ({ default: m.SpendingChart })), {
   ssr: false,
-  loading: () => <Skeleton className="h-48 w-full rounded-xl" />,
+  loading: () => <Skeleton className="h-48 w-full rounded-lg" />,
 });
 const DailySpendChart = dynamic(() => import('@/components/charts/DailySpendChart').then(m => ({ default: m.DailySpendChart })), {
   ssr: false,
-  loading: () => <Skeleton className="h-64 w-full rounded-xl" />,
+  loading: () => <Skeleton className="h-64 w-full rounded-lg" />,
 });
 const CategoryDonut = dynamic(() => import('@/components/charts/CategoryDonut').then(m => ({ default: m.CategoryDonut })), {
   ssr: false,
-  loading: () => <Skeleton className="h-64 w-full rounded-xl" />,
+  loading: () => <Skeleton className="h-64 w-full rounded-lg" />,
 });
 const Sparkline = dynamic(() => import('@/components/charts/Sparkline').then(m => ({ default: m.Sparkline })), {
   ssr: false,
-  loading: () => <Skeleton className="h-12 w-24 rounded" />,
+  loading: () => <Skeleton className="h-10 w-20 rounded-lg" />,
 });
 import {
   Card as ShadcnCard,
@@ -61,22 +64,6 @@ interface DashboardProps {
   userId?: string;
 }
 
-const CATEGORY_COLORS = [
-  '#bea98e', // Job Materials
-  '#8b5cf6', // Subcontractors
-  '#ef4444', // Site Fuel
-  '#f59e0b', // Equipment Rental
-  '#06b6d4', // Small Tools
-  '#ec4899', // Vehicle Maintenance
-  '#60a5fa', // Travel/Lodging
-  '#10b981', // Office/Admin
-];
-
-const currencyFormatter = new Intl.NumberFormat('en-CA', {
-  style: 'currency',
-  currency: 'CAD',
-  maximumFractionDigits: 2,
-});
 
 function formatMonthLabel(value: string | undefined | null): string {
   if (!value || typeof value !== 'string' || !/^\d{4}-\d{2}$/.test(value)) return String(value || 'Unknown');
@@ -97,6 +84,20 @@ function getGreeting(): string {
   if (hour < 17) return 'Good afternoon.';
   return 'Good evening.';
 }
+
+/* ─── Stagger Animation Variants ─── */
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' as const } },
+};
 
 export default function Dashboard({
   onFilterClick,
@@ -141,13 +142,6 @@ export default function Dashboard({
     return ((thisMonth.amount - lastMonth.amount) / lastMonth.amount) * 100;
   }, [thisMonth, lastMonth]);
 
-  const topCategories = useMemo(() => {
-    if (!summary?.spendingByCategory?.length) return [];
-    return [...summary.spendingByCategory]
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 3);
-  }, [summary]);
-
   const { data: dailySpend = [] } = useQuery({
     queryKey: ['daily_spend', userId],
     queryFn: () => getDailySpend(30),
@@ -188,12 +182,16 @@ export default function Dashboard({
   if (error || !summary) {
     const isNoOrg = error instanceof Error && error.message.includes('No organization found');
     return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-6 rounded-2xl border bg-card p-12 text-center text-card-foreground shadow-sm" role="alert" aria-live="assertive">
-        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
-          <AlertCircle className="h-10 w-10" />
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex min-h-[50vh] flex-col items-center justify-center gap-5 rounded-lg border border-glass-border bg-card p-12 text-center text-card-foreground shadow-sm" role="alert" aria-live="assertive"
+      >
+        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-danger/10 text-danger">
+          <AlertCircle className="h-8 w-8" />
         </div>
         <div className="max-w-md space-y-2">
-          <h3 className="text-2xl font-bold tracking-tight">
+          <h3 className="text-lg font-bold tracking-tight">
             {isNoOrg ? 'Organization Required' : 'Synchronization Error'}
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
@@ -203,11 +201,11 @@ export default function Dashboard({
           </p>
         </div>
         {!isNoOrg && (
-          <Button variant="outline" className="px-8 py-6 font-bold" onClick={() => refetch()}>
-            Reconnect Audit Engine
+          <Button variant="outline" className="px-6 py-2.5 font-semibold" onClick={() => refetch()}>
+            Reconnect
           </Button>
         )}
-      </div>
+      </motion.div>
     );
   }
 
@@ -232,26 +230,25 @@ export default function Dashboard({
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, ease: 'easeOut' }}
+        transition={{ duration: 0.35, ease: 'easeOut' as const }}
         className="flex flex-col items-center justify-center py-16 text-center"
       >
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-raised">
-          <Receipt className="h-6 w-6 text-text-muted" />
+        <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-champagne/10 text-champagne border border-champagne/20">
+          <Receipt className="h-7 w-7" />
         </div>
-        <h2 className="mt-4 text-base font-medium text-text-primary">No receipts yet</h2>
-        <p className="mt-1 max-w-sm text-sm text-text-secondary">
-          Scan a receipt or forward one from email, and we&rsquo;ll extract every line item automatically.
+        <h2 className="text-lg font-bold tracking-tight text-text-primary">Your financial picture starts here</h2>
+        <p className="mt-2 max-w-md text-sm text-text-secondary leading-relaxed">
+          Scan your first receipt to unlock AI-powered extraction, CRA compliance scoring, and real-time audit intelligence.
         </p>
-        <div className="mt-6 flex flex-wrap items-center gap-3">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           {onScan && (
-            <button
-              type="button"
+            <Button
               onClick={onScan}
-              className="inline-flex items-center gap-2 rounded-lg bg-champagne px-4 py-2 text-sm font-semibold text-black transition hover:opacity-90"
+              className="gap-2 bg-champagne text-black rounded-lg hover:bg-champagne-dim hover:shadow-[0_0_24px_-4px_rgba(190,169,142,0.4)]"
             >
               <Camera className="h-4 w-4" />
-              Scan receipt
-            </button>
+              Scan your first receipt
+            </Button>
           )}
           <button
             type="button"
@@ -260,12 +257,40 @@ export default function Dashboard({
             className="inline-flex items-center gap-1.5 text-sm text-text-muted underline underline-offset-4 transition hover:text-text-secondary disabled:opacity-50"
           >
             <CopyIcon className="h-3.5 w-3.5" />
-            {forwardingEmail ? 'Looking up...' : 'Forward an email'}
+            {forwardingEmail ? 'Looking up...' : 'Forward from email'}
           </button>
+        </div>
+        {/* Feature highlights */}
+        <div className="mt-12 grid gap-5 sm:grid-cols-3 max-w-2xl">
+          {[
+            { icon: Sparkles, title: 'AI Extraction', desc: 'Auto-detects vendors, line items, taxes, and categories from any receipt photo.' },
+            { icon: ShieldAlert, title: 'CRA Compliance', desc: 'Real-time scoring ensures every receipt meets CRA audit requirements.' },
+            { icon: TrendingUp, title: 'Financial Intelligence', desc: 'Dashboards, tax recovery estimates, and spend trends at your fingertips.' },
+          ].map((feature, i) => (
+            <motion.div
+              key={feature.title}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 + i * 0.08, duration: 0.35 }}
+              className="text-center"
+            >
+              <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-champagne/10 text-champagne">
+                <feature.icon className="h-4.5 w-4.5" />
+              </div>
+              <h3 className="text-sm font-semibold text-text-primary">{feature.title}</h3>
+              <p className="mt-1 text-xs text-text-muted leading-relaxed">{feature.desc}</p>
+            </motion.div>
+          ))}
         </div>
       </motion.div>
     );
   }
+
+  const momColor = monthOverMonth !== null
+    ? monthOverMonth >= 0 ? 'text-emerald-light' : 'text-danger'
+    : 'text-text-muted';
+
+  const recoveryPct = totalSpent > 0 ? ((gstRecoverable + pstRecoverable) / totalSpent) * 100 : 0;
 
   return role === 'Employee' ? (
     <AccessDeniedDashboard 
@@ -274,30 +299,27 @@ export default function Dashboard({
       gst={gstRecoverable} 
     />
   ) : (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000" aria-live="polite" aria-atomic="true">
-      {/* Greeting */}
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="text-sm font-medium text-text-muted"
-      >
-        {getGreeting()}
-      </motion.p>
-
-      {/* Hero Metric — This Month's Spend */}
+    <>
+      {/* ─── Hero — Dark premium section ─── */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25, ease: 'easeOut' }}
-        className="rounded-xl border border-glass-border bg-card p-4 sm:p-8 relative overflow-hidden"
+        className="relative mb-6 overflow-hidden rounded-lg border border-champagne/15 bg-gradient-to-br from-[var(--champagne-deep)]/[0.12] via-[var(--card)] to-[var(--champagne)]/[0.05] p-6"
       >
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-champagne/[0.03] to-transparent" />
+        {/* Ambient glow */}
+        <div className="pointer-events-none absolute -right-24 -top-24 h-48 w-48 rounded-full bg-champagne/8 blur-[80px]" />
+        <div className="pointer-events-none absolute -bottom-24 -left-24 h-48 w-48 rounded-full bg-champagne/6 blur-[80px]" />
+
         <div className="relative flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-tight text-muted-foreground">
-              {thisMonth ? formatMonthLabel(thisMonth.month) : 'This Month'} Spend
-            </p>
-            <p className="mt-1 text-3xl font-semibold tracking-tight tabular-nums text-text-primary sm:text-5xl sm:text-6xl">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">
+                {thisMonth ? formatMonthLabel(thisMonth.month) : 'This Month'} Spend
+              </p>
+              <span className="text-text-muted/40">·</span>
+              <span className="text-[11px] text-text-secondary">{receiptCount} receipts</span>
+            </div>
+            <p className="text-4xl font-semibold tracking-tight tabular-nums text-text-primary sm:text-5xl">
               {thisMonth ? (
                 <AnimatedCounter
                   from={0}
@@ -307,139 +329,140 @@ export default function Dashboard({
                 />
               ) : '$0.00'}
             </p>
-            <div className="mt-3 flex items-center gap-3">
+            <div className="flex items-center gap-3 mt-2">
               {monthOverMonth !== null && (
-                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                <span className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-semibold",
                   monthOverMonth >= 0
                     ? 'bg-emerald-success/10 text-emerald-light'
                     : 'bg-danger/10 text-danger'
-                }`}>
-                  {monthOverMonth >= 0 ? '↑' : '↓'} {Math.abs(monthOverMonth).toFixed(1)}%
+                )}>
+                  <span className={cn(
+                    "inline-flex h-1.5 w-1.5 rounded-full",
+                    monthOverMonth >= 0 ? 'bg-emerald-light' : 'bg-danger'
+                  )} />
+                  {monthOverMonth >= 0 ? '+' : ''}{Math.abs(monthOverMonth).toFixed(1)}% vs last month
                 </span>
               )}
               {last7Days.length >= 2 && (
-                <Sparkline data={last7Days} />
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-champagne/5 px-2 py-0.5 text-xs text-champagne-dim">
+                  <Sparkline data={last7Days} />
+                  7d
+                </span>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2 mt-4 sm:mt-0">
-            <Badge variant="outline" className="rounded-full border-champagne/20 bg-champagne/10 px-3 py-1 text-[10px] font-semibold tracking-tight text-champagne">
+          <div className="flex items-center gap-2 mt-3 sm:mt-0">
+            <Badge variant="outline" className="rounded-md border-glass-border bg-surface px-2.5 py-1 text-[10px] font-semibold tracking-tight text-text-secondary">
               {receiptCount.toLocaleString()} receipts
             </Badge>
           </div>
         </div>
       </motion.div>
 
-      {/* Secondary KPIs */}
+      {/* ─── 4-Column KPI Grid ─── */}
       <motion.div
-        variants={{
-          hidden: { opacity: 0 },
-          show: { transition: { staggerChildren: 0.08 } }
-        }}
+        variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+        className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4"
       >
         <StatCard
-          label="Pending Review"
+          label="Pending"
           value={String(pendingReviewCount || 0)}
-          helper="Receipts awaiting approval"
-          icon={<CheckCircle2 className="h-6 w-6" />}
+          icon={<CheckCircle2 className="h-4 w-4" />}
         />
         <StatCard
-          label="Total Receipts"
+          label="Receipts"
           value={receiptCount.toLocaleString()}
-          helper="All-time records stored"
-          icon={<Receipt className="h-6 w-6" />}
+          icon={<Receipt className="h-4 w-4" />}
         />
         <StatCard
           label="AI Confidence"
           value={String(highConfidenceCount || 0)}
-          helper="High-confidence extractions"
-          icon={<ShieldAlert className="h-6 w-6" />}
+          icon={<ShieldAlert className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Recovery"
+          value={`${recoveryPct.toFixed(1)}%`}
+          icon={<Percent className="h-4 w-4" />}
         />
       </motion.div>
 
-      {/* Daily Spend Trend */}
-      <div>
+      {/* ─── Daily Spend Chart ─── */}
+      <motion.div
+        variants={itemVariants}
+        initial="hidden"
+        animate="show"
+        className="mb-6"
+      >
         <DailySpendChart data={dailySpend} />
-      </div>
+      </motion.div>
 
-      {/* Categories + Tax Recovery */}
-      <div className="grid gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-3">
+      {/* ─── Categories + Monthly Trend ─── */}
+      <div className="mb-6 grid gap-3 lg:grid-cols-5">
+        <motion.div
+          variants={itemVariants}
+          initial="hidden"
+          animate="show"
+          className="lg:col-span-3"
+        >
           <CategoryDonut data={summary.spendingByCategory || []} />
-        </div>
-        <div className="lg:col-span-2">
-          <GSTRecoveryMeter 
-            gst={gstRecoverable} 
-            pst={pstRecoverable} 
-            total={totalSpent} 
-          />
-        </div>
-      </div>
-
-      {/* Monthly Spend Trend */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        </motion.div>
+        <motion.div
+          variants={itemVariants}
+          initial="hidden"
+          animate="show"
+          className="lg:col-span-2 space-y-3"
+        >
           <SpendingChart data={chartData} />
-        </div>
-        <div className="lg:col-span-1 space-y-4">
-          {mileageTotalKm > 0 && (
-            <div className="rounded-xl border border-glass-border bg-card p-5 flex items-start gap-4">
-              <div className="h-10 w-10 rounded-xl bg-emerald-success/10 flex items-center justify-center text-emerald-light shrink-0">
-                <Gauge className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-text-primary">Mileage Deduction</p>
-                <p className="mt-1 text-xs text-text-secondary">
-                  <span className="font-medium text-emerald-light">{formatCurrency(mileageTotalAmount)}</span> across {mileageTotalKm.toLocaleString()} km
-                </p>
-              </div>
-            </div>
-          )}
-          {unmatchedBankCount > 0 && (
-            <div className="rounded-xl border border-glass-border bg-card p-5 flex items-start gap-4">
-              <div className="h-10 w-10 rounded-xl bg-warning/10 flex items-center justify-center text-warning shrink-0">
-                <Landmark className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-text-primary">Unmatched Transactions</p>
-                <p className="mt-1 text-xs text-text-secondary">
-                  <span className="font-medium text-warning">{unmatchedBankCount}</span> bank transaction{unmatchedBankCount === 1 ? '' : 's'} with no matching receipt
-                </p>
-              </div>
-            </div>
-          )}
-          {duplicatesBlockedCount > 0 && (
-            <div className="rounded-xl border border-glass-border bg-card p-5 flex items-start gap-4">
-              <div className="h-10 w-10 rounded-xl bg-champagne/10 flex items-center justify-center text-champagne shrink-0">
-                <Lock className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-text-primary">Duplicates Blocked</p>
-                <p className="mt-1 text-xs text-text-secondary">
-                  <span className="font-medium text-champagne">{duplicatesBlockedCount}</span> duplicate{duplicatesBlockedCount === 1 ? '' : 's'} prevented by AI
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+        </motion.div>
       </div>
 
-      {/* Audit Alerts */}
-      <div className="space-y-4">
+      {/* ─── Insights + Alerts ─── */}
+      <div className="grid gap-3 lg:grid-cols-3 mb-6">
+        {mileageTotalKm > 0 && (
+          <InsightCard
+            icon={<Gauge className="h-4 w-4" />}
+            iconBg="bg-emerald-success/10 text-emerald-light"
+            title="Mileage"
+            value={formatCurrency(mileageTotalAmount)}
+            subtitle={`${mileageTotalKm.toLocaleString()} km logged`}
+          />
+        )}
+        {unmatchedBankCount > 0 && (
+          <InsightCard
+            icon={<Landmark className="h-4 w-4" />}
+            iconBg="bg-warning/10 text-warning"
+            title="Unmatched"
+            value={String(unmatchedBankCount)}
+            subtitle={`bank transaction${unmatchedBankCount === 1 ? '' : 's'} no receipt`}
+          />
+        )}
+        {duplicatesBlockedCount > 0 && (
+          <InsightCard
+            icon={<Lock className="h-4 w-4" />}
+            iconBg="bg-champagne/10 text-champagne"
+            title="Duplicates Blocked"
+            value={String(duplicatesBlockedCount)}
+            subtitle={`duplicate${duplicatesBlockedCount === 1 ? '' : 's'} prevented`}
+          />
+        )}
+      </div>
+
+      {/* ─── Alert Tiles ─── */}
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold tracking-tight text-text-muted">Alerts</h3>
+          <h3 className="text-xs font-semibold tracking-tight text-text-muted uppercase tracking-wider">Alerts</h3>
           <button
             type="button"
             onClick={() => onFilterClick('all')}
             className="text-xs font-medium text-champagne hover:text-champagne-dim transition-colors"
           >
-            View all records →
+            View all →
           </button>
         </div>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-3">
           <AlertTile
             title="Incomplete Records"
             count={missingBNCount}
@@ -463,140 +486,122 @@ export default function Dashboard({
           />
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
-function StatCard({ label, value, helper, icon, className = "", trend = null, sparkline }: {
-  label: string; value: string; helper: string; icon: React.ReactNode; className?: string;
-  trend?: { value: string; up: boolean } | null;
+/* ─── Sub-Components ─── */
+
+function StatCard({ label, value, icon, sparkline }: {
+  label: string; value: string; icon: React.ReactNode;
   sparkline?: { date: string; amount: number }[];
 }) {
   const numValue = Number(String(value).replace(/,/g, '')) || 0;
   return (
     <motion.div
       layout
-      variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
-      whileHover={{ scale: 1.02 }}
-      className="h-full"
+      variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
+      whileHover={{ scale: 1.01, transition: { duration: 0.15 } }}
     >
       <ShadcnCard className={cn(
-        "rounded-xl border border-glass-border bg-card text-card-foreground transition-all duration-200 relative overflow-hidden group h-full hover:-translate-y-[1px] hover:border-glass-border-hover hover:shadow-[0_0_24px_-4px_var(--champagne-glow)]",
-        className
+        "relative overflow-hidden rounded-lg border border-glass-border bg-card text-card-foreground transition-all duration-200",
+        "hover:border-glass-border-hover hover:shadow-md",
       )}>
-        <div className="relative z-10 flex flex-col h-full justify-between p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-champagne/10 text-champagne">
+        <div className="relative z-10 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-champagne/10 text-champagne transition-colors group-hover:bg-champagne/15">
               {icon}
             </div>
-            <div className="flex items-center gap-2">
-              {sparkline && <Sparkline data={sparkline} />}
-              {trend && (
-                <Badge variant="secondary" className={`px-2 py-0.5 text-[10px] font-bold tracking-widest ${trend.up ? 'bg-emerald-success/15 text-emerald-light dark:text-emerald-light' : 'bg-danger/15 text-danger dark:text-danger'}`}>
-                  {trend.up ? '↑' : '↓'} {trend.value}
-                </Badge>
-              )}
-            </div>
+            {sparkline && <Sparkline data={sparkline} />}
           </div>
-          <div className="mt-4">
-            <p className="text-[11px] font-semibold uppercase tracking-tight text-muted-foreground">{label}</p>
-            <p className="mt-1 text-2xl font-semibold tracking-tight tabular-nums sm:text-4xl">
-              <AnimatedCounter
-                from={0}
-                to={numValue}
-                format={(v) => Number.isInteger(v) ? Math.round(v).toLocaleString() : v.toLocaleString()}
-                delay={200}
-              />
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground font-medium">{helper}</p>
-          </div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-text-muted">{label}</p>
+          <p className="mt-0.5 text-xl font-semibold tracking-tight tabular-nums">
+            <AnimatedCounter
+              from={0}
+              to={numValue}
+              format={(v) => Number.isInteger(v) ? Math.round(v).toLocaleString() : v.toLocaleString()}
+              delay={200}
+            />
+          </p>
         </div>
       </ShadcnCard>
     </motion.div>
   );
 }
 
-function GSTRecoveryMeter({ gst, pst, total }: { gst: number; pst: number; total: number }) {
-  const combinedTax = gst + pst;
-  const effectiveRate = total > 0 ? (combinedTax / total) * 100 : 0;
-  const fillPct = Math.min((effectiveRate / 5) * 100, 100);
-
+function InsightCard({ icon, iconBg, title, value, subtitle }: {
+  icon: React.ReactNode; iconBg: string; title: string; value: string; subtitle: string;
+}) {
   return (
-    <ShadcnCard className="rounded-xl border bg-card text-card-foreground shadow-sm relative overflow-hidden flex flex-col justify-center items-center p-8 group">
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-success/[0.02] to-transparent pointer-events-none" />
-      <div className="relative">
-        <svg width="180" height="110" viewBox="0 0 120 70">
-          <path d="M 10 65 A 50 50 0 0 1 110 65" fill="none" stroke="var(--glass-border)" strokeWidth="8" strokeLinecap="round" />
-          <motion.path
-            d="M 10 65 A 50 50 0 0 1 110 65" fill="none" stroke="var(--emerald-light)" strokeWidth="8" strokeLinecap="round"
-            initial={{ strokeDasharray: "157 157", strokeDashoffset: 157 }}
-            animate={{ strokeDashoffset: 157 - (fillPct / 100) * 157 }}
-            transition={{ duration: 2, ease: "easeOut" }}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-end pb-3">
-          <span className="text-3xl font-black text-text-primary tracking-tighter">{effectiveRate.toFixed(1)}%</span>
-          <span className="text-[10px] font-bold uppercase tracking-tight text-text-muted">Effective Rate</span>
-        </div>
+    <motion.div
+      initial={{ opacity: 0, x: -8 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="rounded-lg border border-glass-border bg-card p-4 flex items-start gap-3 transition-all duration-200 hover:border-glass-border-hover hover:shadow-sm"
+    >
+      <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${iconBg}`}>
+        {icon}
       </div>
-      <div className="mt-8 grid grid-cols-2 gap-6 w-full pt-6 border-t border-glass-border">
-        <div className="text-center">
-          <p className="text-[10px] font-black text-emerald-light uppercase tracking-tight">GST Capture</p>
-          <p className="text-lg font-bold tabular-nums text-text-primary">{formatShortCurrency(gst)}</p>
-        </div>
-        <div className="text-center">
-          <p className="text-[10px] font-black text-champagne uppercase tracking-tight">PST Capture</p>
-          <p className="text-lg font-bold tabular-nums text-text-primary">{formatShortCurrency(pst)}</p>
-        </div>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-text-primary">{title}</p>
+        <p className="text-xs text-text-secondary leading-relaxed mt-0.5">
+          <span className="font-semibold text-text-primary">{value}</span> {subtitle}
+        </p>
       </div>
-    </ShadcnCard>
+    </motion.div>
   );
 }
 
 function AlertTile({ title, count, description, tone, onClick }: { title: string; count: number; description: string; tone: 'danger' | 'info' | 'warning'; onClick: () => void }) {
   const toneMap = {
-    danger: "border-danger/20 bg-danger/[0.04] text-danger",
-    info: "border-champagne/20 bg-champagne/5 text-champagne",
-    warning: "border-warning/20 bg-warning/[0.04] text-warning",
+    danger: "border-l-[3px] border-l-danger/60 bg-danger/[0.03]",
+    info: "border-l-[3px] border-l-champagne/60 bg-champagne/3",
+    warning: "border-l-[3px] border-l-warning/60 bg-warning/[0.03]",
   }[tone];
 
   return (
     <motion.button
       onClick={onClick}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className={cn("group rounded-[2rem] border p-5 text-left transition-all hover:bg-surface-raised", toneMap)}>
-      <div className="flex justify-between items-start mb-4">
-        <div className={cn("flex h-10 w-10 items-center justify-center rounded-[2rem]", tone === 'danger' ? 'bg-danger/10' : tone === 'info' ? 'bg-champagne/10' : 'bg-warning/10')}>
-          {tone === 'danger' ? <BadgeAlert className="h-5 w-5" /> : tone === 'info' ? <FileSearch className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
+      className={cn("rounded-lg border border-glass-border bg-card p-4 text-left transition-all duration-200 hover:shadow-sm hover:border-glass-border-hover", toneMap)}>
+      <div className="flex justify-between items-start mb-2">
+        <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg", tone === 'danger' ? 'bg-danger/10' : tone === 'info' ? 'bg-champagne/10' : 'bg-warning/10')}>
+          {tone === 'danger' ? <BadgeAlert className="h-4 w-4" /> : tone === 'info' ? <FileSearch className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
         </div>
-        <span className="text-2xl font-black tabular-nums">{count}</span>
+        <span className="text-xl font-bold tabular-nums">{count}</span>
       </div>
-      <p className="text-sm font-bold text-text-primary mb-1">{title}</p>
-      <p className="text-[11px] font-medium leading-relaxed text-text-secondary opacity-70 line-clamp-2">{description}</p>
+      <p className="text-sm font-semibold text-text-primary mb-0.5">{title}</p>
+      <p className="text-xs leading-relaxed text-text-secondary line-clamp-2">{description}</p>
     </motion.button>
   );
 }
 
 function AccessDeniedDashboard({ scans, total, gst }: { scans: number; total: number; gst: number }) {
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000" aria-live="polite" aria-atomic="true">
-      <div className="flex flex-col items-center justify-center rounded-2xl border bg-card p-12 text-center text-card-foreground shadow-sm">
-        <div className="h-16 w-16 rounded-xl bg-warning/10 flex items-center justify-center text-warning mb-6 shadow-inner">
-          <Lock className="h-8 w-8" />
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="space-y-6"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      <motion.div variants={itemVariants} className="flex flex-col items-center justify-center rounded-lg border border-glass-border bg-card p-10 text-center text-card-foreground shadow-sm">
+        <div className="h-14 w-14 rounded-xl bg-warning/10 flex items-center justify-center text-warning mb-5">
+          <Lock className="h-7 w-7" />
         </div>
-        <h2 className="text-2xl font-bold tracking-tight">Executive Intelligence Restricted</h2>
+        <h2 className="text-lg font-bold tracking-tight">Executive Intelligence Restricted</h2>
         <p className="mt-2 max-w-md text-sm text-muted-foreground leading-relaxed font-medium">
           Detailed financial trends and audit alerts are reserved for account owners and accountants. 
           Your personal capture statistics are displayed below.
         </p>
-      </div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard label="My Scans" value={scans.toLocaleString()} helper="Total receipts captured" icon={<Receipt className="h-6 w-6" />} />
-        <StatCard label="My Total" value={formatCurrency(total)} helper="Spend contribution" icon={<Wallet className="h-6 w-6" />} />
-        <StatCard label="My GST" value={formatCurrency(gst)} helper="Tax yield generated" icon={<CheckCircle2 className="h-6 w-6" />} />
-      </div>
-    </div>
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <StatCard label="My Scans" value={scans.toLocaleString()} icon={<Receipt className="h-4 w-4" />} />
+        <StatCard label="My Total" value={formatCurrency(total)} icon={<Wallet className="h-4 w-4" />} />
+        <StatCard label="My GST" value={formatCurrency(gst)} icon={<CheckCircle2 className="h-4 w-4" />} />
+      </motion.div>
+    </motion.div>
   );
 }

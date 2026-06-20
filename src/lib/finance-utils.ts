@@ -44,7 +44,7 @@ export function isMathMismatch(subtotal: number, gst: number, pst: number, total
  * Formats a raw database dollar float to local currency string.
  * Uses Dinero v2 toDecimal() + Intl.NumberFormat (toFormat was removed in v2).
  */
-export function formatDineroIntl(amount: number | string | null | undefined, _currency = 'CAD'): string {
+export function formatDineroIntl(amount: number | string | null | undefined): string {
   const d = toDinero(amount);
   const formatter = new Intl.NumberFormat('en-CA', {
     style: 'currency',

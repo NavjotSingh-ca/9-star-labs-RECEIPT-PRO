@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import spec from './openapi.json';
+import { logError } from '@/lib/logger';
 
 export async function GET(request: Request) {
-  const accept = request.headers.get('Accept') ?? '';
+  try {
+    const accept = request.headers.get('Accept') ?? '';
 
-  if (accept.includes('text/html')) {
-    const html = `<!DOCTYPE html>
+    if (accept.includes('text/html')) {
+      const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -31,15 +33,19 @@ export async function GET(request: Request) {
 </body>
 </html>`;
 
-    return new NextResponse(html, {
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-    });
-  }
+      return new NextResponse(html, {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      });
+    }
 
-  return NextResponse.json(spec, {
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-    },
-  });
+    return NextResponse.json(spec, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
+  } catch (err) {
+    logError(err, { action: 'fetch_api_docs' });
+    return NextResponse.json({ error: 'Failed to load API documentation' }, { status: 500 });
+  }
 }

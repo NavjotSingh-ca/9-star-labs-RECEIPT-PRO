@@ -36,6 +36,21 @@ yarn-error.log*
 # vercel
 .vercel
 
+# testing
+playwright-report/
+test-results/
+
+# storybook
+storybook-static/
+
+# local dev-server process/log artifacts
+.dev-server*
+.dev-server-*.log
+
+# agent/tooling coordination scratch files (not app source)
+.agent-coordination/
+.opencode/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

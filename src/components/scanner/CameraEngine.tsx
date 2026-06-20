@@ -99,7 +99,7 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
     }
   };
 
-  const takePhoto = () => {
+  const takePhoto = async () => {
     if (!videoRef.current || !canvasRef.current) return;
 
     const video = videoRef.current;
@@ -116,14 +116,16 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const file = new File([blob], `camera-${Date.now()}.jpg`, { type: 'image/jpeg' });
-        onCapture(file);
-      } else {
-        setError('Failed to capture image. Your browser may not support JPEG encoding. Try uploading a photo instead.');
-      }
-    }, 'image/jpeg', 0.95);
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, 'image/jpeg', 0.95);
+    });
+
+    if (blob) {
+      const file = new File([blob], `camera-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      await onCapture(file);
+    } else {
+      setError('Failed to capture image. Your browser may not support JPEG encoding. Try uploading a photo instead.');
+    }
   };
 
   return (

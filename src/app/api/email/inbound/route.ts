@@ -26,7 +26,13 @@ function verifySignature(payload: string, signature: string, secret: string) {
     const hmac = crypto.createHmac('sha256', secret);
     const expectedSignature = hmac.update(signedPayload).digest('hex');
 
-    return crypto.timingSafeEqual(Buffer.from(signatureHash), Buffer.from(expectedSignature));
+    // crypto.timingSafeEqual throws RangeError on length mismatch, which would
+    // bypass the constant-time comparison for any malformed signature. Compare
+    // lengths first so the timing-safe path runs only on equal-length inputs.
+    const received = Buffer.from(signatureHash);
+    const expected = Buffer.from(expectedSignature);
+    if (received.length !== expected.length) return false;
+    return crypto.timingSafeEqual(received, expected);
   } catch {
     return false;
   }

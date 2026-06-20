@@ -23,19 +23,28 @@ export async function POST(request: Request) {
     try {
       event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Invalid signature';
-      return NextResponse.json({ error: msg }, { status: 400 });
+      logError(err, { action: 'stripe_webhook_signature' });
+      return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 400 });
     }
 
-    // MED-7: Idempotency — check if we already processed this event
-    const { data: existingEvent } = await supabaseAdmin
+    // MED-7: Idempotency — claim the event first. processed_webhook_events has
+    // a UNIQUE constraint on event_id, so a concurrent delivery of the same
+    // event will fail this insert. Doing the insert BEFORE processing closes
+    // the check-then-act race: whoever wins the insert owns the event.
+    const { error: insertError } = await supabaseAdmin
       .from('processed_webhook_events')
-      .select('id')
-      .eq('event_id', event.id)
-      .single();
+      .insert({ event_id: event.id, event_type: event.type });
 
-    if (existingEvent) {
-      return NextResponse.json({ received: true }); // Already processed
+    if (insertError) {
+      // Unique violation (23505) means another delivery already claimed/processed
+      // this event — acknowledge and exit without re-processing.
+      if (insertError.code === '23505') {
+        return NextResponse.json({ received: true });
+      }
+      // Any other insert error is unexpected — log and abort so we don't risk
+      // processing an event whose idempotency record failed to persist.
+      logError(insertError, { action: 'stripe_webhook_idempotency_insert', eventId: event.id });
+      return NextResponse.json({ error: 'Idempotency check failed' }, { status: 500 });
     }
 
     switch (event.type) {
@@ -167,6 +176,7 @@ export async function POST(request: Request) {
             receipt_limit: 25,
             user_limit: 1,
             stripe_subscription_id: null,
+            current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
             updated_at: new Date().toISOString(),
           })
           .eq('org_id', orgId);
@@ -177,18 +187,13 @@ export async function POST(request: Request) {
         logInfo(`[Stripe Webhook] Unhandled event: ${event.type}`);
     }
 
-    // MED-7: Record processed event for idempotency
-    try {
-      await supabaseAdmin
-        .from('processed_webhook_events')
-        .insert({ event_id: event.id, event_type: event.type });
-    } catch (err) {
-      console.error('[Stripe Webhook] idempotency write failed — duplicates possible:', err);
-    }
-
+    // Idempotency record was inserted up-front (see MED-7 above), so there is
+    // nothing to record here. If processing threw, the catch below returns 500
+    // and Stripe will retry — on retry the unique constraint will reject the
+    // duplicate insert, which is the correct "already claimed" behavior.
     return NextResponse.json({ received: true });
   } catch (err: unknown) {
-    console.error('[Stripe Webhook]', err);
+    logError(err, { action: 'stripe_webhook_processing' });
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }

@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { logError } from '@/lib/logger';
+import { checkRateLimit, withRateLimit } from '@/lib/rate-limiter';
 import { z } from 'zod';
 
-export async function GET(request: Request) {
+export const GET = withRateLimit(async (request: Request) => {
   try {
     const authHeader = request.headers.get('authorization') || '';
     const token = authHeader.replace('Bearer ', '');
@@ -47,13 +49,21 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ members: result, callerRole: callerRole?.role ?? '' });
   } catch (err: unknown) {
-    console.error('[Team API]', err);
+    logError(err, { action: 'team_list' });
     return NextResponse.json({ error: 'Failed to load team' }, { status: 500 });
   }
-}
+}, { maxTokens: 30, windowMs: 60_000, keyPrefix: 'team_list' });
 
-export async function DELETE(request: Request) {
+export const DELETE = withRateLimit(async (request: Request) => {
   try {
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const rl = checkRateLimit(`team_delete:${ip}`, 5, 60_000);
+    if (!rl.allowed) {
+      const headers = new Headers();
+      headers.set('Retry-After', String(Math.ceil(rl.resetMs / 1000)));
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers });
+    }
+
     const authHeader = request.headers.get('authorization') || '';
     const token = authHeader.replace('Bearer ', '');
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -97,7 +107,7 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
-    console.error('[Team API DELETE]', err);
+    logError(err, { action: 'team_remove_member' });
     return NextResponse.json({ error: 'Failed to remove member' }, { status: 500 });
   }
-}
+}, { maxTokens: 10, windowMs: 60_000, keyPrefix: 'team_delete' });

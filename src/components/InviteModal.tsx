@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Copy, Loader2, RefreshCw, ShieldCheck, X } from 'lucide-react';
 import { generateAccessCode } from '@/lib/services/receipts';
 import type { UserRole } from '@/lib/types';
@@ -45,7 +45,7 @@ export default function InviteModal({ onClose, businessUnits }: InviteModalProps
       {/* Header */}
       <div className="flex items-start justify-between mb-8 pb-4 border-b border-glass-border">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-[2rem] bg-champagne/15 text-champagne champagne-glow">
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-champagne/15 text-champagne shadow-[0_0_24px_-4px_rgba(203,182,155,0.2)]">
             <ShieldCheck className="h-7 w-7" />
           </div>
           <div>

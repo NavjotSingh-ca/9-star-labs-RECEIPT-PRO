@@ -4,7 +4,6 @@ import { cookies } from 'next/headers';
 import { getCRAFormData } from '@/lib/services/receipts';
 import { logError } from '@/lib/logger';
 import { env } from '@/lib/env';
-import { APP_NAME } from '@/lib/constants';
 import { z } from 'zod';
 
 const yearSchema = z.coerce.number().int().min(2000).max(2099);
@@ -58,7 +57,7 @@ export async function GET(request: Request) {
     // ─── Helper Functions ───
     const fmt = (n: number) => `$${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
     const addPage = () => { doc.addPage(); y = margin; };
-    const checkPage = (needed = 20) => { if (y > 260) addPage(); };
+    const checkPage = () => { if (y > 260) addPage(); };
 
     // ─── Cover Page ───
     doc.setFillColor(18, 18, 18);
@@ -142,7 +141,7 @@ export async function GET(request: Request) {
     doc.setFontSize(9);
     let rowAlt = false;
     for (const cat of cra.expensesByCategory) {
-      checkPage(8);
+      checkPage();
       if (rowAlt) {
         doc.setFillColor(248, 248, 248);
         doc.rect(margin, y, contentW, 7, 'F');
@@ -159,7 +158,7 @@ export async function GET(request: Request) {
     }
 
     // Total row
-    checkPage(10);
+    checkPage();
     doc.setFillColor(190, 169, 142);
     doc.rect(margin, y, contentW, 8, 'F');
     doc.setFontSize(9);
@@ -171,7 +170,7 @@ export async function GET(request: Request) {
     y += 14;
 
     // ─── T777 Pre-Fill Page ───
-    checkPage(60);
+    checkPage();
     if (y > 180) addPage();
     
     doc.setFontSize(12);
@@ -205,7 +204,7 @@ export async function GET(request: Request) {
       y += 5;
       doc.setFont('helvetica', 'normal');
       for (const v of cra.mileageByVehicle) {
-        checkPage(6);
+        checkPage();
         doc.text(`  ${v.vehicleNickname}: ${v.km} km → ${fmt(v.amount)}`, margin + 2, y);
         y += 5.5;
       }
@@ -243,7 +242,7 @@ export async function GET(request: Request) {
     doc.setFont('helvetica', 'normal');
     rowAlt = false;
     for (const v of cra.topVendors) {
-      checkPage(7);
+      checkPage();
       if (rowAlt) {
         doc.setFillColor(248, 248, 248);
         doc.rect(margin, y, contentW, 7, 'F');

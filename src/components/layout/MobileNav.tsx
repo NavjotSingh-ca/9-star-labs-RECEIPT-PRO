@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 
-type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'more';
+type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more';
 
 interface MobileNavProps {
   activeTab: Tab;
@@ -18,7 +18,7 @@ interface MobileNavProps {
   noReceipts?: boolean;
 }
 
-export default function MobileNav({ activeTab, onTabChange, role, noReceipts }: MobileNavProps) {
+export default function MobileNav({ activeTab, onTabChange, noReceipts }: MobileNavProps) {
   const navItems: Array<{
     id: Tab;
     label: string;

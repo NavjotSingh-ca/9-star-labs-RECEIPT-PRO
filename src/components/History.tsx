@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useCallback } from 'react';
 import {
+  AlertCircle,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -10,12 +11,11 @@ import {
   SearchX,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { AnimatePresence } from 'framer-motion';
 import { Drawer } from 'vaul';
 import dynamic from 'next/dynamic';
 
 import { semanticSearchAction } from '@/app/actions/semantic-search';
-import { getReceiptsPaginated, deleteReceipt } from '@/lib/services/receipts';
+import { getReceiptsPaginated, deleteReceipt, bulkUpdateApproval, bulkDeleteReceipts } from '@/lib/services/receipts';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   AlertDialog,
@@ -30,6 +30,8 @@ import {
 import { ProfessionalLedger } from '@/components/history/ProfessionalLedger';
 import { StatCards } from '@/components/history/StatCards';
 import { SemanticSearchBar } from '@/components/history/SemanticSearchBar';
+import { BulkActionsBar } from '@/components/history/BulkActionsBar';
+import { useAnalytics } from '@/hooks/use-analytics';
 import { ReceiptTableSkeleton } from '@/components/ui/PremiumSkeletons';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -67,22 +69,25 @@ type HistoryProps = {
 };
 
 export default function History({
-  receipts: initialReceipts,
   activeFilter = 'all',
   onUpdate,
   onScan,
   role = 'Owner',
   userId,
 }: HistoryProps) {
+  const { trackBulkAction } = useAnalytics();
   const [selectedReceipt, setSelectedReceipt] = useState<ReceiptRow | null>(null);
   const [receiptIndex, setReceiptIndex] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
   const [semanticMode, setSemanticMode] = useState(false);
   const [semanticResults, setSemanticResults] = useState<string[] | null>(null);
   const [semanticLoading, setSemanticLoading] = useState(false);
+
+  // Bulk Operations State
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const {
     data: infiniteData,
@@ -91,6 +96,7 @@ export default function History({
     isFetchingNextPage,
     isLoading,
     isRefetching,
+    error,
     refetch
   } = useInfiniteQuery({
     initialPageParam: 0,
@@ -179,6 +185,60 @@ export default function History({
     setSelectedReceipt(receipts[newIdx]);
   }, [receiptIndex, receipts]);
 
+  const handleBulkApprove = async () => {
+    if (!userId || selectedIds.length === 0) return;
+    setBulkLoading(true);
+    try {
+      await bulkUpdateApproval(selectedIds, 'approved', userId);
+      trackBulkAction('approve', selectedIds.length);
+      toast.success(`Successfully approved ${selectedIds.length} receipts`);
+      setSelectedIds([]);
+      if (onUpdate) await onUpdate();
+      refetch();
+    } catch {
+      toast.error('Failed to approve receipts');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleBulkReject = async () => {
+    if (!userId || selectedIds.length === 0) return;
+    setBulkLoading(true);
+    try {
+      await bulkUpdateApproval(selectedIds, 'rejected', userId);
+      toast.success(`Successfully rejected ${selectedIds.length} receipts`);
+      setSelectedIds([]);
+      if (onUpdate) await onUpdate();
+      refetch();
+    } catch {
+      toast.error('Failed to reject receipts');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!userId || selectedIds.length === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedIds.length} receipts?`)) return;
+    setBulkLoading(true);
+    try {
+      await bulkDeleteReceipts(selectedIds, userId);
+      toast.success(`Successfully deleted ${selectedIds.length} receipts`);
+      setSelectedIds([]);
+      if (onUpdate) await onUpdate();
+      refetch();
+    } catch {
+      toast.error('Failed to delete receipts');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleBulkExport = () => {
+    toast.info('Bulk export coming soon! For now, please export individual receipts.');
+  };
+
   const handleSemanticSearch = async (query: string) => {
     if (!query.trim()) {
       setSemanticResults(null);
@@ -231,7 +291,15 @@ export default function History({
         {receipts.length > 0 && <StatCards receipts={receipts} />}
 
         {/* The Ledger */}
-        {isLoading && !receipts.length ? (
+        {error ? (
+          <div role="alert" className="flex min-h-[20vh] flex-col items-center justify-center gap-3 rounded-xl border border-danger/20 bg-danger/5 p-8 text-center">
+            <AlertCircle className="h-8 w-8 text-danger" />
+            <p className="text-sm font-semibold text-danger">Failed to load receipts. Please try again.</p>
+            <button onClick={() => refetch()} className="rounded-lg border border-danger/30 px-4 py-1.5 text-xs font-semibold text-danger hover:bg-danger/10" type="button">
+              Retry
+            </button>
+          </div>
+        ) : isLoading && !receipts.length ? (
           <div role="status" aria-live="polite" aria-label="Loading receipts">
             <ReceiptTableSkeleton />
           </div>
@@ -268,6 +336,8 @@ export default function History({
               data={receipts} 
               onSelect={handleSelectReceipt}
               onDelete={handleDelete}
+              selectedIds={selectedIds}
+              onSelectionChange={setSelectedIds}
             />
             
             {/* Infinite Scroll Trigger */}
@@ -367,6 +437,16 @@ export default function History({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <BulkActionsBar
+        selectedCount={selectedIds.length}
+        onApprove={handleBulkApprove}
+        onReject={handleBulkReject}
+        onDelete={handleBulkDelete}
+        onExport={handleBulkExport}
+        isLoading={bulkLoading}
+        onClear={() => setSelectedIds([])}
+      />
     </>
   );
 }

@@ -38,6 +38,8 @@ export const MOCK_RECEIPTS = Array.from({ length: 50 }, (_, i) => ({
   description: null,
   approval_status: ['approved', 'pending', 'flagged'][i % 3] as 'approved' | 'pending' | 'flagged',
   paid_by: 'employee_cash',
+  payment_method: 'credit_card',
+  notes: '',
   payment_account: null,
   payment_date: null,
   reimbursement_status: 'pending',
@@ -79,3 +81,19 @@ export const MOCK_SPARKLINE = Array.from({ length: 7 }, (_, i) => ({
   date: new Date(Date.now() - (6 - i) * 86400000).toISOString().split('T')[0],
   amount: Math.round(Math.random() * 10000 + 5000) / 100,
 }));
+
+export function withQueryData<T>(queryKey: T, data: unknown) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
+  queryClient.setQueryData(queryKey as string[], data);
+  return function Decorator(Story: React.ComponentType) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <Story />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+  };
+}

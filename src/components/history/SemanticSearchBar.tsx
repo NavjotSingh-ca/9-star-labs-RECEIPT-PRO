@@ -12,7 +12,7 @@ interface SemanticSearchBarProps {
   onClear: () => void;
 }
 
-export function SemanticSearchBar({ semanticMode, semanticLoading, onToggle, onSearch, onClear }: SemanticSearchBarProps) {
+export function SemanticSearchBar({ semanticMode, semanticLoading, onToggle, onSearch }: SemanticSearchBarProps) {
   return (
     <>
       <div className="flex items-center gap-2 flex-wrap">

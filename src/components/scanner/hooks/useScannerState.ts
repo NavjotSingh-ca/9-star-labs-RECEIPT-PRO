@@ -12,6 +12,7 @@ import { saveReceipt } from '@/lib/services/receipts';
 import { handleSupabaseError, withRetry } from '@/lib/supabase-error-handler';
 import { getVendorDefaults } from '@/lib/services/vendor-defaults';
 import { logWarn } from '@/lib/logger';
+import { useAnalytics } from '@/hooks/use-analytics';
 import {
   getImageDimensions,
   readFileAsDataUrl,
@@ -26,11 +27,14 @@ import type { User } from '@supabase/supabase-js';
 
 type DuplicateCandidate = ReceiptRow | null;
 
-export interface ScannerState {
+export interface ScannerRefs {
   cameraInputRef: React.RefObject<HTMLInputElement | null>;
   galleryInputRef: React.RefObject<HTMLInputElement | null>;
   screenshotInputRef: React.RefObject<HTMLInputElement | null>;
   formContainerRef: React.RefObject<HTMLDivElement | null>;
+}
+
+export interface ScannerState {
   imageSrc: string | null;
   originalFileName: string;
   mimeType: string;
@@ -72,6 +76,9 @@ export interface ScannerState {
   onSave: () => Promise<void>;
   onContinueDuplicateSave: () => Promise<void>;
   handleFilesSelected: (filesList: FileList | null) => Promise<void>;
+  handleCameraChange: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  handleGalleryChange: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  handleScreenshotChange: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   cancelDuplicate: () => void;
   cancelProcessing: () => void;
   setDuplicateCandidate: React.Dispatch<React.SetStateAction<DuplicateCandidate>>;
@@ -80,11 +87,9 @@ export interface ScannerState {
 export function useScannerState(
   user: User | null,
   onSaveSuccess: () => void,
+  refs: ScannerRefs,
 ): ScannerState {
-  const cameraInputRef = useRef<HTMLInputElement | null>(null);
-  const galleryInputRef = useRef<HTMLInputElement | null>(null);
-  const screenshotInputRef = useRef<HTMLInputElement | null>(null);
-  const formContainerRef = useRef<HTMLDivElement | null>(null);
+  const { cameraInputRef, galleryInputRef, screenshotInputRef, formContainerRef } = refs;
   const { online } = useNetworkStatus();
   const { enqueue, getQueue, clearProcessed } = useOfflineQueue();
   const queryClient = useQueryClient();
@@ -99,6 +104,7 @@ export function useScannerState(
   const [vendorPrefillSource, setVendorPrefillSource] = useState<'history' | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
 
+  const { trackReceiptScan } = useAnalytics();
   const batchProc = useBatchProcessor();
   const imgProc = useImageProcessor({ isBatchProcessing: batchProc.isBatchProcessing, formData, setFormData });
   const saveHook = useSaveReceipt({
@@ -182,7 +188,7 @@ export function useScannerState(
     };
     navigator.serviceWorker.addEventListener('message', handleMessage);
     return () => navigator.serviceWorker.removeEventListener('message', handleMessage);
-  }, []);
+  }, [clearProcessed, getQueue, queryClient]);
 
   const canProcess = useMemo(() => Boolean(imgProc.imageSrc) && !processingAI && !cancelledRef.current, [imgProc.imageSrc, processingAI]);
 
@@ -297,9 +303,18 @@ export function useScannerState(
       const result = await scanReceipt(srcToUse, source);
       if (cancelledRef.current) { setProcessingAI(false); return; }
       if (!result.success) {
+        trackReceiptScan('failure', { error: result.error, source });
         toast.error(result.error);
         return;
       }
+      
+      trackReceiptScan('success', { 
+        vendor: result.data.vendor_name, 
+        amount: result.data.total_amount, 
+        confidence: result.data.confidence_score,
+        source 
+      });
+
       mergeScanData(result.data as unknown as Record<string, unknown>);
       setHasAnalyzed(true);
       toast.success('Receipt processed successfully. Please review the details below.');
@@ -423,7 +438,7 @@ export function useScannerState(
       batchProc.advanceBatch(remaining, total);
 
       await handleProcessAI(resized);
-    } catch (err) {
+    } catch {
       toast.error('Failed to read file: ' + nextFile.name);
     }
 
@@ -438,10 +453,6 @@ export function useScannerState(
   }
 
   return {
-    cameraInputRef,
-    galleryInputRef,
-    screenshotInputRef,
-    formContainerRef,
     imageSrc: imgProc.imageSrc,
     originalFileName: imgProc.originalFileName,
     mimeType: imgProc.mimeType,
@@ -483,6 +494,23 @@ export function useScannerState(
     onSave: saveHook.onSave,
     onContinueDuplicateSave: saveHook.onContinueDuplicateSave,
     handleFilesSelected,
+    handleCameraChange: async (e: React.ChangeEvent<HTMLInputElement>) => {
+      await handleFilesSelected(e.target.files);
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
+    },
+    handleGalleryChange: async (e: React.ChangeEvent<HTMLInputElement>) => {
+      await handleFilesSelected(e.target.files);
+      if (galleryInputRef.current) galleryInputRef.current.value = '';
+    },
+    handleScreenshotChange: async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        await imgProc.onCapture(file);
+        setFormData(prev => ({ ...prev, capture_source: 'email_screenshot' }));
+        setTimeout(() => handleProcessAI(undefined, 'email_screenshot'), 500);
+      }
+      if (screenshotInputRef.current) screenshotInputRef.current.value = '';
+    },
     cancelDuplicate: saveHook.cancelDuplicate,
     cancelProcessing,
     setDuplicateCandidate: saveHook.setDuplicateCandidate,

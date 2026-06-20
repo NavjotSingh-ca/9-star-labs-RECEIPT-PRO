@@ -1,6 +1,6 @@
 'use server';
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, type RequestOptions } from '@google/generative-ai';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
@@ -23,7 +23,6 @@ export interface ReceiptLineItem {
   tax_amount: number;
   line_total: number;
 }
-
 export interface ScannedReceiptData {
   vendor_name: string;
   vendor_address: string;
@@ -38,6 +37,7 @@ export interface ScannedReceiptData {
   payment_method: string;
   payment_reference: string;
   category: string;
+  category_reasoning: string;
   notes: string;
   confidence_score: number;
   cra_readiness_score: number;
@@ -108,7 +108,7 @@ const PROVINCE_TAX: Record<string, { gst: number; pst: number }> = {
   YT: { gst: 0.05, pst: 0.0 },
 };
 
-function buildPrompt(captureSource: string = 'camera'): string {
+function buildPrompt(captureSource: string = 'camera', vendorContext: string = ''): string {
   let contextPrompt = '';
   if (captureSource === 'email_screenshot') {
     contextPrompt = `
@@ -116,6 +116,10 @@ CONTEXT: This is a DIGITAL EMAIL SCREENSHOT.
 - Prioritize extracting digital invoice numbers, order IDs, and vendor contact emails.
 - Extract the vendor name exactly as it appears in the header or "From" field.
 - Digital receipts often have clearer metadata than paper ones.`;
+  }
+
+  if (vendorContext) {
+    contextPrompt += `\n\nVENDOR CONTEXT (Preferred categories for this organization):\n${vendorContext}\nUse these as a guide for categorization if the vendor matches.`;
   }
 
   return `You are an elite Canadian receipt API with built-in fraud and anomaly detection. 
@@ -133,6 +137,7 @@ Analyze this document image and return a single JSON object matching this exact 
   "payment_method": "Visa | Mastercard | Amex | Debit | Cash | E-Transfer | Cheque | Unknown",
   "card_last_four": "last 4 digits if visible",
   "category": "${VALID_CATEGORIES.join(' | ')}",
+  "category_reasoning": "string (explain why you chose this category based on items and vendor)",
   "currency": "CAD | USD | other",
   "confidence_score": 0 (confidence 0-100),
   "thermal_warning": false (true if receipt is faded/thermal),
@@ -154,6 +159,10 @@ ${contextPrompt}
 
 Rules:
 - Extract EVERY line item visible.
+- CATEGORIZATION: Use the line items and VENDOR CONTEXT to determine the most accurate category. 
+  - 'Job Materials' for lumber, plumbing, electrical, etc.
+  - 'Small Tools' for items < $500 that aren't materials.
+  - 'Site Fuel' for gas stations if fuel is bought.
 - If tax amounts are physically printed wrong or subtotal+tax != total, flag it.
 - For Alberta vendors (no PST), set pst_amount to 0.
 - If you suspect this is an AI-generated fake receipt (perfect fonts, metadata anomalies), set fraud_suspicion=true.
@@ -327,7 +336,7 @@ Return the corrected JSON only. Keep the same schema.`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20_000);
     try {
-      const result = await model.generateContent([validationPrompt], { signal: controller.signal } as any);
+      const result = await model.generateContent([validationPrompt], { signal: controller.signal } as unknown as RequestOptions);
       const corrected = parseSafely(result.response.text());
       return corrected;
     } finally {
@@ -475,6 +484,32 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
 
   const payload = preparePayload(validImage);
 
+  // Fetch Vendor Context for Smart Categorization
+  let vendorContext = '';
+  try {
+    const { data: roleData } = await supabaseClient
+      .from('user_roles')
+      .select('org_id')
+      .eq('user_id', userId)
+      .single();
+    const orgId = roleData?.org_id;
+
+    if (orgId) {
+      const { data: defaults } = await supabaseClient
+        .from('vendor_defaults')
+        .select('vendor_name_normalized, category')
+        .eq('org_id', orgId)
+        .order('appearance_count', { ascending: false })
+        .limit(30);
+      
+      if (defaults && defaults.length > 0) {
+        vendorContext = defaults.map(d => `- ${d.vendor_name_normalized}: ${d.category}`).join('\n');
+      }
+    }
+  } catch {
+    logWarn('Failed to fetch vendor context for smart categorization');
+  }
+
   try {
     const genAI = new GoogleGenerativeAI(env.GOOGLE_AI_KEY);
     const model = genAI.getGenerativeModel({
@@ -490,9 +525,9 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
         const timeout = setTimeout(() => controller.abort(), 30_000);
         try {
           return await model.generateContent([
-            buildPrompt(validSource),
+            buildPrompt(validSource, vendorContext),
             { inlineData: { data: payload.data, mimeType: payload.mimeType } },
-          ], { signal: controller.signal } as any);
+          ], { signal: controller.signal } as unknown as RequestOptions);
         } finally {
           clearTimeout(timeout);
         }
@@ -544,7 +579,12 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
         payment_reference: toStr(finalParsed.payment_reference),
         card_last_four: toStr(finalParsed.card_last_four).replace(/\D/g, '').slice(-4),
         category: toStr(finalParsed.category),
-        notes: [SMART_PURPOSE[toStr(finalParsed.category) as ValidCategory] || '', tax_warning ? `⚠️ Tax Alert: ${tax_warning}` : ''].filter(Boolean).join(' — '),
+        category_reasoning: toStr(finalParsed.category_reasoning),
+        notes: [
+          SMART_PURPOSE[toStr(finalParsed.category) as ValidCategory] || '', 
+          toStr(finalParsed.category_reasoning) ? `🧠 Reasoning: ${toStr(finalParsed.category_reasoning)}` : '',
+          tax_warning ? `⚠️ Tax Alert: ${tax_warning}` : ''
+        ].filter(Boolean).join(' — '),
         currency: toStr(finalParsed.currency) || 'CAD',
         confidence_score: toNum(finalParsed.confidence_score) || 85,
         cra_readiness_score: computeCRAScoreForSave({

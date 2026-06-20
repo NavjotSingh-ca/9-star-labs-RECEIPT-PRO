@@ -42,11 +42,9 @@ export const metadata: Metadata = {
     description: 'The CRA-compliant receipt intelligence suite for Canadian contractors.',
   },
 };
-
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
   viewportFit: 'cover',
   themeColor: '#0c0c0c',
 };
@@ -71,15 +69,35 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://*.supabase.co" />
       </head>
       <body className="font-sans antialiased selection:bg-champagne/30" suppressHydrationWarning>
-        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-champagne focus:text-black focus:rounded-lg focus:font-semibold focus:shadow-lg focus:outline-none">
-          Skip to main content
-        </a>
+        <header>
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-champagne focus:text-black focus:rounded-lg focus:font-semibold focus:shadow-lg focus:outline-none">
+            Skip to main content
+          </a>
+        </header>
         <NextTopLoader color="#bea98e" height={2} showSpinner={false} />
         <PostHogProvider>
           <SmoothScroll>
             <Providers>
-              {children}
-              <Toaster position="bottom-right" richColors />
+              <main id="main-content" tabIndex={-1} className="outline-none">
+                {children}
+              </main>
+              <Toaster
+                position="bottom-right"
+                richColors
+                toastOptions={{
+                  style: {
+                    fontFamily: 'var(--font-sans)',
+                    borderRadius: '1rem',
+                    border: '1px solid var(--glass-border)',
+                    padding: '12px 16px',
+                  },
+                  classNames: {
+                    success: '!border-emerald-success/20 !shadow-[0_0_24px_-4px_var(--emerald-success)]',
+                    error: '!border-danger/20 !shadow-[0_0_24px_-4px_rgba(239,68,68,0.15)]',
+                    info: '!border-champagne/20 !shadow-[0_0_24px_-4px_rgba(190,169,142,0.2)]',
+                  },
+                }}
+              />
             </Providers>
           </SmoothScroll>
         </PostHogProvider>

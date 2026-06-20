@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, AlertTriangle, CheckCircle2, DollarSign, Loader2 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -99,7 +100,7 @@ export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) 
 
   const { data: payables = [], isLoading } = useQuery({
     queryKey: ['reimbursements_pending'],
-    queryFn: async () => getReimbursementsPending(user?.id ?? ''),
+    queryFn: async () => getReimbursementsPending(),
     enabled: !!user?.id && role !== 'Employee',
     staleTime: 60_000,
   });
@@ -124,6 +125,9 @@ export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) 
         r?.vendor_name ?? 'Unknown',
         r?.transaction_date ?? ''
       );
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to mark as paid');
     },
     onSuccess: invalidate,
   });

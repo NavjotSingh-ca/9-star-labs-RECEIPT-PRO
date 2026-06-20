@@ -62,7 +62,7 @@ export function DailySpendChart({ data }: DailySpendChartProps) {
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--glass-border)" />
             <XAxis
               dataKey="date"
-              tickFormatter={(dateStr: any) => formatDateLabel(String(dateStr))}
+              tickFormatter={(dateStr: string) => formatDateLabel(dateStr)}
               axisLine={false}
               tickLine={false}
               tick={{ fill: 'var(--text-muted)', fontSize: 9, fontWeight: 600 }}
@@ -85,8 +85,8 @@ export function DailySpendChart({ data }: DailySpendChartProps) {
                 fontWeight: 'bold',
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
               }}
-              labelFormatter={(dateStr: any) => formatDateLabel(String(dateStr))}
-              formatter={(value: any) => [cad.format(Number(value)), 'Spend']}
+              labelFormatter={(dateStr) => formatDateLabel(String(dateStr))}
+              formatter={(value) => [cad.format(Number(value)), 'Spend']}
               itemStyle={{ color: 'var(--champagne)' }}
             />
             <Bar
@@ -94,14 +94,16 @@ export function DailySpendChart({ data }: DailySpendChartProps) {
               fill="var(--champagne)"
               radius={[4, 4, 0, 0]}
               animationDuration={320}
-              shape={(props: any) => {
-                const isToday = props.payload.date === todayStr;
+              shape={(props) => {
+                const p = props as unknown as Record<string, unknown>;
+                const payload = p.payload as Record<string, unknown>;
+                const isToday = String(payload.date ?? '') === todayStr;
                 return (
                   <rect
-                    x={props.x}
-                    y={props.y}
-                    width={props.width}
-                    height={props.height}
+                    x={Number(p.x ?? 0)}
+                    y={Number(p.y ?? 0)}
+                    width={Number(p.width ?? 0)}
+                    height={Number(p.height ?? 0)}
                     fill={isToday ? 'var(--emerald-light)' : 'var(--champagne)'}
                     rx={4}
                     ry={4}

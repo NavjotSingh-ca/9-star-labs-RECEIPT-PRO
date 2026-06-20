@@ -1,5 +1,5 @@
 import { supabase, getOrgIdString } from '@/lib/supabase';
-import { handleSupabaseError, withRetry } from '@/lib/supabase-error-handler';
+import { handleSupabaseError } from '@/lib/supabase-error-handler';
 
 // ─── CRA Prescribed Mileage Rates (2024/2025) ───
 // First 5,000 km: $0.70/km, after: $0.64/km

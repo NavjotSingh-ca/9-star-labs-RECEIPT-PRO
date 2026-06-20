@@ -1,0 +1,42 @@
+-- Migration 00004: Seed data for local development
+-- Run after 00003_functions_and_triggers.sql
+-- WARNING: This is for local dev only. Never run on production.
+
+-- Insert demo org
+INSERT INTO organizations (id, name, slug)
+VALUES ('00000000-0000-0000-0000-000000000001', 'Demo Construction Co.', 'demo-construction')
+ON CONFLICT (id) DO NOTHING;
+
+-- Create org settings
+INSERT INTO organization_settings (org_id, blur_threshold)
+VALUES ('00000000-0000-0000-0000-000000000001', 40)
+ON CONFLICT (org_id) DO NOTHING;
+
+-- Create free subscription
+INSERT INTO subscriptions (org_id, plan_tier, status)
+VALUES ('00000000-0000-0000-0000-000000000001', 'free', 'active')
+ON CONFLICT (org_id) DO NOTHING;
+
+-- Business units
+INSERT INTO business_units (id, org_id, name) VALUES
+  ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Framing'),
+  ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'Electrical'),
+  ('10000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', 'Plumbing'),
+  ('10000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000001', 'Site Prep'),
+  ('10000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000001', 'Office/Admin')
+ON CONFLICT (id) DO NOTHING;
+
+-- Projects
+INSERT INTO projects (id, org_id, user_id, name, budget) VALUES
+  ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'Maple Ridge Townhomes', 250000.00),
+  ('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'West Side Renovation', 75000.00)
+ON CONFLICT (id) DO NOTHING;
+
+-- Sample receipts
+INSERT INTO receipts (id, org_id, user_id, vendor_name, transaction_date, total_amount, subtotal, tax_amount, category, approval_status, cra_score) VALUES
+  ('30000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'Home Depot', '2026-06-01', 342.17, 300.00, 42.17, 'Job Materials', 'approved', 85),
+  ('30000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'Rona', '2026-06-03', 89.50, 78.50, 11.00, 'Job Materials', 'approved', 78),
+  ('30000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'Esso', '2026-06-05', 65.00, 57.02, 7.98, 'Site Fuel', 'pending', 62),
+  ('30000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'United Rentals', '2026-06-08', 1200.00, 1200.00, 0.00, 'Equipment Rental', 'pending', 55),
+  ('30000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'Staples', '2026-06-10', 45.99, 40.34, 5.65, 'Office/Admin', 'approved', 90)
+ON CONFLICT (id) DO NOTHING;

@@ -45,4 +45,44 @@ describe('receiptSchema', () => {
       expect(result.data.line_items[0].description).toBe('item 1');
     }
   });
+
+  it('handles null line_items gracefully', () => {
+    const result = receiptSchema.safeParse({ line_items: null });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.line_items).toBeNull();
+    }
+  });
+
+  it('handles malformed line_items string as null', () => {
+    const result = receiptSchema.safeParse({ line_items: 'not-json' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.line_items).toBeNull();
+    }
+  });
+
+  it('handles undefined line_items as null', () => {
+    const result = receiptSchema.safeParse({});
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.line_items).toBeNull();
+    }
+  });
+
+  it('handles approval_status as pending_lowercase', () => {
+    const result = receiptSchema.safeParse({ approval_status: 'pending' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.approval_status).toBe('pending');
+    }
+  });
+
+  it('handles approval_status as null to null', () => {
+    const result = receiptSchema.safeParse({ approval_status: null });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.approval_status).toBeNull();
+    }
+  });
 });

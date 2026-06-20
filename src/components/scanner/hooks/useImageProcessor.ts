@@ -26,7 +26,7 @@ interface UseImageProcessorDeps {
 }
 
 export function useImageProcessor(deps: UseImageProcessorDeps) {
-  const { isBatchProcessing, formData, setFormData, blurThreshold = DEFAULT_BLUR_THRESHOLD } = deps;
+  const { isBatchProcessing, setFormData, blurThreshold = DEFAULT_BLUR_THRESHOLD } = deps;
 
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [originalFileName, setOriginalFileName] = useState('');

@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { saveReceiptAction } from '@/app/actions/save-receipt';
 import { logWarn } from '@/lib/logger';
 import { handleSupabaseError, withRetry } from '@/lib/supabase-error-handler';
+import { useAnalytics } from '@/hooks/use-analytics';
 import type { ReceiptForm, ReceiptRow } from '@/components/scanner/types';
 
 const STORAGE_BUCKET = 'receipt-images';
@@ -30,12 +31,13 @@ export function useSaveReceipt(deps: UseSaveReceiptDeps) {
   const { user, orgId, imageSrc, formData, online, isBatchProcessing, onSaveSuccess, enqueue } = deps;
   const queryClient = useQueryClient();
   const savingRef = useRef(false);
+  const { trackFeatureUsed } = useAnalytics();
 
   const [saving, setSaving] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [sqlError, setSqlError] = useState<string | null>(null);
   const [duplicateCandidate, setDuplicateCandidate] = useState<DuplicateCandidate>(null);
-  const [pendingSave, setPendingSave] = useState(false);
+  const [, setPendingSave] = useState(false);
 
   const saveMutation = useMutation({
     mutationFn: async ({ bypassCheck, localFormData }: { bypassCheck: boolean; localFormData: ReceiptForm }) => {
@@ -113,6 +115,14 @@ export function useSaveReceipt(deps: UseSaveReceiptDeps) {
     },
     onSuccess: async (result) => {
       if (result?.needsConfirmation) return;
+      
+      trackFeatureUsed('receipt_saved', {
+        vendor: formData.vendor_name,
+        amount: formData.total_amount,
+        is_batch: isBatchProcessing,
+        offline: Boolean(result?.offline)
+      });
+
       queryClient.invalidateQueries({ queryKey: ['receipts'] });
       setDuplicateCandidate(null);
       setPendingSave(false);

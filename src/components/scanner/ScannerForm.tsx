@@ -41,7 +41,7 @@ function craScoreBgClass(score: number): string {
 
 /* ─── Receipt Quota Counter ─── */
 function QuotaBar() {
-  const { plan, receiptCount, isLoading, gates } = usePlan();
+  const { receiptCount, isLoading, gates } = usePlan();
   const limit = gates.receiptLimit;
 
   if (isLoading || limit === Infinity) return null;
@@ -116,6 +116,8 @@ export default function ScannerForm({
   useEffect(() => {
     reset(rawFormData);
     setIsConfirmed(false);
+    fraudSeenRef.current = false;
+    setFraudDismissed(false);
   }, [rawFormData, reset]);
 
   const missingBN = Boolean(errors.business_number) || !String(formData.business_number ?? '').trim();
@@ -157,11 +159,9 @@ export default function ScannerForm({
   const isOutOfProvince = Boolean(formData.vendor_address) && !/Alberta|AB\b/i.test(formData.vendor_address ?? '');
 
   const performSave = (data: ReceiptFormValues) => {
-    // Math mismatch injects high_audit_risk flag without blocking Zod submission
-    const finalData = { ...data, high_audit_risk: mathMismatch };
-    // Call parent onSave, passing the RHF verified payload
-    setFormData(finalData as unknown as ReceiptForm);
-    onSave();
+    const finalData = { ...data, high_audit_risk: mathMismatch } as unknown as ReceiptForm;
+    setFormData(finalData);
+    onSave(finalData);
   };
 
   const isMathValid = useMemo(() => {
@@ -194,11 +194,11 @@ export default function ScannerForm({
         String(formData.business_number ?? '') !== String(rawFormData.business_number ?? '');
       if (hasUserEdit) {
         setFraudDismissed(true);
-        setValue('fraud_suspicion', false as any);
-        setValue('fraud_reason', '' as any);
+        setValue('fraud_suspicion', false);
+        setValue('fraud_reason', '');
       }
     }
-  }, [formData.vendor_name, formData.total_amount, formData.transaction_date, formData.vendor_address, formData.business_number, fraudSuspicion, hasAnalyzed]);
+  }, [formData.vendor_name, formData.total_amount, formData.transaction_date, formData.vendor_address, formData.business_number, rawFormData.vendor_name, rawFormData.total_amount, rawFormData.transaction_date, rawFormData.vendor_address, rawFormData.business_number, fraudSuspicion, hasAnalyzed, setValue]);
 
   return (
     <div className="w-full">
@@ -595,7 +595,7 @@ export default function ScannerForm({
       </div>
 
       {/* High-Density Line Items (Stacked Row Format) */}
-      <div className="overflow-hidden rounded-3xl border border-glass-border bg-surface shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-glass-border bg-surface shadow-sm">
         <div className="flex items-center justify-between border-b border-glass-border px-5 py-3">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Line Items</p>
           <button type="button" onClick={() => append({ description: '', quantity: 1, unit_price: 0, tax_rate: 0, tax_amount: 0, line_total: 0 })} className="inline-flex items-center gap-1.5 rounded-lg bg-surface-raised px-2.5 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-glass-border-hover hover:text-text-primary">
@@ -613,16 +613,16 @@ export default function ScannerForm({
                     <input type="text" {...register(`line_items.${index}.description` as const)} className="w-full min-w-0 bg-transparent text-sm font-semibold text-text-primary placeholder:text-text-muted focus:outline-2 focus:outline-champagne/40 focus:outline-offset-2 rounded-sm" placeholder="Item description" />
                     <div className="min-w-[70px] shrink-0 font-mono text-sm font-bold text-champagne text-right">${safeNumber(formData.line_items?.[index]?.line_total).toFixed(2)}</div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-text-muted">
-                    <div className="flex items-center gap-1.5">
-                      <span>Qty:</span>
-                      <input type="number" min="0" step="1" {...register(`line_items.${index}.quantity` as const, { valueAsNumber: true })} className="w-12 rounded border border-transparent bg-surface-raised px-1 py-0.5 text-text-secondary focus:border-glass-border focus:outline-none" />
+                    <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-text-muted">
+                      <div className="flex items-center gap-1.5">
+                        <span>Qty:</span>
+                        <input type="number" min="0" step="1" {...register(`line_items.${index}.quantity` as const, { valueAsNumber: true, onChange: (e) => { const q = Number(e.target.value) || 0; const u = safeNumber(formData.line_items?.[index]?.unit_price); setValue(`line_items.${index}.line_total` as const, Math.round(q * u * 100) / 100); } })} className="w-12 rounded border border-transparent bg-surface-raised px-1 py-0.5 text-text-secondary focus:border-glass-border focus:outline-none" />
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span>Unit:</span>
+                        <input type="number" min="0" step="0.01" {...register(`line_items.${index}.unit_price` as const, { valueAsNumber: true, onChange: (e) => { const u = Number(e.target.value) || 0; const q = safeNumber(formData.line_items?.[index]?.quantity); setValue(`line_items.${index}.line_total` as const, Math.round(q * u * 100) / 100); } })} className="w-16 rounded border border-transparent bg-surface-raised px-1 py-0.5 text-text-secondary focus:border-glass-border focus:outline-none" />
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span>Unit:</span>
-                      <input type="number" min="0" step="0.01" {...register(`line_items.${index}.unit_price` as const, { valueAsNumber: true })} className="w-16 rounded border border-transparent bg-surface-raised px-1 py-0.5 text-text-secondary focus:border-glass-border focus:outline-none" />
-                    </div>
-                  </div>
                 </div>
                 <button type="button" onClick={() => remove(index)} className="shrink-0 self-start text-text-muted transition hover:text-danger p-1">
                   <Trash2 className="h-4 w-4" />

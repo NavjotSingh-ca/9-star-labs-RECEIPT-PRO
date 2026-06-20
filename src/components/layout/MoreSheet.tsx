@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import {
   ShieldCheck,
   AlertCircle,
+  BarChart3,
   Download,
   CheckCircle2,
   TrendingUp,
@@ -21,7 +22,7 @@ import {
 import Link from 'next/link';
 import type { UserRole } from '@/lib/types';
 
-type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'more';
+type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more';
 
 interface MoreSheetProps {
   activeTab: Tab;
@@ -115,6 +116,13 @@ export default function MoreSheet({
                       label="Anomaly Dashboard"
                       description="AI fraud & math errors"
                       onClick={() => onTabChange('alerts')}
+                    />
+                    <MoreTabButton
+                      icon={<BarChart3 className="h-5 w-5" />}
+                      iconBg="bg-champagne/15 text-champagne"
+                      label="Reports"
+                      description="Spend analysis & projections"
+                      onClick={() => onTabChange('reports')}
                     />
                     <MoreTabButton
                       icon={<Download className="h-5 w-5" />}

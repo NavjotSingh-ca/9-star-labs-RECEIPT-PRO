@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 import type { UserRole } from '@/lib/types';
-import type { Plan } from '@/lib/services/subscription';
 
-export type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'more';
+export type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more';
 
 interface AppState {
   activeTab: Tab;

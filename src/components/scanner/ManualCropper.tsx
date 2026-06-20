@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, RotateCcw, X } from 'lucide-react';
 
@@ -221,10 +222,12 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
           onPointerUp={stopDragging}
           onPointerLeave={stopDragging}
         >
-          <img
+          <Image
             ref={imageRef}
             src={imageSrc}
             alt="Crop source"
+            width={800}
+            height={600}
             className="max-h-[80vh] max-w-full h-auto w-auto select-none opacity-90"
             onLoad={syncBounds}
           />

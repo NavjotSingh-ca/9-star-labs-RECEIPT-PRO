@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import { z } from 'zod';
 import { env } from '@/lib/env';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { logError } from '@/lib/logger';
 
 const stripe = env.STRIPE_SECRET_KEY
   ? new Stripe(env.STRIPE_SECRET_KEY)
@@ -99,7 +100,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: session.url });
   } catch (err: unknown) {
-    console.error('[Stripe Checkout]', err);
+    logError(err, { action: 'stripe_checkout' });
     return NextResponse.json({ error: 'Checkout failed' }, { status: 500 });
   }
 }

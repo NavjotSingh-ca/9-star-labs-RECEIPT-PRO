@@ -1,7 +1,8 @@
 'use server';
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, type RequestOptions } from '@google/generative-ai';
 import { createServerClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { env } from '@/lib/env';
 import { logError } from '@/lib/logger';
@@ -21,7 +22,7 @@ export type ParseBankStatementResult =
   | { success: true; transactions: BankTransactionData[]; duplicatesSkipped?: number }
   | { success: false; error: string };
 
-function parseSafely(raw: string): any[] {
+function parseSafely(raw: string): unknown[] {
   const cleanFences = raw.replace(/^```[a-z]*\s*/i, '').replace(/\s*```$/i, '').trim();
   try { return JSON.parse(cleanFences); } catch { /* continue */ }
   
@@ -54,7 +55,6 @@ function parseOFX(text: string): BankTransactionData[] {
       return '';
     };
     
-    const trnType = getTag('TRNTYPE');
     const dtPosted = getTag('DTPOSTED');
     const trnAmt = getTag('TRNAMT');
     const name = getTag('NAME') || getTag('MEMO') || 'Unknown';
@@ -155,7 +155,7 @@ async function getAuthenticatedClient() {
 }
 
 async function saveTransactions(
-  supabaseClient: any,
+  supabaseClient: SupabaseClient,
   orgId: string,
   userId: string,
   transactions: BankTransactionData[],
@@ -217,7 +217,7 @@ export async function parseBankStatement(base64Data: string, fileName: string): 
         return { success: false, error: 'No transactions found in OFX/QFX file.' };
       }
 
-      const { saved, duplicatesSkipped } = await saveTransactions(
+      const { duplicatesSkipped } = await saveTransactions(
         auth.client, auth.orgId, auth.userId, transactions, fileName
       );
 
@@ -238,7 +238,7 @@ export async function parseBankStatement(base64Data: string, fileName: string): 
         return { success: false, error: 'No valid transactions found in CSV.' };
       }
 
-      const { saved, duplicatesSkipped } = await saveTransactions(
+      const { duplicatesSkipped } = await saveTransactions(
         auth.client, auth.orgId, auth.userId, transactions, fileName
       );
 
@@ -282,7 +282,7 @@ Return [] if no transactions found. No markdown, no explanation.`;
       result = await model.generateContent([
         prompt,
         { inlineData: { data: base64Data, mimeType: 'application/pdf' } },
-      ], { signal: controller.signal } as any);
+      ], { signal: controller.signal } as unknown as RequestOptions);
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
         return { success: false, error: 'Statement parsing timed out. Please try a smaller file.' };
@@ -298,7 +298,7 @@ Return [] if no transactions found. No markdown, no explanation.`;
       return { success: false, error: 'No transactions found in this document.' };
     }
 
-    const validTx: BankTransactionData[] = transactions.map((t: any) => ({
+    const validTx: BankTransactionData[] = (transactions as Record<string, unknown>[]).map((t) => ({
       date: typeof t.date === 'string' ? t.date : '',
       description: typeof t.description === 'string' ? t.description : 'Unknown',
       amount: typeof t.amount === 'number' ? t.amount : 0,
@@ -310,7 +310,7 @@ Return [] if no transactions found. No markdown, no explanation.`;
       return { success: false, error: 'No valid transactions extracted.' };
     }
 
-    const { saved, duplicatesSkipped } = await saveTransactions(
+    const { duplicatesSkipped } = await saveTransactions(
       auth.client, auth.orgId, auth.userId, validTx, fileName
     );
 

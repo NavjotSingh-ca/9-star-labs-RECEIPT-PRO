@@ -14,6 +14,7 @@ import {
   Scale,
   ShieldCheck,
   AlertCircle,
+  BarChart3,
   Download,
   Crown,
   Settings,
@@ -58,16 +59,27 @@ function NavLink({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className={`relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
-        active
-          ? 'bg-sidebar-active text-sidebar-text'
-          : 'text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary'
-      } ${collapsed ? 'justify-center px-2' : ''}`}
+       className={`relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150 ${
+         active
+           ? 'bg-sidebar-active text-sidebar-text'
+           : 'text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary'
+       } ${collapsed ? 'justify-center px-2' : ''}`}
     >
+      {/* Active indicator bar — animated */}
+      <motion.div
+        layoutId="activeNavIndicator"
+        className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-gradient-to-b from-sidebar-accent to-champagne-dim"
+        style={{ display: active ? 'block' : 'none' }}
+        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+      />
       {active && (
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-sidebar-accent" />
+        <motion.span
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="absolute right-2 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-sidebar-accent/40"
+        />
       )}
-      <span className="relative z-10 flex-shrink-0">{icon}</span>
+      <span className="relative z-10 flex-shrink-0 transition-transform duration-200 group-hover:scale-110">{icon}</span>
       <span
         className={`relative z-10 overflow-hidden whitespace-nowrap transition-all duration-200 ${
           collapsed ? 'max-w-0 opacity-0' : 'max-w-40 opacity-100'
@@ -138,6 +150,7 @@ export default function Sidebar({
       items: [
         ...(isPrivileged ? [{ id: 'audit' as Tab, label: 'Audit History', icon: <ShieldCheck className="h-4 w-4" /> }] : []),
         ...(isPrivileged ? [{ id: 'alerts' as Tab, label: 'Alerts & Risk', icon: <AlertCircle className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'reports' as Tab, label: 'Reports', icon: <BarChart3 className="h-4 w-4" /> }] : []),
       ],
     },
     {
@@ -151,21 +164,21 @@ export default function Sidebar({
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
-      {/* Top accent line */}
-      <div className="h-0.5 w-full bg-sidebar-accent flex-shrink-0" />
+      {/* Top accent line — redesigned: thicker gradient */}
+      <div className="h-1 w-full bg-gradient-to-r from-transparent via-sidebar-accent to-transparent flex-shrink-0" />
 
       {/* Logo */}
-      <div className={`flex items-center border-b border-sidebar-border px-4 py-4 ${collapsed ? 'justify-center' : 'gap-3'}`}>
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-sidebar-accent/15">
-          <ReceiptText className="h-5 w-5 text-sidebar-accent" />
+      <div className={`flex items-center border-b border-sidebar-border px-4 py-3 ${collapsed ? 'justify-center' : 'gap-3'}`}>
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-sidebar-accent/15">
+          <ReceiptText className="h-4.5 w-4.5 text-sidebar-accent" />
         </div>
         <div
           className={`overflow-hidden transition-all duration-200 ${
             collapsed ? 'max-w-0 opacity-0' : 'max-w-40 opacity-100'
           }`}
         >
-          <h1 className="text-base font-bold tracking-tight text-sidebar-text whitespace-nowrap">{APP_NAME}</h1>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-accent whitespace-nowrap">
+          <h1 className="text-sm font-bold tracking-tight text-sidebar-text whitespace-nowrap">{APP_NAME}</h1>
+          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-sidebar-accent whitespace-nowrap">
             CRA-ready records
           </p>
         </div>
@@ -180,7 +193,7 @@ export default function Sidebar({
           return (
             <div key={group.id} className="mb-5">
               {!collapsed && (
-                <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-text-muted">
+                <p className="mb-1.5 px-3 text-[9px] font-semibold uppercase tracking-[0.14em] text-sidebar-text-muted/60">
                   {group.label}
                 </p>
               )}
@@ -208,20 +221,20 @@ export default function Sidebar({
         })}
       </nav>
 
-      {/* Bottom section */}
-      <div className="border-t border-sidebar-border p-3">
+        {/* Bottom section */}
+      <div className="border-t border-sidebar-border px-2 py-2">
         {/* Billing & Plan */}
         <Link
           href="/settings/billing"
           aria-label="Billing"
-          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition mb-1 ${collapsed ? 'justify-center' : ''}`}
+          className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition mb-0.5 ${collapsed ? 'justify-center px-2' : ''}`}
           title={collapsed ? `Billing · ${planLabel}` : undefined}
         >
-          <Crown className={`h-4 w-4 flex-shrink-0 ${plan === 'pro' || plan === 'enterprise' ? 'text-warning' : 'text-sidebar-text-muted'}`} />
+          <Crown className={`h-3.5 w-3.5 flex-shrink-0 ${plan === 'pro' || plan === 'enterprise' ? 'text-warning' : 'text-sidebar-text-muted'}`} />
           {!collapsed && (
             <>
               <span className="flex-1">Billing</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${
+              <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${
                 plan === 'pro' || plan === 'enterprise' ? 'bg-warning/10 text-warning' : 'bg-sidebar-hover text-sidebar-text-muted'
               }`}>
                 {planLabel}
@@ -234,10 +247,10 @@ export default function Sidebar({
         <Link
           href="/settings/org"
           aria-label="Organization"
-          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition mb-2 ${collapsed ? 'justify-center' : ''}`}
+          className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition mb-0.5 ${collapsed ? 'justify-center px-2' : ''}`}
           title={collapsed ? 'Organization' : undefined}
         >
-          <Settings className="h-4 w-4 flex-shrink-0" />
+          <Settings className="h-3.5 w-3.5 flex-shrink-0" />
           {!collapsed && <span>Organization</span>}
         </Link>
 
@@ -245,7 +258,7 @@ export default function Sidebar({
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="mb-2 hidden w-full items-center justify-center rounded-lg px-3 py-2 text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition lg:flex"
+          className="mb-1 hidden w-full items-center justify-center rounded-lg px-3 py-1.5 text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition lg:flex"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           title={collapsed ? 'Expand sidebar (Ctrl+\)' : 'Collapse sidebar (Ctrl+\)'}
         >
@@ -253,15 +266,15 @@ export default function Sidebar({
         </button>
 
         {/* Theme + Sign out */}
-        <div className={`flex items-center gap-1 rounded-lg bg-sidebar-surface p-1.5 ${collapsed ? 'flex-col' : ''}`}>
+        <div className={`flex items-center gap-1 rounded-lg bg-sidebar-surface p-1 ${collapsed ? 'flex-col' : ''}`}>
           <ThemeToggle />
           <button
             type="button"
             onClick={handleSignOut}
-            className={`flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-danger transition ${collapsed ? 'justify-center w-full' : 'flex-1'}`}
+            className={`flex items-center gap-2 rounded-md px-2 py-1 text-[11px] font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-danger transition ${collapsed ? 'justify-center w-full' : 'flex-1'}`}
             title="Sign out"
           >
-            <LogOut className="h-4 w-4 flex-shrink-0" />
+            <LogOut className={`h-3.5 w-3.5 flex-shrink-0 ${collapsed ? '' : ''}`} />
             {!collapsed && <span>Sign out</span>}
           </button>
         </div>
@@ -308,10 +321,10 @@ export default function Sidebar({
                 {/* Top accent */}
                 <div className="h-0.5 w-full bg-sidebar-accent flex-shrink-0" />
 
-                <div className="flex items-center justify-between border-b border-sidebar-border px-4 py-4">
+                <div className="flex items-center justify-between border-b border-sidebar-border px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sidebar-accent/15">
-                      <ReceiptText className="h-5 w-5 text-sidebar-accent" />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-accent/15">
+                      <ReceiptText className="h-4.5 w-4.5 text-sidebar-accent" />
                     </div>
                     <div>
                       <h1 className="text-base font-bold tracking-tight text-sidebar-text">{APP_NAME}</h1>
@@ -334,7 +347,7 @@ export default function Sidebar({
                     const hasItems = group.items.length > 0;
                     if (!hasItems) return null;
                     return (
-                      <div key={group.id} className="mb-5">
+            <div key={group.id} className="mb-4">
                         <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-text-muted">{group.label}</p>
                         <div className="space-y-0.5">
                           {group.items.map((item) => (
@@ -360,29 +373,29 @@ export default function Sidebar({
                   })}
                 </div>
 
-                <div className="border-t border-sidebar-border p-3 space-y-1">
+                <div className="border-t border-sidebar-border p-2 space-y-0.5">
                   <Link
                     href="/settings/billing"
                     onClick={() => setMobileOpen(false)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition"
+                    className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition"
                   >
-                    <Crown className="h-4 w-4 text-warning flex-shrink-0" />
-                    <span>Billing & Plan</span>
+                    <Crown className="h-3.5 w-3.5 text-warning flex-shrink-0" />
+                    <span>Billing</span>
                   </Link>
                   <Link
                     href="/settings/org"
                     onClick={() => setMobileOpen(false)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition"
+                    className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition"
                   >
-                    <Settings className="h-4 w-4 flex-shrink-0" />
+                    <Settings className="h-3.5 w-3.5 flex-shrink-0" />
                     <span>Organization</span>
                   </Link>
                   <button
                     type="button"
                     onClick={() => { handleSignOut(); setMobileOpen(false); }}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-danger transition"
+                    className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-danger transition"
                   >
-                    <LogOut className="h-4 w-4" />
+                    <LogOut className="h-3.5 w-3.5" />
                     <span>Sign out</span>
                   </button>
                 </div>

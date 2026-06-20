@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/nextjs';
 import { Skeleton } from './skeleton';
 import { withProviders } from '../../../.storybook/utils';
 
@@ -7,7 +7,7 @@ const meta: Meta<typeof Skeleton> = {
   component: Skeleton,
   decorators: [withProviders],
   parameters: {
-    docs: { description: { component: 'Pulsing placeholder for content that is still loading. Uses `animate-pulse` with `bg-muted`.' } },
+    docs: { description: { component: 'Sophisticated shimmer loading placeholder. Uses `bg-gradient-to-r from-surface via-surface-raised to-surface` with `animate-[shimmer_1.5s_ease-in-out_infinite]` for a directional shimmer effect.' } },
   },
   argTypes: {
     className: { control: 'text' },

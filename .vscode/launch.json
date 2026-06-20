@@ -1,0 +1,32 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Dev Server",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Debug Current Test (Vitest)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npx vitest run ${relativeFile}",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Next.js Build",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run build",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Run E2E (Chromium)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npx playwright test --project=chromium"
+    }
+  ]
+}

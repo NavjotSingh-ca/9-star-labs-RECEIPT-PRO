@@ -13,13 +13,10 @@ export async function GET(request: Request) {
   try {
     const supabase = getSupabase();
 
-    const start = Date.now();
     const { error } = await supabase
       .from('organizations')
       .select('id')
       .limit(1);
-
-    const latency = Date.now() - start;
 
     return NextResponse.json({
       status: error ? 'degraded' : 'ok',

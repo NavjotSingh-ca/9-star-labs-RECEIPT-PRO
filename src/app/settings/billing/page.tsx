@@ -4,15 +4,14 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Loader2, AlertCircle, CheckCircle2, Crown, Users, Zap, Shield } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import type { Plan, Subscription } from '@/lib/services/subscription';
+import type { Plan } from '@/lib/services/subscription';
 import { getSubscription, formatPlanLabel, PLAN_GATES } from '@/lib/services/subscription';
 import { env } from '@/lib/env';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function BillingSettings() {
-  const [success, setSuccess] = useState('');
-
-  const { data: sub, isLoading, error, refetch } = useQuery({
+  const [success] = useState('');
+  const { data: sub, isLoading, error } = useQuery({
     queryKey: ['subscription'],
     queryFn: getSubscription,
     staleTime: 60_000,
@@ -259,8 +258,8 @@ export default function BillingSettings() {
                         <p className="text-2xl font-bold text-text-primary mb-1">{p.price}</p>
                         <p className="text-xs text-text-muted mb-4">{p.description}</p>
                         <ul className="space-y-2 mb-6">
-                          {p.features.map((f, i) => (
-                            <li key={i} className="flex items-start gap-2 text-xs text-text-secondary">
+                          {p.features.map((f) => (
+                            <li key={f} className="flex items-start gap-2 text-xs text-text-secondary">
                               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-light mt-0.5 flex-shrink-0" />
                               {f}
                             </li>

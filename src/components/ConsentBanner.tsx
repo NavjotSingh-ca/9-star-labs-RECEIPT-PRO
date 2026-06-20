@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
@@ -14,19 +14,13 @@ export function ConsentBanner() {
 
   useEffect(() => {
     const existing = localStorage.getItem(STORAGE_KEY);
-    if (!existing) setVisible(true);
+    if (!existing) {
+      const frame = requestAnimationFrame(() => setVisible(true));
+      return () => cancelAnimationFrame(frame);
+    }
   }, []);
 
-  useEffect(() => {
-    if (!visible) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleAccept();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [visible]);
-
-  const handleAccept = async () => {
+  const handleAccept = useCallback(async () => {
     localStorage.setItem(STORAGE_KEY, new Date().toISOString());
     setVisible(false);
 
@@ -43,7 +37,7 @@ export function ConsentBanner() {
     } catch {
       // Consent recorded client-side; server backup is best-effort
     }
-  };
+  }, []);
 
   const handleDecline = async () => {
     localStorage.setItem(STORAGE_KEY, 'declined');
@@ -63,6 +57,15 @@ export function ConsentBanner() {
       // Consent recorded client-side; server backup is best-effort
     }
   };
+
+  useEffect(() => {
+    if (!visible) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleAccept();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [visible, handleAccept]);
 
   return (
     <AnimatePresence>

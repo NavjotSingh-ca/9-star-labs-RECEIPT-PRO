@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/nextjs';
 import { Badge } from './badge';
 import { Check, X, AlertTriangle } from 'lucide-react';
 import { withProviders } from '../../../.storybook/utils';

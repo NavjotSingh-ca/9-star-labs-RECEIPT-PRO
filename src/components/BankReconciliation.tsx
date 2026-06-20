@@ -2,7 +2,6 @@
 
 import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { toast } from 'sonner';
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, RefreshCw, Check } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ReceiptRow } from '@/lib/types';

@@ -13,7 +13,6 @@ import {
   getVehicles, createVehicle, deleteVehicle,
   getMileageLogs, createMileageLog, deleteMileageLog,
   calculateCRAMileage, getYearToDateKm,
-  type Vehicle, type MileageLog,
 } from '@/lib/services/mileage';
 import { supabase } from '@/lib/supabase';
 

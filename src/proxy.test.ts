@@ -1,3 +1,7 @@
+// Set required env vars before any module imports that depend on @/lib/env
+process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 let mockGetUser = vi.fn();
@@ -10,8 +14,15 @@ vi.mock('@supabase/ssr', () => ({
 
 vi.mock('next/server', () => ({
   NextResponse: {
-    next: vi.fn(() => ({ cookies: { set: vi.fn() }, status: undefined })),
-    redirect: vi.fn(() => ({ status: 307, headers: new Map() })),
+    next: vi.fn(() => ({
+      cookies: { set: vi.fn() },
+      status: undefined,
+      headers: new Map<string, string>() as unknown as Headers,
+    })),
+    redirect: vi.fn(() => ({
+      status: 307,
+      headers: new Map() as unknown as Headers,
+    })),
   },
 }));
 
@@ -29,8 +40,6 @@ function mockRequest(url: string): any {
 beforeEach(() => {
   vi.clearAllMocks();
   mockGetUser = vi.fn();
-  process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
 });
 
 describe('proxy middleware', () => {

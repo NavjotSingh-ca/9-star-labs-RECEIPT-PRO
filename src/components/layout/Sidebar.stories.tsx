@@ -1,0 +1,104 @@
+import type { Meta, StoryObj } from '@storybook/nextjs';
+import Sidebar from './Sidebar';
+import { withProviders } from '../../../.storybook/utils';
+import { useAppStore } from '@/lib/store';
+
+function SidebarWithState(args: { collapsed: boolean; activeTab: string }) {
+  const setCollapsed = useAppStore((s) => s.setSidebarCollapsed);
+  setCollapsed(args.collapsed);
+  return (
+    <div className="h-screen w-max">
+      <Sidebar
+        activeTab={args.activeTab as 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more'}
+        onTabChange={() => {}}
+        role="Owner"
+        planLabel="Pro"
+        plan="pro"
+        openInviteModal={() => {}}
+        handleSignOut={() => {}}
+      />
+    </div>
+  );
+}
+
+const meta: Meta<typeof Sidebar> = {
+  title: 'Layout/Sidebar',
+  component: Sidebar,
+  decorators: [withProviders],
+  parameters: {
+    docs: { description: { component: 'Dark sidebar (always dark regardless of theme). Collapsible on desktop (256px → 64px). Mobile overlay with hamburger toggle.' } },
+    viewport: { defaultViewport: 'desktop' },
+    layout: 'fullscreen',
+  },
+  tags: ['autodocs'],
+};
+
+export default meta;
+type Story = StoryObj<typeof Sidebar>;
+
+export const Default: Story = {
+  render: () => (
+    <div className="h-screen">
+      <Sidebar
+        activeTab="dashboard"
+        onTabChange={() => {}}
+        role="Owner"
+        planLabel="Pro"
+        plan="pro"
+        openInviteModal={() => {}}
+        handleSignOut={() => {}}
+      />
+    </div>
+  ),
+};
+
+export const Collapsed: Story = {
+  render: () => {
+    useAppStore.getState().setSidebarCollapsed(true);
+    return (
+      <div className="h-screen">
+        <Sidebar
+          activeTab="dashboard"
+          onTabChange={() => {}}
+          role="Owner"
+          planLabel="Pro"
+          plan="pro"
+          openInviteModal={() => {}}
+          handleSignOut={() => {}}
+        />
+      </div>
+    );
+  },
+};
+
+export const EmployeeRole: Story = {
+  render: () => (
+    <div className="h-screen">
+      <Sidebar
+        activeTab="receipts"
+        onTabChange={() => {}}
+        role="Employee"
+        planLabel="Free"
+        plan="free"
+        openInviteModal={() => {}}
+        handleSignOut={() => {}}
+      />
+    </div>
+  ),
+};
+
+export const AccountantRole: Story = {
+  render: () => (
+    <div className="h-screen">
+      <Sidebar
+        activeTab="audit"
+        onTabChange={() => {}}
+        role="Accountant"
+        planLabel="Enterprise"
+        plan="enterprise"
+        openInviteModal={() => {}}
+        handleSignOut={() => {}}
+      />
+    </div>
+  ),
+};
