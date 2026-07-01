@@ -164,7 +164,7 @@ describe('generateReport', () => {
   });
 
   it('rejects config with invalid datePreset', async () => {
-    const badConfig = { datePreset: 'next_decade' as any, metrics: ['total_spend'] };
+    const badConfig = { datePreset: 'next_decade' as unknown as string, metrics: ['total_spend'] };
     await expect(generateReport(badConfig as unknown as ReportConfig)).rejects.toThrow();
   });
 

@@ -23,7 +23,7 @@ export const Default: Story = {
       <Tooltip>
         <TooltipTrigger render={<Button variant="outline">Hover me</Button>} />
         <TooltipContent>
-          Hello, I'm a tooltip!
+          Hello, I&apos;m a tooltip!
           <TooltipArrow />
         </TooltipContent>
       </Tooltip>
@@ -101,7 +101,7 @@ export const Disabled: Story = {
       <Tooltip>
         <TooltipTrigger render={<Button variant="outline" disabled>Disabled</Button>} />
         <TooltipContent>
-          Won't show
+          Won&apos;t show
           <TooltipArrow />
         </TooltipContent>
       </Tooltip>

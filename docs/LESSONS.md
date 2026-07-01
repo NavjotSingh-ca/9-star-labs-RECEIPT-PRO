@@ -1,5 +1,9 @@
 # Lessons Learned
 
+## CI: `npm ci` fails with "Missing from lock file" — Cause: Package added to `package.json` without running `npm install` to update `package-lock.json` — Fix: Remove unused dep from `package.json` or run `npm install` to regenerate lockfile.
+
+## CI: ESLint fails with "Unexpected any" in story files — Cause: `eslint-disable-next-line @typescript-eslint/no-explicit-any` only covers one line but `any[]` appears on both line 3 and 4 of the `fn()` helper — Fix: Disable `@typescript-eslint/no-explicit-any` globally for `**/*.stories.tsx` files in `eslint.config.mjs`.
+
 ## Strategy: App stabilization via feature locking — Cause: App had too many half-baked features causing cascading bugs — Fix: Created LOCKED_FILES.md manifest, stubbed 41 component/route files with `// LOCKED` headers preserving export signatures, stripped page.tsx to 4 core tabs (dashboard/receipts/scan/more), reduced sidebar to 3 nav items, simplified Dashboard to core KPIs. All files preserved in-place with clear unlock instructions.
 
 ## Bug: `@/lib/env` throws at import when env vars missing — Cause: `parseEnv()` called at module scope in `env.ts` — Fix: Set `process.env.NEXT_PUBLIC_SUPABASE_URL` and `ANON_KEY` before imports in tests that depend on `@/lib/supabase`

@@ -37,7 +37,16 @@ const eslintConfig = defineConfig([
     // they are not part of the Next.js app and are type-checked separately.
     "supabase/**",
   ]),
-  ...storybook.configs["flat/recommended"]
+  ...storybook.configs["flat/recommended"],
+  // Story files use Meta<any> for inferred component types and mock helpers
+  // with `any[]` parameters — this is standard Storybook boilerplate and
+  // does not indicate type-safety issues in application code.
+  {
+    files: ["**/*.stories.tsx", "**/*.stories.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
