@@ -7,7 +7,6 @@ import { bootstrapOrgAction } from '@/app/actions/bootstrap-org';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useQueryState, parseAsStringEnum } from 'nuqs';
 import { toast } from 'sonner';
-import { Drawer } from 'vaul';
 import {
   Loader2,
   ReceiptText,
@@ -16,16 +15,10 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 import dynamic from 'next/dynamic';
-import CommandPalette from '@/components/CommandPalette';
-import InviteModal from '@/components/InviteModal';
-import Export from '@/components/Export';
-import ApprovalsQueue from '@/components/ApprovalsQueue';
-import ReimbursementsPanel from '@/components/ReimbursementsPanel';
 import { 
   DashboardSkeleton, 
   ReceiptTableSkeleton, 
   ScannerSkeleton, 
-  CardSkeleton 
 } from '@/components/ui/PremiumSkeletons';
 
 const Dashboard = dynamic(() => import('@/components/Dashboard'), { 
@@ -40,54 +33,23 @@ const Scanner = dynamic(() => import('@/components/Scanner'), {
   ssr: false, 
   loading: () => <ScannerSkeleton /> 
 });
-const AuditTrail = dynamic(() => import('@/components/AuditTrail'), { 
-  ssr: false, 
-  loading: () => <ReceiptTableSkeleton /> 
-});
-const BankReconciliation = dynamic(() => import('@/components/BankReconciliation'), { 
-  ssr: false, 
-  loading: () => <CardSkeleton /> 
-});
-const MileageTracker = dynamic(() => import('@/components/MileageTracker'), { 
-  ssr: false, 
-  loading: () => <CardSkeleton /> 
-});
-const ProjectManager = dynamic(() => import('@/components/ProjectManager'), { 
-  ssr: false, 
-  loading: () => <CardSkeleton /> 
-});
-const AnomalyDashboard = dynamic(() => import('@/components/AnomalyDashboard'), { 
-  ssr: false, 
-  loading: () => <DashboardSkeleton /> 
-});
-const ReportsPage = dynamic(() => import('@/components/reports/ReportsPage').then((m) => m.ReportsPage), {
-  ssr: false,
-  loading: () => <CardSkeleton />,
-});
+
 
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { ConsentBanner } from '@/components/ConsentBanner';
-import OfflineIndicator from '@/components/OfflineIndicator';
-import SwUpdateBanner from '@/components/SwUpdateBanner';
-import InstallPrompt from '@/components/InstallPrompt';
-import ShortcutsOverlay from '@/components/ShortcutsOverlay';
-import { UpgradePrompt } from '@/components/upgrade-prompt';
 import AuthScreen from '@/components/AuthScreen';
-import { OnboardingTour } from '@/components/OnboardingTour';
 import Sidebar from '@/components/layout/Sidebar';
 import MobileNav from '@/components/layout/MobileNav';
 import TopBar from '@/components/layout/TopBar';
 import MoreSheet from '@/components/layout/MoreSheet';
 import { supabase } from '@/lib/supabase';
 import { logError } from '@/lib/logger';
-import { usePlan } from '@/hooks/use-plan';
 import type { ReceiptRow, UserRole } from '@/lib/types';
 import type { User } from '@supabase/supabase-js';
-import { getReceipts, getBusinessUnits, getDashboardSummary, getDailySpend } from '@/lib/services/receipts';
+import { getReceipts, getDashboardSummary, getDailySpend } from '@/lib/services/receipts';
 import { getUserRole } from '@/lib/services/roles';
-import type { Tab } from '@/lib/store';
-import { useAppStore } from '@/lib/store';
+
+type Tab = 'dashboard' | 'receipts' | 'scan' | 'more';
 
 const cad = new Intl.NumberFormat('en-CA', {
   style: 'currency',
@@ -166,15 +128,10 @@ function AppContent() {
   const [hasMounted, setHasMounted] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useQueryState('tab', parseAsStringEnum<Tab>(['dashboard', 'receipts', 'scan', 'export', 'audit', 'reconcile', 'mileage', 'approvals', 'payables', 'projects', 'alerts', 'reports', 'more']).withDefault('dashboard'));
-  const storeTab = useAppStore((s) => s.setActiveTab);
+  const [activeTab, setActiveTab] = useQueryState('tab', parseAsStringEnum<Tab>(['dashboard', 'receipts', 'scan', 'more']).withDefault('dashboard'));
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
-
-  useEffect(() => {
-    if (activeTab) storeTab(activeTab);
-  }, [activeTab, storeTab]);
 
   useEffect(() => { setHasMounted(true); }, []);
 
@@ -193,7 +150,7 @@ function AppContent() {
   useEffect(() => {
     if (role === 'Employee') {
       const allowedEmployeeTabs: Tab[] = ['scan', 'receipts', 'more'];
-      if (!allowedEmployeeTabs.includes(activeTab)) {
+      if (!(allowedEmployeeTabs as readonly Tab[]).includes(activeTab)) {
         setTabWithUrl('scan');
       }
     }
@@ -306,17 +263,9 @@ function AppContent() {
     retry: 1,
   });
 
-  const { data: businessUnits = [] } = useQuery({
-    queryKey: ['business_units'],
-    queryFn: getBusinessUnits,
-    enabled: !!userId,
-    staleTime: 30_000,
-  });
-
-  const { plan, label: planLabel, receiptCount, teamSize, isTrialing, subscription, isLoading: planLoading } = usePlan();
-  const trialDaysLeft = subscription?.trial_ends_at
-    ? Math.max(0, Math.ceil((new Date(subscription.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-    : undefined;
+  const plan = 'free';
+  const planLabel = 'Free';
+  const planLoading = false;
 
   useReceiptRealtimeSync(role, userId);
 
@@ -329,13 +278,6 @@ function AppContent() {
     await supabase.auth.signOut();
     setTabWithUrl('dashboard');
     setActiveFilter('all');
-  }, [setTabWithUrl]);
-
-  const handleCommand = useCallback((action: string) => {
-    if (action === 'scan') setTabWithUrl('scan');
-    if (action === 'bulk-upload') setTabWithUrl('scan');
-    if (action === 'missing-bn') { setActiveFilter('missing-bn'); setTabWithUrl('receipts'); }
-    if (action === 'export-idea') setTabWithUrl('export');
   }, [setTabWithUrl]);
 
   // Global keyboard shortcuts
@@ -358,8 +300,6 @@ function AppContent() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setTabWithUrl]);
-
-  const [showInviteModal, setShowInviteModal] = useState(false);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -458,66 +398,12 @@ function AppContent() {
               />
             </ErrorBoundary>
           );
-        case 'reconcile':
-          return (
-            <ErrorBoundary componentName="BankReconciliation">
-              <BankReconciliation receipts={receipts} />
-            </ErrorBoundary>
-          );
-        case 'export':
-          return (
-            <ErrorBoundary componentName="Export">
-              <Export receipts={receipts} />
-            </ErrorBoundary>
-          );
-        case 'audit':
-          return (
-            <ErrorBoundary componentName="AuditTrail">
-              <AuditTrail />
-            </ErrorBoundary>
-          );
-        case 'mileage':
-          return (
-            <ErrorBoundary componentName="MileageTracker">
-              <MileageTracker />
-            </ErrorBoundary>
-          );
-        case 'approvals':
-          return (
-            <ErrorBoundary componentName="ApprovalsQueue">
-              <ApprovalsQueue role={role} />
-            </ErrorBoundary>
-          );
-        case 'payables':
-          return (
-            <ErrorBoundary componentName="ReimbursementsPanel">
-              <ReimbursementsPanel role={role} />
-            </ErrorBoundary>
-          );
-        case 'projects':
-          return (
-            <ErrorBoundary componentName="ProjectManager">
-              <ProjectManager />
-            </ErrorBoundary>
-          );
-        case 'alerts':
-          return (
-            <ErrorBoundary componentName="AnomalyDashboard">
-              <AnomalyDashboard />
-            </ErrorBoundary>
-          );
-        case 'reports':
-          return (
-            <ErrorBoundary componentName="ReportsPage">
-              <ReportsPage orgId={userId ?? ''} />
-            </ErrorBoundary>
-          );
         case 'more':
           return null;
         default:
           return (
-            <ErrorBoundary componentName="AuditTrail">
-              <AuditTrail />
+            <ErrorBoundary componentName="Dashboard">
+              <Dashboard onFilterClick={handleFilterClick} onScan={() => setTabWithUrl('scan')} role={role} userId={userId} />
             </ErrorBoundary>
           );
       }
@@ -544,11 +430,7 @@ function AppContent() {
 
   return (
     <div className="flex min-h-screen bg-obsidian">
-      <OfflineIndicator />
-      <SwUpdateBanner />
-
-        <OnboardingTour />
-        {/* Desktop sidebar */}
+      {/* Desktop sidebar */}
       <ErrorBoundary componentName="Sidebar">
         <Sidebar
           activeTab={activeTab}
@@ -556,7 +438,6 @@ function AppContent() {
           role={role}
           planLabel={planLabel}
           plan={plan}
-          openInviteModal={() => setShowInviteModal(true)}
           handleSignOut={handleSignOut}
         />
       </ErrorBoundary>
@@ -593,25 +474,6 @@ function AppContent() {
               </motion.div>
             )}
 
-            {/* Upgrade prompt */}
-            {!planLoading && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-5"
-              >
-                <ErrorBoundary componentName="UpgradePrompt">
-                  <UpgradePrompt
-                    plan={plan}
-                    receiptCount={receiptCount}
-                    teamSize={teamSize}
-                    isTrialing={isTrialing}
-                    daysLeftInTrial={trialDaysLeft}
-                  />
-                </ErrorBoundary>
-              </motion.div>
-            )}
-
             {/* Tab content */}
             <AnimatePresence mode="wait">
               {tabContent}
@@ -628,35 +490,12 @@ function AppContent() {
             activeTab={activeTab}
             onTabChange={setTabWithUrl}
             onClose={closeMoreMenu}
-            role={role}
             planLabel={planLabel}
             plan={plan}
-            openInviteModal={() => setShowInviteModal(true)}
             onSignOut={handleSignOut}
           />
         </ErrorBoundary>
       </div>
-
-      {/* Global overlays */}
-      <ConsentBanner />
-      <CommandPalette onAction={handleCommand} />
-      <ShortcutsOverlay />
-      <InstallPrompt />
-
-      <Drawer.Root open={showInviteModal} onOpenChange={setShowInviteModal}>
-        <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-sm" />
-          <Drawer.Content aria-label="Invite team member" className="fixed bottom-0 left-0 right-0 z-[160] flex flex-col rounded-t-lg border-t border-glass-border bg-surface outline-none focus:ring-0 bottom-nav">
-            <div className="mx-auto mt-4 h-1.5 w-12 flex-shrink-0 rounded-full bg-glass-border" />
-            <div className="p-6">
-              <InviteModal
-                onClose={() => setShowInviteModal(false)}
-                businessUnits={businessUnits}
-              />
-            </div>
-          </Drawer.Content>
-        </Drawer.Portal>
-      </Drawer.Root>
     </div>
   );
 }

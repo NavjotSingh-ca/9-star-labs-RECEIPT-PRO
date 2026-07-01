@@ -7,7 +7,7 @@ const meta: Meta<typeof MoreSheet> = {
   component: MoreSheet,
   decorators: [withProviders],
   parameters: {
-    docs: { description: { component: 'Slide-out sheet panel showing all secondary navigation items (audit, reports, approvals, billing, etc). Accessible from MobileNav "More" tab.' } },
+    docs: { description: { component: 'Slide-out sheet panel with settings, billing, and legal links. Accessible from MobileNav "More" tab.' } },
     viewport: { defaultViewport: 'mobile1' },
     layout: 'fullscreen',
   },
@@ -17,41 +17,24 @@ const meta: Meta<typeof MoreSheet> = {
 export default meta;
 type Story = StoryObj<typeof MoreSheet>;
 
-export const OwnerView: Story = {
+export const Visible: Story = {
   args: {
     activeTab: 'more',
     onTabChange: () => {},
     onClose: () => {},
-    role: 'Owner',
     planLabel: 'Pro',
     plan: 'pro',
-    openInviteModal: () => {},
     onSignOut: () => {},
   },
 };
 
-export const EmployeeView: Story = {
+export const FreePlan: Story = {
   args: {
     activeTab: 'more',
     onTabChange: () => {},
     onClose: () => {},
-    role: 'Employee',
     planLabel: 'Free',
     plan: 'free',
-    openInviteModal: () => {},
-    onSignOut: () => {},
-  },
-};
-
-export const AccountantView: Story = {
-  args: {
-    activeTab: 'more',
-    onTabChange: () => {},
-    onClose: () => {},
-    role: 'Accountant',
-    planLabel: 'Enterprise',
-    plan: 'enterprise',
-    openInviteModal: () => {},
     onSignOut: () => {},
   },
 };
@@ -61,10 +44,8 @@ export const NotVisible: Story = {
     activeTab: 'dashboard',
     onTabChange: () => {},
     onClose: () => {},
-    role: 'Owner',
     planLabel: 'Pro',
     plan: 'pro',
-    openInviteModal: () => {},
     onSignOut: () => {},
   },
 };
