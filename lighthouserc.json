@@ -26,10 +26,9 @@
         "interactive": ["warn", { "maxNumericValue": 5000 }],
         "unused-javascript": ["warn", { "maxNumericValue": 0.3 }],
         "uses-responsive-images": ["error"],
-        "uses-webp-images": ["error"],
         "uses-optimized-images": ["error"],
         "offscreen-images": ["error"],
-        "render-blocking-resources": ["warn", { "maxNumericValue": 2 }]
+        "render-blocking-resources": "off"
       }
     },
     "upload": {

@@ -75,3 +75,5 @@ jobs:
       - run: npm run test:e2e
         env:
           CI: true
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://ferczwlaphittvksrjhq.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlcmN6d2xhcGhpdHR2a3NyamhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MDgyNTcsImV4cCI6MjA5MTA4NDI1N30.UVd5uJ9AoGwJ0TMWT6Dhnj27mDUSTy3uS0npshZNzKs' }}
