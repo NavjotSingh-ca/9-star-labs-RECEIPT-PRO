@@ -4,15 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
-  ShieldCheck,
-  AlertCircle,
-  BarChart3,
   Download,
-  CheckCircle2,
-  TrendingUp,
-  Layers,
-  Scale,
-  UserCircle2,
   Crown,
   Settings,
   LogOut,
@@ -20,18 +12,15 @@ import {
   Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
-import type { UserRole } from '@/lib/types';
 
-type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more';
+type Tab = 'dashboard' | 'receipts' | 'scan' | 'more';
 
 interface MoreSheetProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
   onClose: () => void;
-  role: UserRole;
   planLabel: string;
   plan: string;
-  openInviteModal: () => void;
   onSignOut: () => void;
 }
 
@@ -39,32 +28,11 @@ export default function MoreSheet({
   activeTab,
   onTabChange,
   onClose,
-  role,
   planLabel,
   plan,
-  openInviteModal,
   onSignOut,
 }: MoreSheetProps) {
-  const [showRedeemInput, setShowRedeemInput] = useState(false);
-  const [redeemCodeValue, setRedeemCodeValue] = useState('');
-  const [redeemLoading, setRedeemLoading] = useState(false);
   const [dataExportLoading, setDataExportLoading] = useState(false);
-
-  const handleRedeemCode = async () => {
-    if (!redeemCodeValue || redeemCodeValue.trim().length !== 6) return;
-    setRedeemLoading(true);
-    try {
-      const { redeemAccessCode } = await import('@/lib/services/receipts');
-      const res = await redeemAccessCode(redeemCodeValue.trim(), '');
-      if (res.success) {
-        setShowRedeemInput(false);
-        setRedeemCodeValue('');
-        setTimeout(() => window.location.reload(), 1500);
-      }
-    } finally {
-      setRedeemLoading(false);
-    }
-  };
 
   return (
     <AnimatePresence>
@@ -101,117 +69,7 @@ export default function MoreSheet({
             {/* Content */}
             <div className="overflow-y-auto flex-1 p-4">
               <div className="grid gap-2">
-                {role !== 'Employee' && (
-                  <>
-                    <MoreTabButton
-                      icon={<ShieldCheck className="h-5 w-5" />}
-                      iconBg="bg-champagne/15 text-champagne"
-                      label="Audit Trail"
-                      description="Immutable Merkle history"
-                      onClick={() => onTabChange('audit')}
-                    />
-                    <MoreTabButton
-                      icon={<AlertCircle className="h-5 w-5" />}
-                      iconBg="bg-danger/10 text-danger"
-                      label="Anomaly Dashboard"
-                      description="AI fraud & math errors"
-                      onClick={() => onTabChange('alerts')}
-                    />
-                    <MoreTabButton
-                      icon={<BarChart3 className="h-5 w-5" />}
-                      iconBg="bg-champagne/15 text-champagne"
-                      label="Reports"
-                      description="Spend analysis & projections"
-                      onClick={() => onTabChange('reports')}
-                    />
-                    <MoreTabButton
-                      icon={<Download className="h-5 w-5" />}
-                      iconBg="bg-champagne/15 text-champagne"
-                      label="CRA Export"
-                      description="Generate compliance ZIPs"
-                      onClick={() => onTabChange('export')}
-                    />
-                    <MoreTabButton
-                      icon={<CheckCircle2 className="h-5 w-5" />}
-                      iconBg="bg-emerald-success/30 text-emerald-light"
-                      label="Approvals Queue"
-                      description="Review employee submissions"
-                      onClick={() => onTabChange('approvals')}
-                    />
-                    <MoreTabButton
-                      icon={<TrendingUp className="h-5 w-5" />}
-                      iconBg="bg-warning/10 text-warning"
-                      label="Reimbursements"
-                      description="Employee payables tracker"
-                      onClick={() => onTabChange('payables')}
-                    />
-                    <MoreTabButton
-                      icon={<Layers className="h-5 w-5" />}
-                      iconBg="bg-champagne/15 text-champagne"
-                      label="Projects & Job Codes"
-                      description="Track project budgets and spend"
-                      onClick={() => onTabChange('projects')}
-                    />
-                    <MoreTabButton
-                      icon={<Scale className="h-5 w-5" />}
-                      iconBg="bg-emerald-success/30 text-emerald-light"
-                      label="Mileage Tracker"
-                      description="CRA-prescribed km rates"
-                      onClick={() => onTabChange('mileage')}
-                    />
-                    {role === 'Owner' && (
-                      <MoreTabButton
-                        icon={<UserCircle2 className="h-5 w-5" />}
-                        iconBg="bg-champagne/15 text-champagne"
-                        label="Invite Team Member"
-                        description="Generate 6-digit access code"
-                        onClick={() => { openInviteModal(); onClose(); }}
-                      />
-                    )}
-                  </>
-                )}
-                {role === 'Employee' && !showRedeemInput && (
-                  <MoreTabButton
-                    icon={<ShieldCheck className="h-5 w-5" />}
-                    iconBg="bg-champagne/15 text-champagne"
-                    label="Redeem Access Code"
-                    description="Join a workspace"
-                    onClick={() => setShowRedeemInput(true)}
-                  />
-                )}
-                {role === 'Employee' && showRedeemInput && (
-                  <div className="rounded-xl border border-glass-border bg-surface-raised p-4 space-y-3">
-                    <p className="text-sm font-bold text-text-primary">Enter 6-digit Access Code</p>
-                    <input
-                      type="text"
-                      value={redeemCodeValue}
-                      onChange={(e) => setRedeemCodeValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      placeholder="000000"
-                      maxLength={6}
-                      className="w-full rounded-xl border border-glass-border bg-surface px-4 py-2 text-center font-mono tracking-[0.3em] text-lg text-text-primary outline-none focus:border-champagne/40 focus:ring-2 focus:ring-champagne/15"
-                      autoFocus
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => { setShowRedeemInput(false); setRedeemCodeValue(''); }}
-                        className="flex-1 rounded-xl border border-glass-border bg-surface px-4 py-2 text-sm font-semibold text-text-secondary hover:bg-surface-hover"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleRedeemCode}
-                        disabled={redeemCodeValue.length !== 6 || redeemLoading}
-                        className="flex-1 rounded-xl bg-champagne px-4 py-2 text-sm font-bold text-obsidian hover:bg-champagne-dim disabled:opacity-50"
-                      >
-                        {redeemLoading ? 'Redeeming...' : 'Redeem'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-6 px-2">
+                <div className="px-2">
                   <p className="mb-2 text-xs font-bold uppercase tracking-widest text-text-muted">Settings</p>
                   <MoreSettingLink
                     icon={<Crown className="h-4 w-4 text-warning" />}
@@ -225,11 +83,6 @@ export default function MoreSheet({
                     label="Organization"
                     href="/settings/org"
                   />
-                  <MoreSettingLink
-                    icon={<ShieldCheck className="h-4 w-4 text-text-muted" />}
-                    label="Security"
-                    href="/settings/security"
-                  />
                   <button
                     type="button"
                     onClick={onSignOut}
@@ -241,12 +94,12 @@ export default function MoreSheet({
 
                   <p className="mt-6 mb-2 text-xs font-bold uppercase tracking-widest text-text-muted">Legal</p>
                   <MoreSettingLink
-                    icon={<Scale className="h-4 w-4 text-text-muted" />}
+                    icon={<Download className="h-4 w-4 text-text-muted" />}
                     label="Terms of Service"
                     href="/terms"
                   />
                   <MoreSettingLink
-                    icon={<ShieldCheck className="h-4 w-4 text-text-muted" />}
+                    icon={<Download className="h-4 w-4 text-text-muted" />}
                     label="Privacy Policy (PIPEDA)"
                     href="/privacy"
                   />
@@ -290,36 +143,6 @@ export default function MoreSheet({
         </div>
       )}
     </AnimatePresence>
-  );
-}
-
-function MoreTabButton({
-  icon,
-  iconBg,
-  label,
-  description,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  iconBg: string;
-  label: string;
-  description: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex items-center gap-3 rounded-xl bg-surface-raised p-4 transition hover:bg-surface-hover"
-    >
-      <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}>
-        {icon}
-      </div>
-      <div className="text-left">
-        <p className="text-sm font-bold text-text-primary">{label}</p>
-        <p className="text-xs text-text-secondary">{description}</p>
-      </div>
-    </button>
   );
 }
 

@@ -1,27 +1,19 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Copy, AlertCircle, Camera, CheckCircle2, Receipt, ShieldAlert, Wallet, FileSearch, Gauge, Landmark, TrendingUp, Sparkles, Percent } from 'lucide-react';
+import { AlertCircle, Camera, Receipt, ShieldAlert, TrendingUp, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
-import dynamic from 'next/dynamic';
-import { Skeleton } from '@/components/ui/skeleton';
-
-const SpendingChart = dynamic(() => import('@/components/charts/SpendingChart').then(m => ({ default: m.SpendingChart })), { ssr: false, loading: () => <Skeleton className="h-48 w-full rounded-xl" /> });
-const DailySpendChart = dynamic(() => import('@/components/charts/DailySpendChart').then(m => ({ default: m.DailySpendChart })), { ssr: false, loading: () => <Skeleton className="h-64 w-full rounded-xl" /> });
-const CategoryDonut = dynamic(() => import('@/components/charts/CategoryDonut').then(m => ({ default: m.CategoryDonut })), { ssr: false, loading: () => <Skeleton className="h-64 w-full rounded-xl" /> });
-const Sparkline = dynamic(() => import('@/components/charts/Sparkline').then(m => ({ default: m.Sparkline })), { ssr: false, loading: () => <Skeleton className="h-10 w-20 rounded-lg" /> });
 
 import { Card as ShadcnCard } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DashboardSkeleton } from '@/components/ui/PremiumSkeletons';
 import AnimatedCounter from '@/components/ui/AnimatedCounter';
 import type { UserRole } from '@/lib/types';
 import { supabase, getOrgIdString } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { getDashboardSummary, getDailySpend } from '@/lib/services/receipts';
+import { getDashboardSummary } from '@/lib/services/receipts';
 import { toNumber, formatCurrency } from '@/lib/ui-utils';
 
 interface DashboardProps {
@@ -81,14 +73,6 @@ export default function Dashboard({ onFilterClick, onScan, role = 'Owner', userI
     return ((thisMonth.amount - lastMonth.amount) / lastMonth.amount) * 100;
   }, [thisMonth, lastMonth]);
 
-  const { data: dailySpend = [] } = useQuery({
-    queryKey: ['daily_spend', userId],
-    queryFn: () => getDailySpend(30),
-    enabled: !!userId, staleTime: 2 * 60 * 1000,
-  });
-
-  const last7 = useMemo(() => dailySpend.length >= 2 ? dailySpend.slice(-7) : [], [dailySpend]);
-
   const handleCopyEmail = async () => {
     setForwardingEmail(true);
     try {
@@ -118,26 +102,17 @@ export default function Dashboard({ onFilterClick, onScan, role = 'Owner', userI
   );
   }
 
-  const {
-    totalSpent = 0, gstRecoverable = 0, pstRecoverable = 0, receiptCount = 0,
-    missingBNCount = 0, pendingReviewCount = 0, flaggedAuditCount = 0,
-    highConfidenceCount = 0, duplicatesBlockedCount = 0, unmatchedBankCount = 0,
-    mileageTotalAmount = 0, mileageTotalKm = 0,
-  } = summary;
+  const { receiptCount = 0, totalSpent = 0, gstRecoverable = 0 } = summary;
 
   if (receiptCount === 0) return <EmptyState onScan={onScan} handleCopyEmail={handleCopyEmail} forwardingEmail={forwardingEmail} />;
   if (role === 'Employee') return <EmployeeView scans={receiptCount} total={totalSpent} gst={gstRecoverable} />;
 
-  const recoveryPct = totalSpent > 0 ? ((gstRecoverable + pstRecoverable) / totalSpent) * 100 : 0;
-
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-4" aria-live="polite">
-      {/* Greeting + Row 1: Hero + Stats */}
       <motion.p variants={fadeUp} className="text-xs font-medium text-text-muted">{getGreeting()}</motion.p>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-        {/* Hero metric — spans 1 col on mobile, 1 on desktop */}
-        <motion.div variants={fadeUp} className="sm:col-span-1">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <motion.div variants={fadeUp}>
           <ShadcnCard className="p-5">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted mb-1">
               {thisMonth ? formatMonthLabel(thisMonth.month) : 'This Month'}
@@ -152,49 +127,11 @@ export default function Dashboard({ onFilterClick, onScan, role = 'Owner', userI
                   {mom >= 0 ? '+' : ''}{Math.abs(mom).toFixed(1)}%
                 </span>
               )}
-              {last7.length >= 2 && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-accent/5 px-1.5 py-0.5"><Sparkline data={last7} /><span className="text-[10px] text-text-muted">7d</span></span>
-              )}
             </div>
           </ShadcnCard>
         </motion.div>
 
-        <KpiCard variants={fadeUp} label="Pending" value={String(pendingReviewCount || 0)} icon={<CheckCircle2 className="h-4 w-4 text-accent" />} />
         <KpiCard variants={fadeUp} label="Receipts" value={receiptCount.toLocaleString()} icon={<Receipt className="h-4 w-4 text-accent" />} />
-        <KpiCard variants={fadeUp} label="Recovery" value={`${recoveryPct.toFixed(1)}%`} icon={<Percent className="h-4 w-4 text-accent" />} />
-      </div>
-
-      {/* Row 2: Daily Spend — full width */}
-      <motion.div variants={fadeUp}>
-        <DailySpendChart data={dailySpend} />
-      </motion.div>
-
-      {/* Row 3: Categories + Monthly Trend */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <motion.div variants={fadeUp}>
-          <CategoryDonut data={summary.spendingByCategory || []} />
-        </motion.div>
-        <motion.div variants={fadeUp} className="space-y-4">
-          <SpendingChart data={(summary.monthlyTrend || []).map((s: { month: string; amount: number }) => ({ month: formatMonthLabel(s.month), amount: toNumber(s.amount) })).reverse()} />
-        </motion.div>
-      </div>
-
-      {/* Row 4: Insights + Alerts */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <motion.div variants={fadeUp} className="space-y-2">
-          {mileageTotalKm > 0 && <InsightCard icon={<Gauge className="h-4 w-4" />} title="Mileage" value={formatCurrency(mileageTotalAmount)} subtitle={`${mileageTotalKm.toLocaleString()} km`} />}
-          {unmatchedBankCount > 0 && <InsightCard icon={<Landmark className="h-4 w-4" />} title="Unmatched" value={String(unmatchedBankCount)} subtitle="transactions" />}
-          {duplicatesBlockedCount > 0 && <InsightCard icon={<ShieldAlert className="h-4 w-4" />} title="Duplicates Blocked" value={String(duplicatesBlockedCount)} subtitle="prevented" />}
-        </motion.div>
-
-        <motion.div variants={fadeUp} className="space-y-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Alerts</p>
-          <div className="space-y-2">
-            <AlertTile title="Incomplete" count={missingBNCount} tone="danger" onClick={() => onFilterClick('missing-bn')} />
-            <AlertTile title="Awaiting Review" count={pendingReviewCount} tone="info" onClick={() => onFilterClick('pending-review')} />
-            <AlertTile title="Audit Flags" count={flaggedAuditCount} tone="warning" onClick={() => onFilterClick('flagged-audit')} />
-          </div>
-        </motion.div>
       </div>
     </motion.div>
   );
@@ -220,43 +157,6 @@ const KpiCard = React.memo(function KpiCard({ variants: v, label, value, icon }:
   );
 });
 
-const InsightCard = React.memo(function InsightCard({ icon, title, value, subtitle }: { icon: React.ReactNode; title: string; value: string; subtitle: string }) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-glass-border bg-card p-4 transition hover:border-glass-border-hover">
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10 text-accent shrink-0">{icon}</div>
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-text-primary">{title}</p>
-        <p className="text-xs text-text-secondary mt-0.5"><span className="font-semibold">{value}</span> {subtitle}</p>
-      </div>
-    </div>
-  );
-});
-
-const AlertTile = React.memo(function AlertTile({ title, count, tone, onClick }: { title: string; count: number; tone: 'danger' | 'info' | 'warning'; onClick: () => void }) {
-  const leftBorder = {
-    danger: 'border-l-accent/60',
-    info: 'border-l-blue-500/60',
-    warning: 'border-l-warning/60',
-  }[tone];
-
-  const iconMap = {
-    danger: <AlertCircle className="h-4 w-4" />,
-    info: <FileSearch className="h-4 w-4" />,
-    warning: <ShieldAlert className="h-4 w-4" />,
-  };
-
-  return (
-    <button onClick={onClick} className="flex items-center justify-between w-full rounded-xl border border-glass-border bg-card p-3 text-left transition hover:border-glass-border-hover hover:shadow-sm cursor-pointer">
-      <div className="flex items-center gap-2.5">
-        <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", tone === 'danger' ? 'bg-danger/10 text-danger' : tone === 'info' ? 'bg-blue-500/10 text-blue-500' : 'bg-warning/10 text-warning')}>
-          {iconMap[tone]}
-        </div>
-        <span className="text-sm font-medium text-text-primary">{title}</span>
-      </div>
-      <span className="text-lg font-bold tabular-nums tabular-nums">{count}</span>
-    </button>
-  );
-});
 
 const EmptyState = React.memo(function EmptyState({ onScan, handleCopyEmail, forwardingEmail }: { onScan?: () => void; handleCopyEmail: () => void; forwardingEmail: boolean }) {
   return (

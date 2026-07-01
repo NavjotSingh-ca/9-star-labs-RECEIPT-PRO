@@ -3,26 +3,16 @@
 import { useState } from 'react';
 import { APP_NAME } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAppStore, type Tab } from '@/lib/store';
+import { useAppStore } from '@/lib/store';
 import {
   LayoutDashboard,
   Camera,
   ReceiptText,
-  CheckCircle2,
-  TrendingUp,
-  Layers,
-  Scale,
-  ShieldCheck,
-  AlertCircle,
-  BarChart3,
-  Download,
   Crown,
   Settings,
   LogOut,
   PanelLeftClose,
   PanelLeft,
-  Users,
-  Banknote,
   Menu,
   X,
 } from 'lucide-react';
@@ -30,13 +20,14 @@ import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import type { UserRole } from '@/lib/types';
 
+type Tab = 'dashboard' | 'receipts' | 'scan' | 'more';
+
 interface SidebarProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
   role: UserRole;
   planLabel: string;
   plan: string;
-  openInviteModal: () => void;
   handleSignOut: () => void;
 }
 
@@ -97,7 +88,6 @@ export default function Sidebar({
   role,
   planLabel,
   plan,
-  openInviteModal,
   handleSignOut,
 }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -109,14 +99,14 @@ export default function Sidebar({
   const navGroups: Array<{
     id: string;
     label: string;
-    items: Array<{ id: Tab; label: string; icon: React.ReactNode; roles?: UserRole[] }>;
+    items: Array<{ id: Tab; label: string; icon: React.ReactNode }>;
   }> = [
     {
       id: 'overview',
       label: 'Overview',
       items: [
         ...(isPrivileged ? [{ id: 'dashboard' as Tab, label: 'Dashboard', icon: <LayoutDashboard className="h-4 w-4" /> }] : []),
-        ...(role !== 'Accountant' ? [{ id: 'scan' as Tab, label: 'Scan', icon: <Camera className="h-4 w-4" /> }] : []),
+        { id: 'scan' as Tab, label: 'Scan', icon: <Camera className="h-4 w-4" /> },
       ],
     },
     {
@@ -124,40 +114,6 @@ export default function Sidebar({
       label: 'Records',
       items: [
         { id: 'receipts' as Tab, label: 'Receipts', icon: <ReceiptText className="h-4 w-4" /> },
-        ...(isPrivileged ? [{ id: 'approvals' as Tab, label: 'Approvals', icon: <CheckCircle2 className="h-4 w-4" /> }] : []),
-        ...(isPrivileged ? [{ id: 'payables' as Tab, label: 'Payables', icon: <Banknote className="h-4 w-4" /> }] : []),
-      ],
-    },
-    {
-      id: 'finance',
-      label: 'Finance',
-      items: [
-        ...(isPrivileged ? [{ id: 'reconcile' as Tab, label: 'Banking', icon: <TrendingUp className="h-4 w-4" /> }] : []),
-        ...(isPrivileged ? [{ id: 'export' as Tab, label: 'Tax Export', icon: <Download className="h-4 w-4" /> }] : []),
-      ],
-    },
-    {
-      id: 'business',
-      label: 'Business',
-      items: [
-        ...(isPrivileged ? [{ id: 'projects' as Tab, label: 'Projects', icon: <Layers className="h-4 w-4" /> }] : []),
-        { id: 'mileage' as Tab, label: 'Mileage', icon: <Scale className="h-4 w-4" /> },
-      ],
-    },
-    {
-      id: 'audit',
-      label: 'Audit',
-      items: [
-        ...(isPrivileged ? [{ id: 'audit' as Tab, label: 'Audit History', icon: <ShieldCheck className="h-4 w-4" /> }] : []),
-        ...(isPrivileged ? [{ id: 'alerts' as Tab, label: 'Alerts & Risk', icon: <AlertCircle className="h-4 w-4" /> }] : []),
-        ...(isPrivileged ? [{ id: 'reports' as Tab, label: 'Reports', icon: <BarChart3 className="h-4 w-4" /> }] : []),
-      ],
-    },
-    {
-      id: 'people',
-      label: 'People',
-      items: [
-        ...(role === 'Owner' ? [{ id: 'more' as Tab, label: 'Invite Team', icon: <Users className="h-4 w-4" />, roles: ['Owner' as UserRole] }] : []),
       ],
     },
   ];
@@ -206,11 +162,7 @@ export default function Sidebar({
                     active={activeTab === item.id}
                     collapsed={collapsed}
                     onClick={() => {
-                      if (item.id === 'more') {
-                        openInviteModal();
-                      } else {
-                        onTabChange(item.id);
-                      }
+                      onTabChange(item.id);
                       setMobileOpen(false);
                     }}
                   />
@@ -358,11 +310,7 @@ export default function Sidebar({
                               active={activeTab === item.id}
                               collapsed={false}
                               onClick={() => {
-                                if (item.id === 'more') {
-                                  openInviteModal();
-                                } else {
-                                  onTabChange(item.id);
-                                }
+                                onTabChange(item.id);
                                 setMobileOpen(false);
                               }}
                             />

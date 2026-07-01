@@ -4,9 +4,8 @@ import { Toaster } from 'sonner';
 import { APP_NAME, APP_TAGLINE, APP_DESCRIPTION } from '@/lib/constants';
 import NextTopLoader from 'nextjs-toploader';
 import './globals.css';
-import SmoothScroll from '@/components/SmoothScroll';
+
 import Providers from '@/components/Providers';
-import { PostHogProvider } from '@/lib/posthog';
 
 const geist = localFont({
   src: '../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2',
@@ -75,9 +74,7 @@ export default function RootLayout({
           </a>
         </header>
         <NextTopLoader color="#bea98e" height={2} showSpinner={false} />
-        <PostHogProvider>
-          <SmoothScroll>
-            <Providers>
+        <Providers>
               <main id="main-content" tabIndex={-1} className="outline-none">
                 {children}
               </main>
@@ -99,8 +96,6 @@ export default function RootLayout({
                 }}
               />
             </Providers>
-          </SmoothScroll>
-        </PostHogProvider>
       </body>
     </html>
   );

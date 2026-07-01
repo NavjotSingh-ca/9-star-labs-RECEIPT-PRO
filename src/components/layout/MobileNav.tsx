@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 
-type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more';
+type Tab = 'dashboard' | 'receipts' | 'scan' | 'more';
 
 interface MobileNavProps {
   activeTab: Tab;

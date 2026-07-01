@@ -9,12 +9,11 @@ function SidebarWithState(args: { collapsed: boolean; activeTab: string }) {
   return (
     <div className="h-screen w-max">
       <Sidebar
-        activeTab={args.activeTab as 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more'}
+        activeTab={args.activeTab as 'dashboard' | 'receipts' | 'scan' | 'more'}
         onTabChange={() => {}}
         role="Owner"
         planLabel="Pro"
         plan="pro"
-        openInviteModal={() => {}}
         handleSignOut={() => {}}
       />
     </div>
@@ -45,7 +44,6 @@ export const Default: Story = {
         role="Owner"
         planLabel="Pro"
         plan="pro"
-        openInviteModal={() => {}}
         handleSignOut={() => {}}
       />
     </div>
@@ -63,7 +61,6 @@ export const Collapsed: Story = {
           role="Owner"
           planLabel="Pro"
           plan="pro"
-          openInviteModal={() => {}}
           handleSignOut={() => {}}
         />
       </div>
@@ -80,7 +77,6 @@ export const EmployeeRole: Story = {
         role="Employee"
         planLabel="Free"
         plan="free"
-        openInviteModal={() => {}}
         handleSignOut={() => {}}
       />
     </div>
@@ -91,12 +87,11 @@ export const AccountantRole: Story = {
   render: () => (
     <div className="h-screen">
       <Sidebar
-        activeTab="audit"
+        activeTab="dashboard"
         onTabChange={() => {}}
         role="Accountant"
         planLabel="Enterprise"
         plan="enterprise"
-        openInviteModal={() => {}}
         handleSignOut={() => {}}
       />
     </div>
