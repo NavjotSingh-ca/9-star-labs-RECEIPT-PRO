@@ -80,10 +80,11 @@ import MobileNav from '@/components/layout/MobileNav';
 import TopBar from '@/components/layout/TopBar';
 import MoreSheet from '@/components/layout/MoreSheet';
 import { supabase } from '@/lib/supabase';
+import { logError } from '@/lib/logger';
 import { usePlan } from '@/hooks/use-plan';
 import type { ReceiptRow, UserRole } from '@/lib/types';
 import type { User } from '@supabase/supabase-js';
-import { getReceipts, getBusinessUnits, getAuditLogs, getDashboardSummary, getDailySpend } from '@/lib/services/receipts';
+import { getReceipts, getBusinessUnits, getDashboardSummary, getDailySpend } from '@/lib/services/receipts';
 import { getUserRole } from '@/lib/services/roles';
 import type { Tab } from '@/lib/store';
 import { useAppStore } from '@/lib/store';
@@ -109,15 +110,15 @@ function FullPageLoader() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-obsidian" role="status" aria-live="polite" aria-label="Loading application">
       <div className="flex flex-col items-center gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-champagne/15 shadow-[0_0_24px_-4px_rgba(203,182,155,0.2)]">
-          <ReceiptText className="h-8 w-8 text-champagne" />
+        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-accent/15 accent-glow">
+          <ReceiptText className="h-8 w-8 text-accent" />
         </div>
-        <Loader2 className="h-6 w-6 animate-spin text-champagne" />
+        <Loader2 className="h-6 w-6 animate-spin text-accent" />
         <p className="text-sm font-medium text-text-secondary">Loading {APP_NAME}…</p>
         <div className="mt-8 animate-in fade-in duration-1000" style={{ animationDelay: '5s' }}>
           <button
             onClick={() => window.location.reload()}
-            className="text-xs text-text-muted hover:text-champagne underline underline-offset-4"
+            className="text-xs text-text-muted hover:text-accent underline underline-offset-4"
           >
             Taking too long? Click to retry
           </button>
@@ -148,7 +149,7 @@ function AuditHUD({ receipts }: { receipts: ReceiptRow[] }) {
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
               {monthLabel} · Tax Recoverable
             </p>
-            <p className="text-lg font-bold tracking-tight text-champagne tabular-nums">
+            <p className="text-lg font-bold tracking-tight text-accent tabular-nums">
               {cad.format(gstRecoverable)}
             </p>
           </div>
@@ -221,7 +222,7 @@ function AppContent() {
         if (!orgId) {
           const result = await bootstrapOrgAction(currentUser.id);
           if (!result.ok) {
-            console.error('Bootstrap org failed:', result.error);
+            logError(result.error, { action: 'bootstrap_org_failed' });
             toast.error('Organization setup failed. Some features may be limited.');
           } else {
             finalRole = await getUserRole(currentUser.id);
@@ -233,7 +234,7 @@ function AppContent() {
         }
       } catch (err) {
         if (active) {
-          console.error('Auth resolution failed:', err);
+          logError(err, { action: 'auth_resolution_failed' });
           toast.error('Unable to verify your role. Some features may be limited.');
           setRole('Employee');
           setAuthLoading(false);
@@ -281,12 +282,12 @@ function AppContent() {
       queryClient.prefetchQuery({
         queryKey: ['dashboard_summary', role, userId],
         queryFn: () => getDashboardSummary(role, userId),
-        staleTime: 30_000,
+        staleTime: 5 * 60 * 1000,
       });
       queryClient.prefetchQuery({
         queryKey: ['daily_spend', userId],
         queryFn: () => getDailySpend(30),
-        staleTime: 2 * 60 * 1000,
+        staleTime: 5 * 60 * 1000,
       });
     }
   }, [userId, role, queryClient]);
@@ -309,13 +310,6 @@ function AppContent() {
     queryKey: ['business_units'],
     queryFn: getBusinessUnits,
     enabled: !!userId,
-    staleTime: 30_000,
-  });
-
-  useQuery({
-    queryKey: ['audit_logs'],
-    queryFn: async () => getAuditLogs(50),
-    enabled: !!userId && role !== 'Employee',
     staleTime: 30_000,
   });
 
@@ -402,7 +396,7 @@ function AppContent() {
           role="status"
           aria-live="polite"
         >
-          <Loader2 className="h-9 w-9 animate-spin text-champagne" />
+          <Loader2 className="h-9 w-9 animate-spin text-accent" />
           <p className="text-sm font-medium text-text-secondary">Loading your workspace…</p>
         </motion.div>
       );
@@ -421,7 +415,7 @@ function AppContent() {
           <p className="text-xs text-text-muted mb-4">Check your connection and try again.</p>
           <button
             onClick={() => fetchReceipts()}
-            className="rounded-lg bg-champagne px-5 py-2 text-xs font-bold text-obsidian hover:bg-champagne-dim transition"
+            className="rounded-lg bg-accent px-5 py-2 text-xs font-bold text-obsidian hover:bg-accent-dim transition"
           >
             Retry
           </button>
@@ -581,9 +575,9 @@ function AppContent() {
           onTouchEnd={handleTouchEnd}
         >
           {/* Premium ambient gradient at top */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-[600px] bg-gradient-to-b from-[var(--champagne)]/[0.06] via-[var(--champagne)]/[0.02] to-transparent" aria-hidden="true" />
-          <div className="pointer-events-none absolute -left-32 -top-32 h-64 w-64 rounded-full bg-champagne/5 blur-3xl" aria-hidden="true" />
-          <div className="pointer-events-none absolute -right-32 top-64 h-48 w-48 rounded-full bg-champagne/3 blur-3xl" aria-hidden="true" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[600px] bg-gradient-to-b from-accent/10 via-accent/5 to-transparent" aria-hidden="true" />
+          <div className="pointer-events-none absolute -left-32 -top-32 h-64 w-64 rounded-full bg-accent/8 blur-3xl" aria-hidden="true" />
+          <div className="pointer-events-none absolute -right-32 top-64 h-48 w-48 rounded-full bg-accent/5 blur-3xl" aria-hidden="true" />
           <div className="mx-auto max-w-6xl relative">
             {/* Audit HUD */}
             {!receiptsLoading && receipts.length > 0 && role !== 'Employee' && (

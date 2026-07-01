@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ArrowUpDown, Eye, FileDown, MoreHorizontal, Search, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -38,7 +38,16 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [globalFilter, setGlobalFilter] = useState('');
+  const [debouncedFilter, setDebouncedFilter] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const parentRef = useRef<HTMLDivElement>(null);
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setGlobalFilter(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setDebouncedFilter(value), 300);
+  }, []);
   const { data: unitMap = {}, isLoading: unitsLoading } = useQuery({
     queryKey: ['business_units'],
     queryFn: async () => {
@@ -53,14 +62,14 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({
   });
 
   const filtered = useMemo(() => {
-    if (!globalFilter) return data;
-    const q = globalFilter.toLowerCase();
+    if (!debouncedFilter) return data;
+    const q = debouncedFilter.toLowerCase();
     return data.filter(r =>
       (r.vendor_name || '').toLowerCase().includes(q) ||
       (r.category || '').toLowerCase().includes(q) ||
       String(r.total_amount || '').includes(q)
     );
-  }, [data, globalFilter]);
+  }, [data, debouncedFilter]);
 
   const rows = useMemo(() => {
     if (!sortField) return filtered;
@@ -123,7 +132,7 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({
           <Input
             placeholder="Search vendor, category, or amount..."
             value={globalFilter ?? ''}
-            onChange={(event) => setGlobalFilter(event.target.value)}
+            onChange={handleSearchChange}
             className="pl-10 rounded-xl bg-surface"
           />
         </div>
@@ -242,7 +251,7 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({
                   <Search className="h-8 w-8 opacity-40" />
                 </div>
                 <p className="font-bold">No records matching your search</p>
-                <button type="button" onClick={() => setGlobalFilter('')} className="text-sm font-semibold text-champagne hover:underline">
+                <button type="button" onClick={() => { setGlobalFilter(''); setDebouncedFilter(''); }} className="text-sm font-semibold text-champagne hover:underline">
                   Clear all filters
                 </button>
               </div>

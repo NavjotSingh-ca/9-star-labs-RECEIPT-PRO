@@ -11,7 +11,7 @@ import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { saveReceipt } from '@/lib/services/receipts';
 import { handleSupabaseError, withRetry } from '@/lib/supabase-error-handler';
 import { getVendorDefaults } from '@/lib/services/vendor-defaults';
-import { logWarn } from '@/lib/logger';
+import { logError, logWarn } from '@/lib/logger';
 import { useAnalytics } from '@/hooks/use-analytics';
 import {
   getImageDimensions,
@@ -167,7 +167,7 @@ export function useScannerState(
               processedIds.push(item.id);
               successCount++;
             } catch (err) {
-              console.error('Failed to sync offline receipt', err);
+              logError(err, { action: 'sync_offline_receipt' });
               toast.error('Failed to sync an offline receipt. It will be retried on next sync.');
             }
           }

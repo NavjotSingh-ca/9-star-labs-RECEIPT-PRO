@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Drawer } from 'vaul';
+import { logError } from '@/lib/logger';
 import dynamic from 'next/dynamic';
 
 import { semanticSearchAction } from '@/app/actions/semantic-search';
@@ -165,7 +166,7 @@ export default function History({
       if (onUpdate) await onUpdate();
       refetch();
     } catch (err) {
-      console.error('Confirm delete error:', err);
+      logError(err, { action: 'confirm_delete_receipt' });
       toast.error(err instanceof Error ? err.message : 'Failed to delete this receipt. It may be protected by retention rules.');
     } finally {
       setDeleteLoading(false);
@@ -249,7 +250,7 @@ export default function History({
       const results = await semanticSearchAction(query);
       setSemanticResults(results.map(r => r.id));
     } catch (err) {
-      console.error('Semantic search failed:', err);
+      logError(err, { action: 'semantic_search_failed' });
       toast.error('AI search failed. Please try a simpler query or check your connection.');
     } finally {
       setSemanticLoading(false);

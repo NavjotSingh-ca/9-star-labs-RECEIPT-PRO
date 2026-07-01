@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 import { env } from '@/lib/env';
 import { escapeHtml } from '@/lib/html-escape';
-import { logWarn } from '@/lib/logger';
+import { logError, logWarn } from '@/lib/logger';
 
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 
@@ -30,13 +30,13 @@ export async function sendEmail(params: SendEmailParams) {
     });
 
     if (error) {
-      console.error('[Email] Resend error:', error);
+      logError(error, { action: 'send_email_resend' });
       return { id: null, error };
     }
 
     return { id: data?.id || 'sent', error: null };
   } catch (err: unknown) {
-    console.error('[Email] Unexpected error:', err);
+    logError(err, { action: 'send_email_unexpected' });
     return { id: null, error: err instanceof Error ? err : new Error(String(err)) };
   }
 }

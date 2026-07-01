@@ -277,9 +277,8 @@ CREATE TABLE IF NOT EXISTS vehicles (
   make text,
   model text,
   year integer,
-  license_plate text,
+  plate text,
   nickname text NOT NULL,
-  default_rate_per_km numeric DEFAULT 0.68,
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
@@ -363,6 +362,16 @@ CREATE TABLE IF NOT EXISTS report_schedules (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS report_deliveries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  schedule_id UUID NOT NULL REFERENCES report_schedules(id) ON DELETE CASCADE,
+  org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','sent','failed')),
+  sent_at TIMESTAMPTZ,
+  error_message TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS scan_attempts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -390,6 +399,7 @@ ALTER TABLE vendor_defaults ENABLE ROW LEVEL SECURITY;
 ALTER TABLE receipt_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE report_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE report_schedules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE report_deliveries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE scan_attempts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fx_rate_cache ENABLE ROW LEVEL SECURITY;
 ALTER TABLE processed_webhook_events ENABLE ROW LEVEL SECURITY;
@@ -446,6 +456,9 @@ DO $$ BEGIN
   CREATE POLICY "fx_read" ON fx_rate_cache FOR SELECT USING (auth.role() = 'authenticated');
   CREATE POLICY "fx_write" ON fx_rate_cache FOR ALL USING (false) WITH CHECK (false);
   CREATE POLICY "webhook_only" ON processed_webhook_events FOR ALL USING (false) WITH CHECK (false);
+
+  CREATE POLICY "report_deliveries_view" ON report_deliveries FOR SELECT USING (org_id = get_user_org());
+  CREATE POLICY "report_deliveries_insert" ON report_deliveries FOR INSERT WITH CHECK (org_id = get_user_org());
 
   CREATE POLICY "scan_own" ON scan_attempts FOR ALL USING (user_id = auth.uid());
 EXCEPTION WHEN duplicate_object THEN NULL;
@@ -678,7 +691,7 @@ RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $$
+AS $func$
 DECLARE
   v_sql TEXT;
   v_result JSONB;
@@ -688,30 +701,30 @@ BEGIN
   -- GROUP BY column
   IF p_group_by IS NOT NULL THEN
     v_sql := v_sql || CASE p_group_by
-      WHEN 'category' THEN $$r.category AS "category"$$
-      WHEN 'vendor' THEN $$r.vendor_name AS "vendor"$$
-      WHEN 'month' THEN $$to_char(r.transaction_date::date, 'YYYY-MM') AS "month"$$
-      WHEN 'approval_status' THEN $$COALESCE(r.approval_status, 'unknown') AS "approval_status"$$
-      WHEN 'project' THEN $$COALESCE(p.name, 'Unassigned') AS "project"$$
-      WHEN 'business_unit' THEN $$COALESCE(b.name, 'Unassigned') AS "business_unit"$$
+      WHEN 'category' THEN 'r.category AS "category"'
+      WHEN 'vendor' THEN 'r.vendor_name AS "vendor"'
+      WHEN 'month' THEN 'to_char(r.transaction_date::date, ''YYYY-MM'') AS "month"'
+      WHEN 'approval_status' THEN 'COALESCE(r.approval_status, ''unknown'') AS "approval_status"'
+      WHEN 'project' THEN 'COALESCE(p.name, ''Unassigned'') AS "project"'
+      WHEN 'business_unit' THEN 'COALESCE(b.name, ''Unassigned'') AS "business_unit"'
     END || ', ';
   END IF;
 
   -- Metrics
   IF p_metrics @> ARRAY['total_spend'] THEN
-    v_sql := v_sql || $$SUM(COALESCE(r.cad_equivalent, r.total_amount)) AS "total_spend", $$;
+    v_sql := v_sql || 'SUM(COALESCE(r.cad_equivalent, r.total_amount)) AS "total_spend", ';
   END IF;
   IF p_metrics @> ARRAY['receipt_count'] THEN
-    v_sql := v_sql || $$COUNT(*) AS "receipt_count", $$;
+    v_sql := v_sql || 'COUNT(*) AS "receipt_count", ';
   END IF;
   IF p_metrics @> ARRAY['avg_receipt'] THEN
-    v_sql := v_sql || $$AVG(COALESCE(r.cad_equivalent, r.total_amount)) AS "avg_receipt", $$;
+    v_sql := v_sql || 'AVG(COALESCE(r.cad_equivalent, r.total_amount)) AS "avg_receipt", ';
   END IF;
   IF p_metrics @> ARRAY['tax_total'] THEN
-    v_sql := v_sql || $$SUM(COALESCE(r.tax_amount, 0) + COALESCE(r.pst_amount, 0)) AS "tax_total", $$;
+    v_sql := v_sql || 'SUM(COALESCE(r.tax_amount, 0) + COALESCE(r.pst_amount, 0)) AS "tax_total", ';
   END IF;
   IF p_metrics @> ARRAY['max_receipt'] THEN
-    v_sql := v_sql || $$MAX(COALESCE(r.cad_equivalent, r.total_amount)) AS "max_receipt", $$;
+    v_sql := v_sql || 'MAX(COALESCE(r.cad_equivalent, r.total_amount)) AS "max_receipt", ';
   END IF;
 
   v_sql := rtrim(v_sql, ', ');
@@ -761,10 +774,10 @@ BEGIN
     v_sql := v_sql || ' GROUP BY ' || CASE p_group_by
       WHEN 'category' THEN 'r.category'
       WHEN 'vendor' THEN 'r.vendor_name'
-      WHEN 'month' THEN $$to_char(r.transaction_date::date, 'YYYY-MM')$$
-      WHEN 'approval_status' THEN $$COALESCE(r.approval_status, 'unknown')$$
-      WHEN 'project' THEN $$COALESCE(p.name, 'Unassigned')$$
-      WHEN 'business_unit' THEN $$COALESCE(b.name, 'Unassigned')$$
+      WHEN 'month' THEN 'to_char(r.transaction_date::date, ''YYYY-MM'')'
+      WHEN 'approval_status' THEN 'COALESCE(r.approval_status, ''unknown'')'
+      WHEN 'project' THEN 'COALESCE(p.name, ''Unassigned'')'
+      WHEN 'business_unit' THEN 'COALESCE(b.name, ''Unassigned'')'
     END;
   END IF;
 
@@ -775,7 +788,7 @@ BEGIN
   EXECUTE v_sql INTO v_result;
   RETURN COALESCE(v_result, '[]'::JSONB);
 END;
-$$;
+$func$;
 
 -- ─── 3.5 Role management (bypasses RLS via SECURITY DEFINER) ───
 

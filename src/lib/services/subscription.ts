@@ -1,5 +1,6 @@
 import { supabase, getOrgIdString } from '@/lib/supabase';
 import { withRetry } from '@/lib/supabase-error-handler';
+import { logError } from '@/lib/logger';
 
 export type Plan = 'free' | 'starter' | 'pro' | 'business' | 'enterprise';
 
@@ -112,13 +113,13 @@ export async function getSubscription(): Promise<Subscription | null> {
     );
 
     if (error) {
-      console.error('Error fetching subscription:', error);
+      logError(error, { action: 'get_subscription_query' });
       return null;
     }
 
     return data as Subscription | null;
   } catch (err) {
-    console.error('getSubscription failed — using free plan fallback:', err);
+    logError(err, { action: 'get_subscription_fallback' });
     return null;
   }
 }
@@ -158,12 +159,12 @@ export async function getUsageCount(fromDate: string, toDate: string): Promise<n
       .lte('created_at', toDate);
 
     if (error) {
-      console.error('Error counting usage:', error);
+      logError(error, { action: 'get_usage_count' });
       return 0;
     }
     return count || 0;
   } catch (err) {
-    console.error('getUsageCount failed — returning 0:', err);
+    logError(err, { action: 'get_usage_count_fallback' });
     return 0;
   }
 }
@@ -179,12 +180,12 @@ export async function getTeamSize(): Promise<number> {
       .eq('org_id', orgId);
 
     if (error) {
-      console.error('Error counting team size:', error);
+      logError(error, { action: 'get_team_size' });
       return 0;
     }
     return count || 0;
   } catch (err) {
-    console.error('getTeamSize failed — returning 0:', err);
+    logError(err, { action: 'get_team_size_fallback' });
     return 0;
   }
 }

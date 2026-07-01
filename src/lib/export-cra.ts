@@ -1,6 +1,12 @@
 import type { ReceiptRow } from '@/lib/types';
 import { toNumber } from '@/lib/ui-utils';
-import { format } from 'date-fns';
+
+export function formatDateInput(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
 
 export function getVendor(r: ReceiptRow): string {
   return String(r.vendor_name ?? 'Unknown Vendor').trim() || 'Unknown Vendor';
@@ -38,9 +44,7 @@ export function getHash(r: ReceiptRow): string {
   return String(r.integrity_hash ?? '').trim();
 }
 
-export function formatDateInput(date: Date): string {
-  return format(date, 'yyyy-MM-dd');
-}
+
 
 export function withinRange(r: ReceiptRow, from: string, to: string): boolean {
   const date = getDate(r);

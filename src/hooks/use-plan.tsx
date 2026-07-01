@@ -34,14 +34,12 @@ export function usePlan(): PlanInfo {
     queryKey: ['receipt_count', fromDate, toDate],
     queryFn: () => getUsageCount(fromDate, toDate),
     staleTime: 5 * 60 * 1000,
-    enabled: !subLoading,
   });
 
   const { data: teamSize = 0 } = useQuery({
     queryKey: ['team_size'],
     queryFn: getTeamSize,
     staleTime: 5 * 60 * 1000,
-    enabled: !subLoading,
   });
 
   const gates = getPlanGates(plan);

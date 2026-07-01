@@ -68,7 +68,7 @@ function NavLink({
       {/* Active indicator bar — animated */}
       <motion.div
         layoutId="activeNavIndicator"
-        className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-gradient-to-b from-sidebar-accent to-champagne-dim"
+        className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-sidebar-accent"
         style={{ display: active ? 'block' : 'none' }}
         transition={{ type: 'spring', stiffness: 500, damping: 35 }}
       />
@@ -164,8 +164,8 @@ export default function Sidebar({
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
-      {/* Top accent line — redesigned: thicker gradient */}
-      <div className="h-1 w-full bg-gradient-to-r from-transparent via-sidebar-accent to-transparent flex-shrink-0" />
+      {/* Top accent line */}
+      <div className="h-0.5 w-full bg-sidebar-accent/60 flex-shrink-0" />
 
       {/* Logo */}
       <div className={`flex items-center border-b border-sidebar-border px-4 py-3 ${collapsed ? 'justify-center' : 'gap-3'}`}>

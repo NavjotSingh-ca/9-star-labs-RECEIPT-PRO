@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useEffect } from 'react';
+import { logError } from '@/lib/logger';
 import { AlertTriangle, RefreshCcw, Home } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -13,7 +14,7 @@ export default function Error({
 }) {
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error('CRITICAL_APP_ERROR:', error);
+    logError(error, { action: 'global_error_boundary' });
   }, [error]);
 
   return (

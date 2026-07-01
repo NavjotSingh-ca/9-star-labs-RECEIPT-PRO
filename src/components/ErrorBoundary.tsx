@@ -1,6 +1,7 @@
 'use client';
 
 import { Component, type ReactNode } from 'react';
+import { logError } from '@/lib/logger';
 import { AlertCircle } from 'lucide-react';
 
 interface Props {
@@ -25,7 +26,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error(`[ErrorBoundary] ${this.props.componentName || 'Component'} crashed:`, error, errorInfo);
+    logError(error, { action: 'component_error_boundary', component: this.props.componentName || 'Component' });
   }
 
   render() {

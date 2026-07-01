@@ -102,6 +102,7 @@ export default function ScannerForm({
   const { register, control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<ReceiptFormValues>({
     resolver: zodResolver(receiptFormSchema),
     defaultValues: rawFormData,
+    mode: 'onBlur',
   });
   
   const { fields: lineItems, append, remove } = useFieldArray({

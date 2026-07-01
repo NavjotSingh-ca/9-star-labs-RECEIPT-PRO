@@ -36,13 +36,9 @@ interface ReceiptDetailModalProps {
 export default function ReceiptDetailDrawer({ receipt, onClose, role = 'Owner', onUpdate }: ReceiptDetailModalProps) {
   const score = toNumber(receipt.confidence_score);
   const tone = confidenceTone(score);
-  const [vendorName] = useState(receipt.vendor_name ?? '');
-  const [vendorTaxNumber] = useState(receipt.vendor_tax_number ?? receipt.business_number ?? '');
-  const [transactionDate] = useState(receipt.transaction_date ?? '');
-  const [category] = useState(receipt.category ?? '');
   const [localApproval, setLocalApproval] = useState(receipt.approval_status ?? 'submitted');
-  const [, setApprovalLoading] = useState(false);
-  const [, setEditError] = useState('');
+  const [approvalLoading, setApprovalLoading] = useState(false);
+  const [editError, setEditError] = useState('');
 
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<{ id: string; comment: string; created_at: string; user_id?: string; user?: { email: string } }[]>([]);
@@ -206,7 +202,6 @@ export default function ReceiptDetailDrawer({ receipt, onClose, role = 'Owner', 
                 alt={`Receipt from ${receipt.vendor_name ?? 'Unknown'} on ${formatDate(receipt.transaction_date)}`}
                 fill
                 className="object-contain"
-                unoptimized
                 sizes="(max-width: 768px) 100vw, 50vw"
               />
             </div>
@@ -251,20 +246,20 @@ export default function ReceiptDetailDrawer({ receipt, onClose, role = 'Owner', 
             <div className="grid gap-x-8 gap-y-6 p-6 sm:grid-cols-2">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Vendor Entity</p>
-                <p className="text-sm font-bold">{vendorName || '—'}</p>
+                <p className="text-sm font-bold">{receipt.vendor_name || '—'}</p>
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Tax Identification (BN)</p>
-                <p className="text-sm font-bold">{vendorTaxNumber || '—'}</p>
+                <p className="text-sm font-bold">{receipt.vendor_tax_number || receipt.business_number || '—'}</p>
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Transaction Date</p>
-                <p className="text-sm font-bold">{formatDate(transactionDate)}</p>
+                <p className="text-sm font-bold">{formatDate(receipt.transaction_date)}</p>
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Ledger Category</p>
-                <Badge variant="outline" className={cn("mt-1 rounded-full px-3 py-1 font-bold uppercase tracking-widest", categoryColor(category))}>
-                  {category}
+                <Badge variant="outline" className={cn("mt-1 rounded-full px-3 py-1 font-bold uppercase tracking-widest", categoryColor(receipt.category ?? ''))}>
+                  {receipt.category || 'Uncategorized'}
                 </Badge>
               </div>
             </div>

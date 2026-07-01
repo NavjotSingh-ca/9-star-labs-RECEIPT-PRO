@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { APP_NAME } from '@/lib/constants';
+import { logError } from '@/lib/logger';
 import { toast } from 'sonner';
 import { usePlan } from '@/hooks/use-plan';
 import { PlanGate } from '@/components/plan-gate';
@@ -102,7 +103,7 @@ export default function Export({ receipts }: ExportProps) {
       
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('CRA PDF download error:', err);
+      logError(err, { action: 'cra_pdf_download' });
       toast.error(err instanceof Error ? err.message : 'Failed to generate CRA PDF. The server may be unavailable.');
     } finally {
       setGeneratingPdf(false);

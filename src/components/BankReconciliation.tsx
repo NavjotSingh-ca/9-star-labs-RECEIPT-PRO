@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ReceiptRow } from '@/lib/types';
 import { toNumber, formatCurrency } from '@/lib/ui-utils';
 import { parseBankStatement } from '@/app/actions/parse-bank-statement';
+import { logError } from '@/lib/logger';
 import { getBankTransactions, confirmBankMatch } from '@/lib/services/receipts';
 
 interface BankReconciliationProps {
@@ -111,7 +112,7 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
         setError(`${res.duplicatesSkipped} duplicate transaction(s) were skipped.`);
       }
     } catch (err) {
-      console.error(err);
+      logError(err, { action: 'parse_bank_file' });
       setError(err instanceof Error ? err.message : 'Failed to parse bank file.');
     }
   };

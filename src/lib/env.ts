@@ -5,7 +5,6 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   // Service role key for server-side admin operations (bypasses RLS)
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
-  GEMINI_API_KEY: z.string().min(1).optional(),
   GOOGLE_AI_KEY: z.string().min(1).optional(),
   // Stripe (optional — app works without until account created)
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
@@ -49,7 +48,6 @@ function parseEnv() {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     GOOGLE_AI_KEY: process.env.GOOGLE_AI_KEY,
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,

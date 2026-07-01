@@ -41,7 +41,7 @@ const ReceiptThumbnail = React.memo(function ReceiptThumbnail({ imageUrl, vendor
   }
   return (
     <div className="relative h-full w-full">
-      <Image src={src} alt={vendorName ?? 'Receipt'} fill className="object-cover" unoptimized sizes="200px" />
+      <Image src={src} alt={vendorName ?? 'Receipt'} fill className="object-cover" sizes="200px" />
     </div>
   );
 });

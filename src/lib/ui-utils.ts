@@ -24,30 +24,32 @@ export function formatDate(value?: string | null): string {
   });
 }
 
-/* ─── Alberta Construction Taxonomy Colors ─── */
+/* ─── Category Colors (maps to --chart-* CSS variables) ─── */
+
+const CATEGORY_CLASSES: Record<string, string> = {
+  'Job Materials': 'bg-chart-1/15 text-chart-1 border-chart-1/20',
+  'Subcontractors': 'bg-chart-2/15 text-chart-2 border-chart-2/20',
+  'Site Fuel': 'bg-chart-3/15 text-chart-3 border-chart-3/20',
+  'Equipment Rental': 'bg-chart-4/15 text-chart-4 border-chart-4/20',
+  'Small Tools': 'bg-chart-5/15 text-chart-5 border-chart-5/20',
+  'Vehicle Maintenance': 'bg-chart-6/15 text-chart-6 border-chart-6/20',
+  'Travel/Lodging': 'bg-chart-7/15 text-chart-7 border-chart-7/20',
+  'Office/Admin': 'bg-chart-8/15 text-chart-8 border-chart-8/20',
+  // Legacy fallbacks
+  'Office Supplies': 'bg-emerald-success/15 text-emerald-success border-emerald-success/20',
+  'Meals & Entertainment': 'bg-chart-4/15 text-chart-4 border-chart-4/20',
+  Travel: 'bg-chart-7/15 text-chart-7 border-chart-7/20',
+  Fuel: 'bg-chart-3/15 text-chart-3 border-chart-3/20',
+  'Professional Fees': 'bg-chart-2/15 text-chart-2 border-chart-2/20',
+  Supplies: 'bg-chart-5/15 text-chart-5 border-chart-5/20',
+  'Software & Subscriptions': 'bg-chart-6/15 text-chart-6 border-chart-6/20',
+  Utilities: 'bg-chart-4/15 text-chart-4 border-chart-4/20',
+};
+
+const FALLBACK_CLASS = 'bg-chart-1/15 text-chart-1 border-chart-1/20';
 
 export function categoryColor(category?: string | null): string {
-  const map: Record<string, string> = {
-    'Job Materials': '#bea98e',
-    'Subcontractors': '#8b5cf6',
-    'Site Fuel': '#ef4444',
-    'Equipment Rental': '#f59e0b',
-    'Small Tools': '#06b6d4',
-    'Vehicle Maintenance': '#ec4899',
-    'Travel/Lodging': '#60a5fa',
-    'Office/Admin': '#10b981',
-    // Legacy fallbacks
-    'Office Supplies': '#10b981',
-    'Meals & Entertainment': '#f59e0b',
-    Travel: '#60a5fa',
-    Fuel: '#ef4444',
-    'Professional Fees': '#8b5cf6',
-    Supplies: '#06b6d4',
-    'Software & Subscriptions': '#ec4899',
-    Utilities: '#f97316',
-    'General Expense': '#6b6560',
-  };
-  return map[category ?? ''] ?? '#6b6560';
+  return CATEGORY_CLASSES[category ?? ''] ?? FALLBACK_CLASS;
 }
 
 /* ─── AI Confidence Tone ─── */
@@ -55,21 +57,21 @@ export function categoryColor(category?: string | null): string {
 export function confidenceTone(score: number): { pill: string; panel: string; label: string } {
   if (score >= 85) {
     return {
-      pill: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
-      panel: 'bg-emerald-500/[0.06] border-emerald-500/20 text-emerald-300',
+      pill: 'bg-success/15 text-success border-success/20',
+      panel: 'bg-success/[0.06] border-success/20 text-success',
       label: 'High',
     };
   }
   if (score >= 60) {
     return {
-      pill: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
-      panel: 'bg-amber-500/[0.06] border-amber-500/20 text-amber-300',
+      pill: 'bg-warning/15 text-warning border-warning/20',
+      panel: 'bg-warning/[0.06] border-warning/20 text-warning',
       label: 'Medium',
     };
   }
   return {
-    pill: 'bg-red-500/15 text-red-400 border-red-500/20',
-    panel: 'bg-red-500/[0.06] border-red-500/20 text-red-300',
+    pill: 'bg-danger/15 text-danger border-danger/20',
+    panel: 'bg-danger/[0.06] border-danger/20 text-danger',
     label: 'Low',
   };
 }
@@ -79,12 +81,12 @@ export function confidenceTone(score: number): { pill: string; panel: string; la
 export function approvalBadge(status?: string | null): { cls: string; label: string } {
   const s = (status ?? '').toLowerCase();
   if (s === 'approved') {
-    return { cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20', label: 'Approved' };
+    return { cls: 'bg-success/15 text-success border-success/20', label: 'Approved' };
   }
   if (s === 'rejected') {
-    return { cls: 'bg-red-500/15 text-red-400 border-red-500/20', label: 'Rejected' };
+    return { cls: 'bg-danger/15 text-danger border-danger/20', label: 'Rejected' };
   }
-  return { cls: 'bg-amber-500/15 text-amber-400 border-amber-500/20', label: 'Pending' };
+  return { cls: 'bg-warning/15 text-warning border-warning/20', label: 'Pending' };
 }
 
 /* ─── Reimbursement Badge ─── */
@@ -92,12 +94,12 @@ export function approvalBadge(status?: string | null): { cls: string; label: str
 export function reimbursementBadge(status?: string | null): { cls: string; label: string } {
   const s = (status ?? '').toLowerCase();
   if (s === 'approved') {
-    return { cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20', label: 'Reimbursed' };
+    return { cls: 'bg-success/15 text-success border-success/20', label: 'Reimbursed' };
   }
   if (s === 'rejected') {
-    return { cls: 'bg-red-500/15 text-red-400 border-red-500/20', label: 'Denied' };
+    return { cls: 'bg-danger/15 text-danger border-danger/20', label: 'Denied' };
   }
-  return { cls: 'bg-amber-500/15 text-amber-400 border-amber-500/20', label: 'Pending' };
+  return { cls: 'bg-warning/15 text-warning border-warning/20', label: 'Pending' };
 }
 
 /* ─── Self-Healing Glow ─── */

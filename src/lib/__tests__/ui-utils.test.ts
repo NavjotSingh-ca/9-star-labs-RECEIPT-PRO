@@ -52,17 +52,19 @@ describe('formatDate', () => {
 });
 
 describe('categoryColor', () => {
-  it('returns champagne for Job Materials', () => {
-    expect(categoryColor('Job Materials')).toBe('#bea98e');
+  it('returns chart-1 classes for Job Materials', () => {
+    const cls = categoryColor('Job Materials');
+    expect(cls).toContain('bg-chart-1');
   });
 
   it('returns fallback for unknown category', () => {
-    expect(categoryColor('Nonsense')).toBe('#6b6560');
+    const cls = categoryColor('Nonsense');
+    expect(cls).toBe('bg-chart-1/15 text-chart-1 border-chart-1/20');
   });
 
   it('handles null/undefined', () => {
-    expect(categoryColor(null)).toBe('#6b6560');
-    expect(categoryColor(undefined)).toBe('#6b6560');
+    expect(categoryColor(null)).toContain('bg-chart-1');
+    expect(categoryColor(undefined)).toContain('bg-chart-1');
   });
 });
 
@@ -70,36 +72,36 @@ describe('confidenceTone', () => {
   it('returns high for score >= 85', () => {
     const t = confidenceTone(90);
     expect(t.label).toBe('High');
-    expect(t.pill).toContain('emerald');
+    expect(t.pill).toContain('bg-success');
   });
 
   it('returns medium for score 60-84', () => {
     const t = confidenceTone(72);
     expect(t.label).toBe('Medium');
-    expect(t.pill).toContain('amber');
+    expect(t.pill).toContain('bg-warning');
   });
 
   it('returns low for score < 60', () => {
     const t = confidenceTone(30);
     expect(t.label).toBe('Low');
-    expect(t.pill).toContain('red');
+    expect(t.pill).toContain('bg-danger');
   });
 });
 
 describe('approvalBadge', () => {
-  it('approved returns emerald', () => {
+  it('approved returns success styling', () => {
     expect(approvalBadge('approved').label).toBe('Approved');
-    expect(approvalBadge('approved').cls).toContain('emerald');
+    expect(approvalBadge('approved').cls).toContain('bg-success');
   });
 
-  it('rejected returns red', () => {
+  it('rejected returns danger styling', () => {
     expect(approvalBadge('rejected').label).toBe('Rejected');
-    expect(approvalBadge('rejected').cls).toContain('red');
+    expect(approvalBadge('rejected').cls).toContain('bg-danger');
   });
 
-  it('pending returns amber', () => {
+  it('pending returns warning styling', () => {
     expect(approvalBadge('pending').label).toBe('Pending');
-    expect(approvalBadge('pending').cls).toContain('amber');
+    expect(approvalBadge('pending').cls).toContain('bg-warning');
   });
 
   it('handles null', () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, AlertTriangle, CheckCircle2, DollarSign, Loader2 } from 'lucide-react';
@@ -16,7 +16,7 @@ interface ReimbursementsPanelProps {
 
 const cad = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 2 });
 
-function ReimburseCard({
+const ReimburseCard = React.memo(function ReimburseCard({
   receipt,
   onMarkPaid,
   loading,
@@ -84,7 +84,7 @@ function ReimburseCard({
       </div>
     </motion.div>
   );
-}
+});
 
 export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) {
   const queryClient = useQueryClient();

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { logError } from '@/lib/logger';
 import { Loader2, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePasswordStrength, passwordRequirements } from '@/hooks/usePasswordStrength';
@@ -31,12 +32,12 @@ export default function AuthCallback() {
           const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
           if (mounted) router.replace('/');
           if (error && mounted) {
-            console.error('[AuthCallback] Session exchange failed:', error.message);
+            logError(error, { action: 'auth_callback_session_exchange' });
             router.replace('/?error=auth');
           }
         }
       } catch (e) {
-        console.error('[AuthCallback] Unexpected error:', e);
+        logError(e, { action: 'auth_callback_unexpected' });
         if (mounted) router.replace('/?error=auth');
       }
     }
