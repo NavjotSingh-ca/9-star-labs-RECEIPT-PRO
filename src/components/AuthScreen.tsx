@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { getSiteUrl } from '@/lib/env';
 import { redeemAccessCode } from '@/lib/services/receipts';
 import { bootstrapOrgAction } from '@/app/actions/bootstrap-org';
 import { usePasswordStrength } from '@/hooks/usePasswordStrength';
@@ -110,9 +111,10 @@ export default function AuthScreen() {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
+      const redirectTo = `${getSiteUrl()}/auth/callback`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
+        options: { redirectTo },
       });
       if (error) throw error;
     } catch (error: unknown) {
@@ -129,7 +131,7 @@ export default function AuthScreen() {
     setForgotLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+        redirectTo: `${getSiteUrl()}/auth/callback?type=recovery`,
       });
       if (error) throw error;
       toast.success('Password reset email sent');

@@ -59,7 +59,7 @@ function parseEnv() {
     QBO_CLIENT_ID: process.env.QBO_CLIENT_ID,
     QBO_CLIENT_SECRET: process.env.QBO_CLIENT_SECRET,
     TOKEN_ENCRYPTION_KEY: process.env.TOKEN_ENCRYPTION_KEY,
-    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'),
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
     NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
     NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST || (typeof window !== 'undefined' ? 'https://app.posthog.com' : 'https://app.posthog.com'),
@@ -79,3 +79,16 @@ function parseEnv() {
 }
 
 export const env = parseEnv();
+
+/** Returns the canonical site URL for auth redirects.
+ *  Uses the env var when set (production), falls back to window.location.origin on the client.
+ *  This is a getter (not a cached value) so it works correctly in both SSR and client contexts. */
+export function getSiteUrl(): string {
+  if (env.NEXT_PUBLIC_SITE_URL && env.NEXT_PUBLIC_SITE_URL !== 'http://localhost:3000') {
+    return env.NEXT_PUBLIC_SITE_URL;
+  }
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return 'http://localhost:3000';
+}

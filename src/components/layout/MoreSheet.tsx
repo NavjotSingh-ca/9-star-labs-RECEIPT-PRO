@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -9,7 +8,6 @@ import {
   Settings,
   LogOut,
   X,
-  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -26,14 +24,11 @@ interface MoreSheetProps {
 
 export default function MoreSheet({
   activeTab,
-  onTabChange,
   onClose,
   planLabel,
   plan,
   onSignOut,
 }: MoreSheetProps) {
-  const [dataExportLoading, setDataExportLoading] = useState(false);
-
   return (
     <AnimatePresence>
       {activeTab === 'more' && (
@@ -103,38 +98,17 @@ export default function MoreSheet({
                     label="Privacy Policy (PIPEDA)"
                     href="/privacy"
                   />
+                  {/* Data export is temporarily disabled during stabilization — see LOCKED_FILES.md */}
                   <button
                     type="button"
-                    disabled={dataExportLoading}
-                    onClick={async () => {
-                      setDataExportLoading(true);
-                      try {
-                        const { supabase } = await import('@/lib/supabase');
-                        const { data: { user } } = await supabase.auth.getUser();
-                        if (!user) { return; }
-                        const { data: { session } } = await supabase.auth.getSession();
-                        if (!session?.access_token) { return; }
-                        const response = await fetch('/api/export/data', {
-                          headers: { Authorization: `Bearer ${session.access_token}` },
-                        });
-                        if (!response.ok) { return; }
-                        const blob = await response.blob();
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `9sl-data-export.json`;
-                        a.click();
-                        URL.revokeObjectURL(url);
-                      } catch {
-                        toast.error('Failed to download your data. The server may be unavailable.');
-                      } finally {
-                        setDataExportLoading(false);
-                      }
-                    }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-hover transition disabled:opacity-50"
+                    disabled
+                    onClick={() => toast.info('Data export is being rebuilt. Check back soon.')}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary opacity-50 cursor-not-allowed"
+                    title="Data export temporarily disabled"
                   >
-                    {dataExportLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    <Download className="h-4 w-4" />
                     <span>Download My Data (PIPEDA)</span>
+                    <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-surface-raised text-text-muted">Coming Soon</span>
                   </button>
                 </div>
               </div>
