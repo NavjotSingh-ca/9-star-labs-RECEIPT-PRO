@@ -265,12 +265,12 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
 
       {/* ── Image area ── */}
       <div
-        className="relative flex-1 flex items-center justify-center bg-black overflow-hidden"
+        className="relative flex-1 flex items-center justify-center bg-black overflow-hidden p-2"
         onClick={(e) => e.stopPropagation()}
       >
         <div
           ref={overlayRef}
-          className="relative max-h-full max-w-full touch-none"
+          className="relative inline-flex overflow-hidden touch-none"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={stopDragging}
@@ -281,22 +281,22 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
             ref={imageRef}
             src={imageSrc}
             alt="Crop source"
-            className="block max-h-[calc(100dvh-140px)] max-w-[calc(100vw-32px)] h-auto w-auto"
+            className="block max-h-[75dvh] max-w-full h-auto w-auto"
             onLoad={syncBounds}
             draggable={false}
           />
 
-          {/* ── Dark overlay OUTSIDE crop only ── */}
+          {/* ── Dark overlay OUTSIDE crop only (4 panels) ── */}
           {crop && (
             <>
-              {/* Top */}
+              {/* Top panel */}
               <div className="absolute inset-x-0 top-0 bg-black/60 pointer-events-none" style={{ height: `${crop.y}px` }} />
-              {/* Bottom */}
-              <div className="absolute inset-x-0 bg-black/60 pointer-events-none" style={{ top: `${crop.y + crop.height}px`, bottom: '0' }} />
-              {/* Left (middle strip) */}
-              <div className="absolute bg-black/60 pointer-events-none" style={{ top: `${crop.y}px`, bottom: `calc(100% - ${crop.y + crop.height}px)`, left: '0', width: `${crop.x}px` }} />
-              {/* Right (middle strip) */}
-              <div className="absolute bg-black/60 pointer-events-none" style={{ top: `${crop.y}px`, bottom: `calc(100% - ${crop.y + crop.height}px)`, right: '0', width: `calc(100% - ${crop.x + crop.width}px)` }} />
+              {/* Left middle panel */}
+              <div className="absolute bg-black/60 pointer-events-none" style={{ top: `${crop.y}px`, left: '0', width: `${crop.x}px`, height: `${crop.height}px` }} />
+              {/* Right middle panel */}
+              <div className="absolute bg-black/60 pointer-events-none" style={{ top: `${crop.y}px`, right: '0', width: `calc(100% - ${crop.x + crop.width}px)`, height: `${crop.height}px` }} />
+              {/* Bottom panel */}
+              <div className="absolute bg-black/60 pointer-events-none" style={{ top: `${crop.y + crop.height}px`, left: '0', width: '100%', bottom: '0' }} />
             </>
           )}
 
@@ -327,10 +327,10 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
           {crop && HANDLES.map((handle) => (
             <div
               key={handle.key}
-              className="absolute w-3 h-3 bg-white border-2 border-champagne rounded-sm pointer-events-none"
+              className="absolute w-4 h-4 bg-white border-2 border-champagne rounded-sm pointer-events-none"
               style={{
-                left: `${crop.x + handle.x * crop.width - 6}px`,
-                top: `${crop.y + handle.y * crop.height - 6}px`,
+                left: `${crop.x + handle.x * crop.width - 8}px`,
+                top: `${crop.y + handle.y * crop.height - 8}px`,
                 cursor: handle.cursor,
               }}
             />
