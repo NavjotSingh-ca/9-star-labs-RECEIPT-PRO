@@ -52,7 +52,11 @@ export function getSupabase(): SupabaseClient {
   return client;
 }
 
-export const supabase = getSupabase();
+export const supabase = new Proxy<SupabaseClient>({} as SupabaseClient, {
+  get(_, prop: keyof SupabaseClient) {
+    return getSupabase()[prop];
+  },
+});
 
 export async function getReceiptImageUrl(pathOrUrl: string | null | undefined): Promise<string | null> {
   if (!pathOrUrl) return null;
