@@ -24,7 +24,24 @@ const publicApiPrefixes = [
 
 function buildCSP(nonce: string): string {
   if (process.env.NODE_ENV === 'development') return '';
-  return `default-src 'self'; script-src 'self' 'unsafe-eval' 'nonce-${nonce}' https://js.stripe.com https://*.posthog.com; style-src 'self' 'nonce-${nonce}'; img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in; media-src 'self' blob:; connect-src 'self' https://*.supabase.co https://*.supabase.in https://generativelanguage.googleapis.com https://api.resend.com https://*.posthog.com https://js.stripe.com wss://*.supabase.co; font-src 'self' data:; frame-src https://js.stripe.com; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'`;
+  // Note: 'unsafe-inline' needed for script-src and style-src because Turbopack (Next.js 16)
+  // has a known nonce-propagation bug — inline <script>/<style> blocks lack nonce attributes.
+  // Without 'unsafe-inline', CSP blocks essential Next.js hydration scripts, RSC payloads,
+  // inline styles, and service worker registration. Remove 'unsafe-inline' once upstream is fixed.
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'unsafe-eval' 'unsafe-inline' 'nonce-${nonce}' https://js.stripe.com https://*.posthog.com`,
+    `style-src 'self' 'unsafe-inline' 'nonce-${nonce}'`,
+    "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in",
+    "media-src 'self' blob:",
+    "connect-src 'self' https://*.supabase.co https://*.supabase.in https://generativelanguage.googleapis.com https://api.resend.com https://*.posthog.com https://js.stripe.com wss://*.supabase.co",
+    "font-src 'self' data:",
+    'frame-src https://js.stripe.com',
+    "worker-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join('; ');
 }
 
 export async function proxy(request: NextRequest) {
@@ -70,6 +87,8 @@ export async function proxy(request: NextRequest) {
 
   // Production CSP — nonce-based, applied as response header
   const nonce = crypto.randomUUID();
+  // Propagate nonce to Next.js so it adds nonce attributes to inline <script>/<style> tags
+  supabaseResponse.headers.set('x-nonce', nonce);
   const csp = buildCSP(nonce);
   if (csp) {
     supabaseResponse.headers.set('Content-Security-Policy', csp);
