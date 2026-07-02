@@ -159,6 +159,7 @@ function AppContent() {
   useEffect(() => {
     if (!hasMounted) return;
     let active = true;
+    let subscription: { unsubscribe: () => void } | null = null;
 
     async function resolveUser(currentUser: User) {
       setUser(currentUser);
@@ -199,26 +200,37 @@ function AppContent() {
       }
     }
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!active) return;
-      if (user) {
-        resolveUser(user);
-      } else {
-        setAuthLoading(false);
-      }
-    }).catch(() => {
-      if (active) setAuthLoading(false);
-    });
+    // Wrap in try-catch to handle synchronous Proxy throws from supabase
+    // (e.g., if NEXT_PUBLIC_* env vars are missing at build time)
+    try {
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!active) return;
+        if (user) {
+          resolveUser(user);
+        } else {
+          setAuthLoading(false);
+        }
+      }).catch(() => {
+        if (active) setAuthLoading(false);
+      });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!active) return;
-      if (session?.user) {
-        resolveUser(session.user);
-      } else {
-        setUser(null);
+      const { data: subResult } = supabase.auth.onAuthStateChange((event, session) => {
+        if (!active) return;
+        if (session?.user) {
+          resolveUser(session.user);
+        } else {
+          setUser(null);
+          setAuthLoading(false);
+        }
+      });
+      subscription = subResult.subscription;
+    } catch (err) {
+      if (active) {
+        logError(err, { action: 'auth_effect_failed' });
         setAuthLoading(false);
+        return;
       }
-    });
+    }
 
     const safetyTimeout = setTimeout(() => {
       setAuthLoading(false);
@@ -226,7 +238,7 @@ function AppContent() {
 
     return () => {
       active = false;
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
       clearTimeout(safetyTimeout);
     };
   }, [hasMounted]);
