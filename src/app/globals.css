@@ -383,6 +383,13 @@ body {
   animation: shimmerBtn 1.5s ease-in-out infinite;
 }
 
+/* ─── Shimmer Auth Button (always animating) ─── */
+.shimmer-auth {
+  background: linear-gradient(110deg, #8b7355 15%, #bea98e 45%, #d4c4a8 55%, #bea98e 85%);
+  background-size: 250% 100%;
+  animation: shimmerBtn 2.5s ease-in-out infinite;
+}
+
 /* ─── Focus Ring ─── */
 *:focus-visible {
   outline: 2px solid var(--ring);

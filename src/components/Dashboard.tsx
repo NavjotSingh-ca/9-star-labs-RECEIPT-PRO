@@ -160,29 +160,101 @@ const KpiCard = React.memo(function KpiCard({ variants: v, label, value, icon }:
 
 const EmptyState = React.memo(function EmptyState({ onScan, handleCopyEmail, forwardingEmail }: { onScan?: () => void; handleCopyEmail: () => void; forwardingEmail: boolean }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-accent/10 text-accent border border-accent/20">
-        <Receipt className="h-7 w-7" />
-      </div>
-      <h2 className="text-lg font-bold tracking-tight">Start with your first receipt</h2>
-      <p className="mt-2 max-w-md text-sm text-text-secondary">Scan or upload a receipt to automatically extract data and begin tracking your finances.</p>
-      <div className="mt-6 flex gap-3">
-        {onScan && <Button onClick={onScan} className="gap-2 bg-accent text-white rounded-lg hover:bg-accent-dim"><Camera className="h-4 w-4" /> Scan Receipt</Button>}
-        <button onClick={handleCopyEmail} disabled={forwardingEmail} className="text-xs text-text-muted underline underline-offset-4 hover:text-text-secondary">{forwardingEmail ? 'Loading...' : 'Forward from email'}</button>
-      </div>
-      <div className="mt-12 grid gap-4 sm:grid-cols-3 max-w-xl">
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="relative flex flex-col items-center justify-center py-20 text-center overflow-hidden">
+      {/* Ambient accent glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-champagne/5 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* Icon */}
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className="relative mb-5"
+      >
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-champagne/15 to-champagne/5 ring-1 ring-champagne/20 ring-inset shadow-[0_0_30px_-8px_rgba(190,169,142,0.2)]">
+          <Receipt className="h-8 w-8 text-champagne" />
+        </div>
+        <motion.div
+          className="absolute -top-1 -right-1"
+          animate={{ opacity: [0.4, 1, 0.4], scale: [1, 1.1, 1] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <Sparkles className="h-4 w-4 text-champagne-dim" />
+        </motion.div>
+      </motion.div>
+
+      {/* Headline */}
+      <motion.h2
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="text-xl font-bold tracking-tight"
+      >
+        Your financial picture starts here
+      </motion.h2>
+      <motion.p
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.18 }}
+        className="mt-2 max-w-sm text-sm text-text-secondary/80 leading-relaxed"
+      >
+        Scan your first receipt to unlock AI-powered categorization, CRA compliance scoring, and real-time spend tracking.
+      </motion.p>
+
+      {/* CTA */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.26 }}
+        className="mt-8 flex flex-col items-center gap-4"
+      >
+        {onScan && (
+          <button
+            onClick={onScan}
+            className="shimmer-auth group relative h-11 px-6 rounded-xl font-semibold text-sm text-black transition-all duration-300 border border-champagne/20 hover:shadow-[0_0_25px_-6px_rgba(190,169,142,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--obsidian)]"
+          >
+            <span className="relative z-10 flex items-center gap-2">
+              <Camera className="h-4 w-4" />
+              Scan your first receipt
+            </span>
+          </button>
+        )}
+        <button
+          onClick={handleCopyEmail}
+          disabled={forwardingEmail}
+          className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary transition-colors duration-200 underline underline-offset-4 decoration-white/10 hover:decoration-white/30"
+        >
+          {forwardingEmail ? 'Loading...' : 'Or forward receipts from your email'}
+        </button>
+      </motion.div>
+
+      {/* Feature highlights */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.35 }}
+        className="mt-14 grid gap-3 sm:grid-cols-3 max-w-xl"
+      >
         {[
-          { icon: Sparkles, title: 'AI Extraction', desc: 'Auto-detects vendors, line items, taxes, and categories.' },
-          { icon: ShieldAlert, title: 'CRA Compliance', desc: 'Real-time scoring ensures every receipt meets audit requirements.' },
-          { icon: TrendingUp, title: 'Financial Intel', desc: 'Dashboards, tax recovery estimates, and spend trends.' },
+          { icon: Sparkles, title: 'AI Extraction', desc: 'Auto-detects vendors, line items, taxes, and categories from any receipt photo.' },
+          { icon: ShieldAlert, title: 'CRA Compliance', desc: 'Real-time scoring ensures every receipt meets Canadian audit requirements.' },
+          { icon: TrendingUp, title: 'Financial Intel', desc: 'Dashboards, tax recovery estimates, and spend trends at a glance.' },
         ].map((f, i) => (
-          <motion.div key={f.title} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.08 }} className="text-center">
-            <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10 text-accent"><f.icon className="h-4.5 w-4.5" /></div>
-            <h3 className="text-sm font-semibold">{f.title}</h3>
-            <p className="text-xs text-text-muted mt-1">{f.desc}</p>
+          <motion.div
+            key={f.title}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 + i * 0.08 }}
+            className="group rounded-xl border border-glass-border/50 bg-card/50 p-4 text-center hover:border-champagne/15 hover:bg-champagne/[0.02] transition-all duration-300"
+          >
+            <div className="mx-auto mb-2.5 flex h-10 w-10 items-center justify-center rounded-lg bg-champagne/10 text-champagne group-hover:bg-champagne/15 group-hover:shadow-[0_0_15px_-4px_rgba(190,169,142,0.15)] transition-all duration-300">
+              <f.icon className="h-4.5 w-4.5" />
+            </div>
+            <h3 className="text-sm font-semibold tracking-tight">{f.title}</h3>
+            <p className="text-xs text-text-muted/80 mt-1 leading-relaxed">{f.desc}</p>
           </motion.div>
         ))}
-      </div>
+      </motion.div>
     </motion.div>
   );
 });

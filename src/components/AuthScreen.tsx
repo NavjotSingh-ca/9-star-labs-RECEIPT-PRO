@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,10 +35,13 @@ const signupSchema = z.object({
 type SignInData = z.infer<typeof signinSchema>;
 type SignUpData = z.infer<typeof signupSchema>;
 
-const gradients = [
-  'from-[#BEA98E]/20 via-[#1a1a1a] to-[#0c0c0c]',
-  'from-[#8B7355]/15 via-[#1a1a1a] to-[#0c0c0c]',
-  'from-[#C4A882]/20 via-[#1a1a1a] to-[#0c0c0c]',
+/* ─── Gradient orbs for ambient background ─── */
+const orbs = [
+  { size: 55, x: 20, y: 10, duration: 18, color: 'rgba(190,169,142,0.04)' },
+  { size: 40, x: 70, y: 20, duration: 22, color: 'rgba(139,115,85,0.06)' },
+  { size: 35, x: 10, y: 60, duration: 25, color: 'rgba(190,169,142,0.03)' },
+  { size: 50, x: 80, y: 70, duration: 20, color: 'rgba(120,100,180,0.03)' },
+  { size: 30, x: 45, y: 40, duration: 28, color: 'rgba(139,115,85,0.04)' },
 ];
 
 export default function AuthScreen() {
@@ -46,7 +49,6 @@ export default function AuthScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
-  const [gradientIndex] = useState(0);
   const [inviteCode, setInviteCode] = useState('');
 
   const signinForm = useForm<SignInData>({
@@ -143,39 +145,54 @@ export default function AuthScreen() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full overflow-hidden bg-obsidian">
+    <div className="relative flex min-h-screen w-full overflow-hidden bg-[#08080a] selection:bg-champagne/20">
+      {/* Base gradient layers */}
+      <div className="absolute inset-0 bg-gradient-to-br from-champagne/[0.03] via-transparent to-[#08080a]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(190,169,142,0.08),transparent)]" />
+
+      {/* Subtle grid texture */}
       <div
-        className={[
-          'absolute inset-0 bg-gradient-to-br transition-all duration-[3000ms] ease-in-out',
-          gradients[gradientIndex],
-        ].join(' ')}
+        className="absolute inset-0 pointer-events-none opacity-[0.012]"
+        style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`,
+          backgroundSize: '48px 48px',
+        }}
       />
 
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(190,169,142,0.1),transparent)]" />
-
+      {/* Floating ambient orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(3)].map((_, i) => (
+        {orbs.map((orb, i) => (
           <motion.div
             key={i}
-            className="absolute rounded-full mix-blend-screen"
+            className="absolute rounded-full"
             style={{
-              width: `${30 + i * 15}vw`,
-              height: `${30 + i * 15}vw`,
-              background: `radial-gradient(circle, rgba(190,169,142,${0.04 - i * 0.01}) 0%, transparent 70%)`,
+              width: `${orb.size}vw`,
+              height: `${orb.size}vw`,
+              background: `radial-gradient(circle at center, ${orb.color} 0%, transparent 70%)`,
             }}
             animate={{
-              x: [-(10 + i * 5) + '%', (10 + i * 5) + '%', -(10 + i * 5) + '%'],
-              y: [-(5 + i * 3) + '%', (5 + i * 3) + '%', -(5 + i * 3) + '%'],
+              x: [
+                `${orb.x - 8 + Math.sin(i * 1.5) * 12}vw`,
+                `${orb.x + 8 + Math.cos(i * 1.2) * 12}vw`,
+                `${orb.x - 8 + Math.sin(i * 1.5) * 12}vw`,
+              ],
+              y: [
+                `${orb.y - 5 + Math.cos(i * 1.8) * 8}vw`,
+                `${orb.y + 5 + Math.sin(i * 1.3) * 8}vw`,
+                `${orb.y - 5 + Math.cos(i * 1.8) * 8}vw`,
+              ],
             }}
             transition={{
-              duration: 15 + i * 5,
+              duration: orb.duration,
               repeat: Infinity,
               ease: 'easeInOut',
+              delay: i * 2,
             }}
           />
         ))}
       </div>
 
+      {/* Content */}
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col lg:flex-row">
         <BrandPanel />
         <AuthForm
