@@ -122,31 +122,34 @@ CONTEXT: This is a DIGITAL EMAIL SCREENSHOT.
     contextPrompt += `\n\nVENDOR CONTEXT (Preferred categories for this organization):\n${vendorContext}\nUse these as a guide for categorization if the vendor matches.`;
   }
 
-  return `You are an elite Canadian receipt API with built-in fraud and anomaly detection. 
-Analyze this document image and return a single JSON object matching this exact schema:
+  return `You are a precise Canadian receipt OCR system. Your ONLY job is to extract text and numbers exactly as they appear on the receipt image.
+
+CRITICAL RULE: Look at the image carefully. Read the vendor name, amounts, and dates DIRECTLY from the image. If you cannot read a field clearly, set it to null or empty string — do NOT guess or make up values.
+
+Return a single JSON object with this exact schema (no markdown, no explanation):
 {
-  "vendor_name": "string",
-  "vendor_address": "full address including city, province, postal code",
-  "vendor_tax_number": "GST/BN number e.g. 123456789RT0001, or empty string",
-  "total_amount": 0.00,
-  "subtotal": 0.00,
-  "tax_amount": 0.00,
-  "pst_amount": 0.00,
-  "transaction_date": "YYYY-MM-DD",
-  "transaction_time": "HH:MM",
+  "vendor_name": "string — extract EXACTLY as printed on receipt, null if unreadable",
+  "vendor_address": "string — full address from receipt, null if not visible",
+  "vendor_tax_number": "string — GST/HST number if printed, empty string if none",
+  "total_amount": "number — the FINAL total at the bottom of the receipt",
+  "subtotal": "number — amount before tax, null if not itemized",
+  "tax_amount": "number — total tax charged, 0 if none",
+  "pst_amount": "number — provincial sales tax if any, 0 if none",
+  "transaction_date": "YYYY-MM-DD — from the receipt date, today if unreadable",
+  "transaction_time": "HH:MM — from the receipt, empty string if not shown",
   "payment_method": "Visa | Mastercard | Amex | Debit | Cash | E-Transfer | Cheque | Unknown",
-  "card_last_four": "last 4 digits if visible",
+  "card_last_four": "string — last 4 digits if visible, empty string if not",
   "category": "${VALID_CATEGORIES.join(' | ')}",
-  "category_reasoning": "string (explain why you chose this category based on items and vendor)",
+  "category_reasoning": "string — 1 sentence why this category fits based on items purchased",
   "currency": "CAD | USD | other",
-  "confidence_score": 0 (confidence 0-100),
-  "thermal_warning": false (true if receipt is faded/thermal),
-  "fraud_suspicion": false (true if out of policy, weird vendor, impossible math, or AI fake),
-  "fraud_reason": "string (explain why if fraud_suspicion is true, else empty)",
+  "confidence_score": "0-100 — how sure you are about the ENTIRE extraction (penalize if any field is guessed)",
+  "thermal_warning": "false — set true only if the image is clearly faded/burned thermal paper",
+  "fraud_suspicion": "false — set true only if the receipt looks AI-generated or physically impossible",
+  "fraud_reason": "string — explain only if fraud_suspicion is true",
   "document_type": "Receipt | Invoice | Estimate | Statement",
   "line_items": [
     {
-      "description": "string",
+      "description": "string — item name EXACTLY as printed",
       "quantity": 1,
       "unit_price": 0.00,
       "tax_amount": 0.00,
@@ -157,17 +160,16 @@ Analyze this document image and return a single JSON object matching this exact 
 
 ${contextPrompt}
 
-Rules:
-- Extract EVERY line item visible.
-- CATEGORIZATION: Use the line items and VENDOR CONTEXT to determine the most accurate category. 
-  - 'Job Materials' for lumber, plumbing, electrical, etc.
-  - 'Small Tools' for items < $500 that aren't materials.
-  - 'Site Fuel' for gas stations if fuel is bought.
-- If tax amounts are physically printed wrong or subtotal+tax != total, flag it.
-- For Alberta vendors (no PST), set pst_amount to 0.
-- If you suspect this is an AI-generated fake receipt (perfect fonts, metadata anomalies), set fraud_suspicion=true.
-- Dates must be YYYY-MM-DD. Assume ${CURRENT_YEAR} if ambiguous.
-- RETURN ONLY THE JSON OBJECT. No markdown, no fences.`;
+EXTRACTION RULES (FOLLOW STRICTLY):
+1. VENDOR NAME: Read the store/restaurant name directly from the receipt header. If it says "COSTCO", extract "Costco". Never invent a vendor name.
+2. AMOUNTS: Copy numbers exactly as printed. Do not calculate or adjust.
+3. LINE ITEMS: List every item on the receipt. If no items visible, return empty array [].
+4. DATES: Use the date printed on the receipt. If only month/day shown without year, assume ${CURRENT_YEAR}.
+5. CATEGORY: Choose the best fit from the category list based on what was purchased.
+6. CONFIDENCE: Be honest. If you had to guess any field, lower the score.
+7. HALLUCINATION CHECK: Before outputting, verify: "Did I actually READ this from the image or did I make it up?" If unsure, null the field.
+8. ALBERTA TAX: If vendor is in Alberta, pst_amount = 0.
+9. OUTPUT: Return ONLY valid JSON. No markdown, no code fences, no explanation.`;
 }
 
 function preparePayload(raw: string): { data: string; mimeType: string } {
@@ -229,6 +231,26 @@ function normalizeDate(raw: string): string {
   if (!isNaN(longDate.getTime())) return longDate.toISOString().split('T')[0];
 
   return todayISO();
+}
+
+/** Detect obvious AI hallucinations in extraction results and fix them */
+function sanitizeExtraction(data: Record<string, unknown>): Record<string, unknown> {
+  const vendor = toStr(data.vendor_name);
+  // Single-word generic food items are almost certainly hallucinated vendor names
+  const FOOD_ONLY = /^(chicken|beef|pork|bread|milk|eggs|cheese|rice|pasta|soda|coke|water|coffee|tea|juice|snack|candy|chips|cookie|cake|pie|fruit|veggie|salad|soup|sauce|oil|butter|cream|yogurt|donut|muffin|bagel|toast|burger|pizza|taco|sushi|ramen|noodle|sandwich|wrap|dip|spread|fish|ham|bacon|lamb|duck|tofu|beans|peas|corn|breads|wine|beer|vodka)$/i;
+  if (vendor && FOOD_ONLY.test(vendor.trim()) && !vendor.includes(' ')) {
+    data.vendor_name = null;
+    data.fraud_suspicion = true;
+    data.fraud_reason = 'Vendor name is a generic food word (likely AI hallucination)';
+    data.confidence_score = Math.min(Number(data.confidence_score) || 50, 30);
+  }
+  // If confidence is high but data is sparse, lower it
+  const lineCount = Array.isArray(data.line_items) ? data.line_items.length : 0;
+  const hasRequired = toStr(data.vendor_name).length > 0 && toNum(data.total_amount) > 0;
+  if (hasRequired && lineCount === 0 && Number(data.confidence_score) > 60) {
+    data.confidence_score = 50;
+  }
+  return data;
 }
 
 function computeCRAScoreForSave(data: {
@@ -514,7 +536,7 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
     const genAI = new GoogleGenerativeAI(env.GOOGLE_AI_KEY);
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
-      generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
+      generationConfig: { temperature: 0.05 },
     });
 
     // HIGH-7: Add timeout via AbortController — timeout is created per-retry inside wrapper
@@ -539,7 +561,7 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
       throw err;
     }
 
-    const rawParsed = parseSafely(result.response.text());
+    const rawParsed = sanitizeExtraction(parseSafely(result.response.text()));
 
     // AI Self-Correction Pass — only run if confidence is low (< 75) to save API quota
     const finalParsed = (rawParsed.confidence_score && Number(rawParsed.confidence_score) < 75)
