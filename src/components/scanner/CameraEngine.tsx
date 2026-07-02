@@ -99,22 +99,55 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
     }
   };
 
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+
   const takePhoto = async () => {
     if (!videoRef.current || !canvasRef.current) return;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    // Match the capture to what's visually shown (object-cover equivalent)
+    // This ensures WYSIWYG — no mismatch between viewfinder and captured image
+    const container = videoContainerRef.current?.parentElement;
+    if (container) {
+      const cr = container.getBoundingClientRect();
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      const videoAspect = vw / vh;
+      const containerAspect = cr.width / cr.height;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      setError('Canvas rendering not supported. Try using the gallery upload option.');
-      return;
+      let sx = 0, sy = 0, sw = vw, sh = vh;
+      if (videoAspect > containerAspect) {
+        // Video wider than container — crop width
+        sh = vh;
+        sw = vh * containerAspect;
+        sx = (vw - sw) / 2;
+      } else {
+        // Video taller than container — crop height
+        sw = vw;
+        sh = vw / containerAspect;
+        sy = (vh - sh) / 2;
+      }
+
+      canvas.width = sw;
+      canvas.height = sh;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        setError('Canvas rendering not supported. Try using the gallery upload option.');
+        return;
+      }
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+    } else {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        setError('Canvas rendering not supported. Try using the gallery upload option.');
+        return;
+      }
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     }
-
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const blob = await new Promise<Blob | null>((resolve) => {
       canvas.toBlob(resolve, 'image/jpeg', 0.95);
@@ -148,7 +181,7 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
       </div>
 
       {/* Camera Area */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-black overflow-hidden relative" role="region" aria-label="Camera viewfinder">
+      <div ref={videoContainerRef} className="flex-1 flex flex-col items-center justify-center bg-black overflow-hidden relative" role="region" aria-label="Camera viewfinder">
         {isStarting && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-white/60 z-10" role="status" aria-live="polite" aria-label="Initializing camera">
             <RefreshCcw className="h-10 w-10 animate-spin mb-4" />

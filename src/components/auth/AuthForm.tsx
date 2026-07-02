@@ -43,14 +43,8 @@ const inputNormal = 'border-white/[0.08]';
 
 const labelBase = 'text-xs font-semibold uppercase tracking-[0.12em] text-champagne-dim/80';
 
-/* ─── Staggered field animation — each child fades in with a slight delay ─── */
-const fieldVariants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: (i: number) => ({
-    opacity: 1, y: 0,
-    transition: { duration: 0.35, delay: 0.05 * i, ease: 'easeOut' as const },
-  }),
-};
+/* ─── Staggered field entrance via CSS (avoids framer-motion overhead per field) ─── */
+/* Keyframes in globals.css: @keyframes fadeSlideIn and @keyframes fadeIn */
 
 /* ─── Glass card wrapper with gradient border effect ─── */
 function GlassCard({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -76,41 +70,30 @@ export default function AuthForm({
       <motion.div
         initial={{ opacity: 0, x: 30 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6, delay: 0.15 }}
+        transition={{ duration: 0.5, delay: 0.15 }}
         className="w-full max-w-md"
       >
         {/* ── Mobile logo (visible only below lg) ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          className="lg:hidden mb-8 text-center"
-        >
+        <div style={{ animation: 'fadeSlideIn 0.4s ease-out 0.1s forwards' }} className="lg:hidden mb-8 text-center opacity-0">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-champagne/[0.12] mb-4 shadow-[0_0_25px_-6px_rgba(190,169,142,0.25)] ring-1 ring-champagne/20 ring-inset">
             <ReceiptText className="h-7 w-7 text-champagne" />
           </div>
           <h1 className="text-2xl font-bold text-white">{APP_NAME}</h1>
           <p className="text-xs text-text-muted mt-1">CRA-Ready Receipt Intelligence</p>
-        </motion.div>
+        </div>
 
         <AnimatePresence mode="wait">
           <motion.div
             key={mode}
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
           >
             <GlassCard>
               <div className="p-6 sm:p-8">
                 {/* ── Header ── */}
-                <motion.div
-                  custom={0}
-                  variants={fieldVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="mb-6"
-                >
+                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.05s forwards' }} className="mb-6 opacity-0">
                   <h2 className="text-[22px] font-bold tracking-tight text-white">
                     {mode === 'signin' ? 'Welcome back' : 'Create account'}
                   </h2>
@@ -119,15 +102,10 @@ export default function AuthForm({
                       ? 'Sign in to access your workspace'
                       : 'Start capturing and organizing receipts securely'}
                   </p>
-                </motion.div>
+                </div>
 
                 {/* ── Google OAuth ── */}
-                <motion.div
-                  custom={1}
-                  variants={fieldVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
+                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.1s forwards' }} className="opacity-0">
                   <button
                     type="button"
                     onClick={onGoogleSignIn}
@@ -152,28 +130,22 @@ export default function AuthForm({
                       Continue with Google
                     </span>
                   </button>
-                </motion.div>
+                </div>
 
                 {/* ── Divider ── */}
-                <motion.div
-                  custom={2}
-                  variants={fieldVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="relative my-5"
-                >
+                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.15s forwards' }} className="relative my-5 opacity-0">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-white/[0.06]" />
                   </div>
                   <div className="relative flex justify-center text-xs">
                     <span className="bg-[#0c0c0c] px-3 text-zinc-500">or continue with email</span>
                   </div>
-                </motion.div>
+                </div>
 
                 {/* ── Sign In Form ── */}
                 {mode === 'signin' ? (
                   <form onSubmit={signinForm.handleSubmit(onSignIn)} className="space-y-4">
-                    {/* Root error */}
+                    {/* Root error — keep AnimatePresence for error appear/disappear */}
                     <AnimatePresence>
                       {signinForm.formState.errors.root && (
                         <motion.div
@@ -189,7 +161,7 @@ export default function AuthForm({
                     </AnimatePresence>
 
                     {/* Email field */}
-                    <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.2s forwards' }} className="space-y-1.5 opacity-0">
                       <label htmlFor="signin-email" className={labelBase}>Email</label>
                       <div className="relative">
                         <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
@@ -205,21 +177,13 @@ export default function AuthForm({
                           )}
                         />
                       </div>
-                      <AnimatePresence>
-                        {signinForm.formState.errors.email && (
-                          <motion.p
-                            initial={{ opacity: 0, y: -4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="text-[11px] text-danger"
-                          >
-                            {signinForm.formState.errors.email.message}
-                          </motion.p>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
+                      {signinForm.formState.errors.email && (
+                        <p className="text-[11px] text-danger animate-[fadeIn_0.2s_ease-out]">{signinForm.formState.errors.email.message}</p>
+                      )}
+                    </div>
 
                     {/* Password field */}
-                    <motion.div custom={4} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.25s forwards' }} className="space-y-1.5 opacity-0">
                       <label htmlFor="signin-password" className={labelBase}>Password</label>
                       <div className="relative">
                         <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
@@ -238,26 +202,18 @@ export default function AuthForm({
                           type="button"
                           aria-label="Toggle password visibility"
                           onClick={onTogglePassword}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-text-secondary transition-colors duration-200"
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-text-secondary transition-colors duration-200"
                         >
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
-                      <AnimatePresence>
-                        {signinForm.formState.errors.password && (
-                          <motion.p
-                            initial={{ opacity: 0, y: -4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="text-[11px] text-danger"
-                          >
-                            {signinForm.formState.errors.password.message}
-                          </motion.p>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
+                      {signinForm.formState.errors.password && (
+                        <p className="text-[11px] text-danger animate-[fadeIn_0.2s_ease-out]">{signinForm.formState.errors.password.message}</p>
+                      )}
+                    </div>
 
                     {/* Remember me + Forgot password */}
-                    <motion.div custom={5} variants={fieldVariants} initial="hidden" animate="visible" className="flex items-center justify-between">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.3s forwards' }} className="flex items-center justify-between opacity-0">
                       <label className="flex items-center gap-2 cursor-pointer group">
                         <input
                           {...signinForm.register('rememberMe')}
@@ -274,10 +230,10 @@ export default function AuthForm({
                       >
                         {forgotLoading ? 'Sending…' : 'Forgot password?'}
                       </button>
-                    </motion.div>
+                    </div>
 
                     {/* Submit button */}
-                    <motion.div custom={6} variants={fieldVariants} initial="hidden" animate="visible">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.35s forwards' }} className="opacity-0">
                       <button
                         type="submit"
                         disabled={loading}
@@ -297,7 +253,7 @@ export default function AuthForm({
                           )}
                         </span>
                       </button>
-                    </motion.div>
+                    </div>
                   </form>
                 ) : (
                   /* ── Sign Up Form ── */
@@ -318,7 +274,7 @@ export default function AuthForm({
                     </AnimatePresence>
 
                     {/* Email field */}
-                    <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.2s forwards' }} className="space-y-1.5 opacity-0">
                       <label htmlFor="signup-email" className={labelBase}>Email</label>
                       <div className="relative">
                         <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
@@ -334,21 +290,13 @@ export default function AuthForm({
                           )}
                         />
                       </div>
-                      <AnimatePresence>
-                        {signupForm.formState.errors.email && (
-                          <motion.p
-                            initial={{ opacity: 0, y: -4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="text-[11px] text-danger"
-                          >
-                            {signupForm.formState.errors.email.message}
-                          </motion.p>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
+                      {signupForm.formState.errors.email && (
+                        <p className="text-[11px] text-danger animate-[fadeIn_0.2s_ease-out]">{signupForm.formState.errors.email.message}</p>
+                      )}
+                    </div>
 
                     {/* Password field */}
-                    <motion.div custom={4} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.25s forwards' }} className="space-y-1.5 opacity-0">
                       <label htmlFor="signup-password" className={labelBase}>Create password</label>
                       <div className="relative">
                         <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
@@ -367,36 +315,22 @@ export default function AuthForm({
                           type="button"
                           aria-label="Toggle password visibility"
                           onClick={onTogglePassword}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-text-secondary transition-colors duration-200"
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-text-secondary transition-colors duration-200"
                         >
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
-                      <AnimatePresence>
-                        {signupForm.formState.errors.password && (
-                          <motion.p
-                            initial={{ opacity: 0, y: -4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="text-[11px] text-danger"
-                          >
-                            {signupForm.formState.errors.password.message}
-                          </motion.p>
-                        )}
-                      </AnimatePresence>
+                      {signupForm.formState.errors.password && (
+                        <p className="text-[11px] text-danger animate-[fadeIn_0.2s_ease-out]">{signupForm.formState.errors.password.message}</p>
+                      )}
 
                       {/* Password strength */}
                       {password && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          className="space-y-2 pt-1"
-                        >
+                        <div className="space-y-2 pt-1 animate-[fadeSlideIn_0.3s_ease-out]">
                           <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden ring-1 ring-white/5 ring-inset">
-                            <motion.div
-                              className={cn('h-full rounded-full transition-all', strength.color)}
-                              initial={{ width: '0%' }}
-                              animate={{ width: strength.width }}
-                              transition={{ duration: 0.4, ease: 'easeOut' }}
+                            <div
+                              className={cn('h-full rounded-full transition-all duration-400 ease-out', strength.color)}
+                              style={{ width: strength.width }}
                             />
                           </div>
                           <p className={cn(
@@ -424,12 +358,12 @@ export default function AuthForm({
                               );
                             })}
                           </div>
-                        </motion.div>
+                        </div>
                       )}
-                    </motion.div>
+                    </div>
 
                     {/* Invite code */}
-                    <motion.div custom={5} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.3s forwards' }} className="space-y-1.5 opacity-0">
                       <label htmlFor="signup-invite" className={labelBase}>
                         Invite code <span className="text-white/20 normal-case font-normal">(optional)</span>
                       </label>
@@ -443,10 +377,10 @@ export default function AuthForm({
                         className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2.5 text-sm text-white outline-none transition-all duration-200 placeholder:text-white/20 focus:border-champagne/50 focus:ring-2 focus:ring-champagne/20 font-mono tracking-[0.3em] text-center"
                       />
                       <p className="text-[11px] text-zinc-500">Enter the 6-digit code if you were invited by a workspace owner</p>
-                    </motion.div>
+                    </div>
 
                     {/* Terms acceptance */}
-                    <motion.div custom={6} variants={fieldVariants} initial="hidden" animate="visible">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.35s forwards' }} className="opacity-0">
                       <button
                         type="button"
                         onClick={() => signupForm.setValue('accepted', !signupForm.getValues('accepted'), { shouldValidate: true })}
@@ -466,32 +400,18 @@ export default function AuthForm({
                           )}
                         >
                           {signupForm.getValues('accepted') && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                            >
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                            </motion.div>
+                            <CheckCircle2 className="h-3.5 w-3.5" />
                           )}
                         </div>
                         <p className="text-xs leading-5 text-white/50">I accept responsibility for reviewing exported tax and accounting data</p>
                       </button>
-                      <AnimatePresence>
-                        {signupForm.formState.errors.accepted && (
-                          <motion.p
-                            initial={{ opacity: 0, y: -4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="text-[11px] text-danger mt-1"
-                          >
-                            {signupForm.formState.errors.accepted.message}
-                          </motion.p>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
+                      {signupForm.formState.errors.accepted && (
+                        <p className="text-[11px] text-danger mt-1 animate-[fadeIn_0.2s_ease-out]">{signupForm.formState.errors.accepted.message}</p>
+                      )}
+                    </div>
 
                     {/* Submit button */}
-                    <motion.div custom={7} variants={fieldVariants} initial="hidden" animate="visible">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.4s forwards' }} className="opacity-0">
                       <button
                         type="submit"
                         disabled={loading}
@@ -511,18 +431,12 @@ export default function AuthForm({
                           )}
                         </span>
                       </button>
-                    </motion.div>
+                    </div>
                   </form>
                 )}
 
                 {/* ── Mode switch ── */}
-                <motion.div
-                  custom={8}
-                  variants={fieldVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="mt-6 text-center"
-                >
+                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.45s forwards' }} className="mt-6 text-center opacity-0">
                   <button
                     type="button"
                     onClick={() => onModeChange(mode === 'signin' ? 'signup' : 'signin')}
@@ -534,7 +448,7 @@ export default function AuthForm({
                       <>Already have an account? <span className="text-champagne hover:text-champagne/80 underline underline-offset-2 transition-colors">Sign in</span></>
                     )}
                   </button>
-                </motion.div>
+                </div>
               </div>
             </GlassCard>
           </motion.div>
