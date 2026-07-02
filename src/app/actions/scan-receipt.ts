@@ -581,9 +581,8 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
         category: toStr(finalParsed.category),
         category_reasoning: toStr(finalParsed.category_reasoning),
         notes: [
-          SMART_PURPOSE[toStr(finalParsed.category) as ValidCategory] || '', 
-          toStr(finalParsed.category_reasoning) ? `🧠 Reasoning: ${toStr(finalParsed.category_reasoning)}` : '',
-          tax_warning ? `⚠️ Tax Alert: ${tax_warning}` : ''
+          toStr(finalParsed.notes) ? `${toStr(finalParsed.notes)}` : '',
+          tax_warning ? `Tax alert: ${tax_warning}` : ''
         ].filter(Boolean).join(' — '),
         currency: toStr(finalParsed.currency) || 'CAD',
         confidence_score: toNum(finalParsed.confidence_score) || 85,
