@@ -1,9 +1,9 @@
 # Leduc Receipt Pro — Complete Project Brief
 
 ## Identity
-**Leduc Receipt Pro** (also called **9 Star Labs Receipt Pro**) is a premium CRA-ready receipt intelligence SaaS for **all Canadian businesses**. Future: niche profiles for construction, cafe/restaurant, retail, trades, professional services.  
-**Domain:** `9starlaba.ca` (not final). Business role emails: `privacy@9starlabs.ca`, `security@9starlabs.ca`, `legal@9starlabs.ca`, `support@9starlabs.ca`.  
-**User's personal/auth email:** `9starlaba@gmail.com`.
+**Leduc Receipt Pro** is an open-source CRA-ready receipt processing and expense management system for **all Canadian businesses**. Future: niche profiles for construction, cafe/restaurant, retail, trades, professional services.  
+**Contributions welcome.**  
+**Original author contact:** See SECURITY.md.
 
 ---
 

@@ -4,9 +4,9 @@
 
 We take security seriously. If you discover a security vulnerability in Leduc Receipt Pro, please report it privately.
 
-**Do not** file a public GitHub issue. Instead, email: **security@9starlabs.ca**
+**Please** file a GitHub issue for non-critical vulnerabilities, or email the maintainer directly if the issue is sensitive.
 
-You should receive a response within 48 hours. If you don't, follow up to ensure we received your report.
+You should receive a response within 48 hours.
 
 ### What to include
 - Type of issue (XSS, SQL injection, auth bypass, etc.)

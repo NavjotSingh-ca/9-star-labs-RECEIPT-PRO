@@ -10,6 +10,8 @@ import { saveReceiptAction } from '@/app/actions/save-receipt';
 import { logWarn } from '@/lib/logger';
 import { handleSupabaseError, withRetry } from '@/lib/supabase-error-handler';
 import { useAnalytics } from '@/hooks/use-analytics';
+import { createNotification } from '@/lib/stores/notifications';
+import { useNotificationStore } from '@/lib/stores/notifications';
 import type { ReceiptForm, ReceiptRow } from '@/components/scanner/types';
 
 const STORAGE_BUCKET = 'receipt-images';
@@ -126,6 +128,19 @@ export function useSaveReceipt(deps: UseSaveReceiptDeps) {
       queryClient.invalidateQueries({ queryKey: ['receipts'] });
       setDuplicateCandidate(null);
       setPendingSave(false);
+
+      // Fire a local notification for the current user
+      try {
+        const notif = createNotification({
+          type: 'receipt_submitted',
+          title: 'Receipt Saved',
+          message: `${formData.vendor_name || 'Unknown'} — $${Number(formData.total_amount || 0).toFixed(2)}`,
+          link: '/?tab=receipts',
+        });
+        useNotificationStore.getState().addNotification(notif);
+      } catch {
+        // Non-blocking
+      }
 
       if (!isBatchProcessing) {
         const scanCount = Number(sessionStorage.getItem('scan_confetti_count') ?? 0);

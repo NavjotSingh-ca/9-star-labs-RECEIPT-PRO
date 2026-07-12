@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const config: NextConfig = {
+  output: 'standalone',
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [

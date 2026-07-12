@@ -4,8 +4,8 @@ import { withProviders, withQueryData } from '../../.storybook/utils';
 import type { Project } from '@/lib/types';
 
 const mockProjects: Project[] = [
-  { id: 'proj-1', name: 'Westview Commercial Build', code: 'WCB-01', budget_amount: 500000, user_id: 'user-1', created_at: '2025-01-15T08:00:00Z' },
-  { id: 'proj-2', name: 'Maple Ridge Renovation', code: 'MRR-02', budget_amount: 150000, user_id: 'user-1', created_at: '2025-03-01T09:00:00Z' },
+  { id: 'proj-1', name: 'Westview Commercial Build', code: 'WCB-01', budget_amount: 500000, status: 'active', user_id: 'user-1', created_at: '2025-01-15T08:00:00Z' },
+  { id: 'proj-2', name: 'Maple Ridge Renovation', code: 'MRR-02', budget_amount: 150000, status: 'active', user_id: 'user-1', created_at: '2025-03-01T09:00:00Z' },
 ];
 
 const mockActuals = [

@@ -6,6 +6,7 @@ export type DocumentType = 'receipt' | 'invoice' | 'statement' | 'estimate' | 'u
 export type SourceFileType = 'image' | 'pdf' | 'heic' | 'png' | 'jpg' | 'jpeg' | '';
 
 export type UserRole = 'Owner' | 'Employee' | 'Accountant';
+export type ProjectStatus = 'active' | 'on_hold' | 'completed' | 'cancelled';
 
 export type PaidBy = 'company_card' | 'employee_cash' | '';
 export type ReimbursementStatus = 'pending' | 'approved' | 'rejected' | '';
@@ -121,6 +122,7 @@ export interface Project {
   name: string;
   code: string | null;
   budget_amount: number | null;
+  status: ProjectStatus;
   user_id: string;
   created_at: string;
 }
@@ -136,4 +138,38 @@ export interface AccessCode {
   used_by?: string | null;
   used_at?: string | null;
   created_at?: string | null;
+}
+
+// ─── Notifications ───
+
+export type NotificationType =
+  | 'receipt_approved'
+  | 'receipt_rejected'
+  | 'receipt_submitted'
+  | 'team_joined'
+  | 'reimbursement_paid'
+  | 'reimbursement_requested'
+  | 'bank_unmatched'
+  | 'export_ready'
+  | 'digest_warning'
+  | 'system'
+  | 'comment_added';
+
+export interface AppNotification {
+  id: string;
+  org_id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  link?: string | null;
+  is_read: boolean;
+  created_at: string;
+  metadata?: Record<string, unknown> | null;
+}
+
+export interface NotificationGroup {
+  date: string;
+  label: string;
+  notifications: AppNotification[];
 }

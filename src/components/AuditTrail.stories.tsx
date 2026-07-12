@@ -28,7 +28,7 @@ const mockAuditLogs: AuditLogRow[] = Array.from({ length: 12 }, (_, i) => ({
     'User: user-1 @ 2025-10-15 14:32:00',
     'Receipt IDs: rec-1, rec-2, rec-3, rec-4, rec-5, rec-6, rec-7, rec-8',
     'Vendor: Costco, Amount: $340.00, Category: Groceries',
-    'Field changed: name from "My Company" to "9 Star Labs"',
+    'Field changed: name from "My Company" to "Leduc Receipt Pro"',
     'Role: Accountant, Expires: 2026-10-15',
     'Range: 2025-07-01 to 2025-09-30, Records: 42',
     'Reason: Duplicate entry detected',

@@ -265,6 +265,7 @@
   --animate-shimmer: shimmer 1.5s ease-in-out infinite;
   --animate-float: float 6s ease-in-out infinite;
   --animate-pulse-soft: pulseSoft 3s ease-in-out infinite;
+  --animate-aurora: aurora 60s linear infinite;
 }
 
 /* ─── Base Styles ─── */
@@ -357,6 +358,12 @@ body {
 @keyframes pulseSoft {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
+}
+
+/* ─── Aceternity Aurora ─── */
+@keyframes aurora {
+  from { background-position: 50% 50%, 50% 50%; }
+  to { background-position: 350% 50%, 350% 50%; }
 }
 
 /* ─── Animation: scan success ─── */

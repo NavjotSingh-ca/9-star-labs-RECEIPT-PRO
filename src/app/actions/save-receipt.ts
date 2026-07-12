@@ -139,6 +139,41 @@ export async function saveReceiptAction(
         job_code: payload.job_code ? String(payload.job_code) : null,
         business_use_percent: payload.business_use_percent != null ? Number(payload.business_use_percent) : null,
       }).catch((err) => logError(err, { action: 'vendor_defaults_update_action' }));
+
+      // Notify org admins about new receipt submission
+      try {
+        const { data: admins } = await supabaseAdmin
+          .from('user_roles')
+          .select('user_id')
+          .eq('org_id', orgId)
+          .in('role', ['Owner', 'Accountant']);
+
+        const adminIds = (admins || [])
+          .map((r: { user_id: string }) => r.user_id)
+          .filter((id: string) => id !== userId);
+
+        if (adminIds.length > 0) {
+          const title = `New receipt from ${payload.vendor_name || 'Unknown Vendor'}`;
+          const message = `$${Number(payload.total_amount || 0).toFixed(2)} · ${new Date().toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+          const notificationPayload = adminIds.map((adminId: string) => ({
+            org_id: orgId,
+            user_id: adminId,
+            type: 'receipt_submitted' as const,
+            title,
+            message,
+            link: '/?tab=receipts',
+            is_read: false,
+          }));
+
+          try {
+            await supabaseAdmin.from('notifications').insert(notificationPayload);
+          } catch {
+            // Non-blocking
+          }
+        }
+      } catch {
+        // Non-blocking — notification failure should never block the receipt save
+      }
     }
 
     return { ok: true, id: newReceiptId };

@@ -455,47 +455,9 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
     }
   }
 
-  // ─── Plan Enforcement: check receipt limits ───
-  // CRIT-4: Fail-closed
-  try {
-    const { data: roleData } = await supabaseClient
-      .from('user_roles')
-      .select('org_id')
-      .eq('user_id', userId)
-      .single();
-    const orgId = roleData?.org_id;
-    if (orgId) {
-      const { data: subData } = await supabaseClient
-        .from('subscriptions')
-        .select('plan, receipt_limit, status')
-        .eq('org_id', orgId)
-        .single();
-      const plan: string = subData?.plan || 'free';
-      const receiptLimit = typeof subData?.receipt_limit === 'number' ? subData.receipt_limit : 25;
-      if (plan === 'free' || receiptLimit !== 999999) {
-        const now = new Date();
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
-        const { count: monthCount } = await supabaseClient
-          .from('receipts')
-          .select('*', { count: 'exact', head: true })
-          .eq('org_id', orgId)
-          .eq('is_deleted', false)
-          .gte('created_at', monthStart)
-          .lt('created_at', monthEnd);
-        if ((monthCount ?? 0) >= receiptLimit) {
-          return {
-            success: false,
-            error: `Receipt limit reached: ${receiptLimit} receipts per month on the ${plan} plan. Upgrade to continue scanning.`,
-          };
-        }
-      }
-    }
-  } catch (err) {
-    // CRIT-4: Fail-closed — block if plan enforcement fails
-    logError(err, { action: 'plan_enforcement_check' });
-    return { success: false, error: 'Service temporarily unavailable. Please try again.' };
-  }
+  // ─── Open Source: No plan enforcement — all features unlocked ───
+  // Receipt limits have been removed in the open-source version.
+  // Self-hosted instances can add their own rate limiting if desired.
 
   // HIGH-8: Record this scan attempt before calling Gemini (M1: use server-side auth userId, not client-supplied)
   try {

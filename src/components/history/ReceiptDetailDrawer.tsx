@@ -25,6 +25,7 @@ import { supabase } from '@/lib/supabase';
 import { useEffect } from 'react';
 import type { ReceiptRow, UserRole } from '@/lib/types';
 import { toNumber, formatCurrency, formatDate, categoryColor, confidenceTone, approvalBadge } from '@/lib/ui-utils';
+import { Lightbox } from '@/components/ui/lightbox';
 
 interface ReceiptDetailModalProps {
   receipt: ReceiptRow;
@@ -120,6 +121,7 @@ export default function ReceiptDetailDrawer({ receipt, onClose, role = 'Owner', 
   const [displayUrl, setDisplayUrl] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   useEffect(() => {
     async function getFreshUrl() {
@@ -196,7 +198,12 @@ export default function ReceiptDetailDrawer({ receipt, onClose, role = 'Owner', 
               </button>
             </div>
           ) : imageUrl ? (
-            <div className="relative min-h-[300px] rounded-[3rem] border border-glass-border bg-obsidian/20 overflow-hidden shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setLightboxOpen(true)}
+              className="relative min-h-[300px] w-full rounded-[3rem] border border-glass-border bg-obsidian/20 overflow-hidden shadow-2xl cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
+              aria-label="View receipt image full-screen"
+            >
               <Image
                 src={imageUrl}
                 alt={`Receipt from ${receipt.vendor_name ?? 'Unknown'} on ${formatDate(receipt.transaction_date)}`}
@@ -204,7 +211,7 @@ export default function ReceiptDetailDrawer({ receipt, onClose, role = 'Owner', 
                 className="object-contain"
                 sizes="(max-width: 768px) 100vw, 50vw"
               />
-            </div>
+            </button>
           ) : null}
 
           <div className="grid gap-6 sm:grid-cols-2">
@@ -328,6 +335,14 @@ export default function ReceiptDetailDrawer({ receipt, onClose, role = 'Owner', 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {lightboxOpen && imageUrl && (
+        <Lightbox
+          images={[{ src: imageUrl, alt: `Receipt from ${receipt.vendor_name ?? 'Unknown'}` }]}
+          initialIndex={0}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
       </div>
   );
 }

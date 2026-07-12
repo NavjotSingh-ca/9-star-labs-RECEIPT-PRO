@@ -1,0 +1,69 @@
+# Leduc Receipt Pro — Production Deployment
+# ============================================
+# Usage:
+#   1. Copy .env.example to .env and fill in your values
+#   2. docker compose -f docker/docker-compose.prod.yml up -d
+#
+# This stacks the Next.js app behind a reverse proxy.
+# Supabase is NOT included — you must use a hosted Supabase instance
+# (or run the local dev compose alongside for full-stack testing).
+#
+# For production, we strongly recommend:
+#   - Hosted Supabase (supabase.com) — managed Postgres + auth + storage
+#   - A reverse proxy (Caddy/Nginx) in front for SSL termination
+#   - Redis for rate-limit persistence across instances (optional)
+#
+# Environment file: .env (copy from .env.example)
+# ============================================
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    ports:
+      - "3000:3000"
+    environment:
+      # Required
+      - NEXT_PUBLIC_SUPABASE_URL
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY
+      - SUPABASE_SERVICE_ROLE_KEY
+      # AI (at least one required)
+      - GOOGLE_AI_KEY
+      # Optional
+      - STRIPE_SECRET_KEY
+      - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+      - STRIPE_WEBHOOK_SECRET
+      - RESEND_API_KEY
+      - RESEND_WEBHOOK_SECRET
+      - RESEND_FROM_EMAIL
+      - CRON_SECRET
+      - QBO_CLIENT_ID
+      - QBO_CLIENT_SECRET
+      - TOKEN_ENCRYPTION_KEY
+      - NEXT_PUBLIC_SITE_URL
+      - NEXT_PUBLIC_SENTRY_DSN
+      - NEXT_PUBLIC_POSTHOG_KEY
+      - NEXT_PUBLIC_POSTHOG_HOST
+      - SENTRY_ORG
+      - SENTRY_PROJECT
+    env_file:
+      - ../.env
+    restart: unless-stopped
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', r => { process.exit(r.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    # Resource limits (adjust based on your VPS)
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M

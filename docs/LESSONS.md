@@ -1,5 +1,23 @@
 # Lessons Learned
 
+## Open-source preparation: Restoring locked files from git — Cause: 63 files were stubbed with `FeatureLocked` placeholders during stabilization — Fix: `git restore --source=<pre-lock-commit>` from before commit 72d7632 restored all original implementations. React Compiler lint errors (`react-hooks/refs`, `react-hooks/set-state-in-effect`) needed fixing in restored files.
+
+## Cross-repo asset extraction: Extracted scroll-lock.ts (14 lines, stack-based body scroll lock from hickey-bros-website) — Prevents drawer/modal stacking bugs where closing one component unlocks scroll while another is still open. Also extracted gallery-lightbox.tsx → src/components/ui/lightbox.tsx (adapted inline SVGs to lucide-react icons).
+
+## Bug: ReimbursementsPanel "Mark Paid" button never marked as paid — Cause: Mutations called `updateReceiptApproval(receiptId, 'approved', ..., true, ...)` which set `reimbursement_status` to `'pending'` when `needsReimburse=true` and status `'approved'` — the same status that got the item into the queue. Fix: Created separate `markReimbursementPaid()` function that directly sets `reimbursement_status = 'approved'`.
+
+## Bug: Export.tsx README.txt showed literal '{APP_NAME}' instead of 'Leduc Receipt Pro' — Cause: Array elements in README template used single-quoted strings, not template literals with `${APP_NAME}` — Fix: Changed two array elements to backtick template literals.
+
+## Bug: CommandPalette.tsx placeholder showed literal '{APP_NAME}' — Cause: Same interpolation issue — plain string instead of template literal; `APP_NAME` was also not imported — Fix: Added import and changed to `` placeholder={`Search ${APP_NAME} — Type a command...`} ``.
+
+## Production build with `output: 'standalone'` — Enabled for Docker multi-stage builds. Standard Next.js pattern — reduces final image size by excluding dev dependencies and source files.
+
+## Bug: ReimbursementsPanel "Mark Paid" button never marked as paid — Cause: Mutations called `updateReceiptApproval(receiptId, 'approved', ..., true, ...)` which set `reimbursement_status` to `'pending'` when `needsReimburse=true` and status `'approved'` — the same status that got the item into the queue. Fix: Created separate `markReimbursementPaid()` function that directly sets `reimbursement_status = 'approved'`.
+
+## Bug: Export.tsx README.txt showed literal '{APP_NAME}' instead of 'Leduc Receipt Pro' — Cause: Array elements in README template used single-quoted strings, not template literals with `${APP_NAME}` — Fix: Changed two array elements to backtick template literals.
+
+## Bug: CommandPalette.tsx placeholder showed literal '{APP_NAME}' — Cause: Same interpolation issue — plain string instead of template literal; `APP_NAME` was also not imported — Fix: Added import and changed to `` placeholder={`Search ${APP_NAME} — Type a command...`} ``.
+
 ## CI: `npm ci` fails with "Missing from lock file" — Cause: Package added to `package.json` without running `npm install` to update `package-lock.json` — Fix: Remove unused dep from `package.json` or run `npm install` to regenerate lockfile.
 
 ## CI: ESLint fails with "Unexpected any" in story files — Cause: `eslint-disable-next-line @typescript-eslint/no-explicit-any` only covers one line but `any[]` appears on both line 3 and 4 of the `fn()` helper — Fix: Disable `@typescript-eslint/no-explicit-any` globally for `**/*.stories.tsx` files in `eslint.config.mjs`.

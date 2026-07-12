@@ -3,8 +3,8 @@ import { ArrowLeft, FileSignature } from 'lucide-react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — 9 Star Labs Receipt Intelligence',
-  description: 'Terms of Service and License Agreement for 9 Star Labs.',
+  title: 'Terms of Service — Leduc Receipt Pro by 9 Star Labs',
+  description: 'Terms of Service and License Agreement for Leduc Receipt Pro by 9 Star Labs — the CRA-ready receipt intelligence platform for Canadian businesses.',
   robots: { index: true, follow: true },
 };
 
@@ -73,7 +73,7 @@ export default function TermsPage() {
                 Terms of Service
               </h1>
               <p className="mt-2 text-sm text-text-secondary">
-                <B>9 Star Labs Inc.</B> — Edmonton, Alberta, Canada
+                <B>9 Star Labs Inc.</B> — Edmonton, Alberta, Canada<br /><span className="text-[11px]">Operating as Leduc Receipt Pro</span>
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <span className="rounded-full border border-champagne/30 bg-champagne/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-champagne">
@@ -88,7 +88,7 @@ export default function TermsPage() {
 
           <div className="mb-8 rounded-[3rem] border border-champagne/20 bg-champagne/[0.04] p-5">
             <p className="text-sm leading-7 text-text-secondary">
-              By accessing or using the 9 Star Labs Receipt Intelligence platform (the &ldquo;Service&rdquo;),
+              By accessing or using the Leduc Receipt Pro Receipt Intelligence platform (the &ldquo;Service&rdquo;),
               you agree to be bound by these Terms of Service. Please read them carefully. If you do not
               agree to these terms, you may not use the Service.
             </p>
@@ -115,8 +115,8 @@ export default function TermsPage() {
             <p>
               These Terms of Service constitute a legally binding agreement between you (whether personally
               or on behalf of an entity, referred to as &ldquo;you&rdquo; or &ldquo;Customer&rdquo;)
-              and 9 Star Labs Inc. (&ldquo;9 Star Labs,&rdquo; &ldquo;we,&rdquo; &ldquo;us,&rdquo; or
-              &ldquo;our&rdquo;), concerning your access and use of the Service.
+               and 9 Star Labs Inc. (&ldquo;9 Star Labs,&rdquo; &ldquo;we,&rdquo; &ldquo;us,&rdquo; or
+               &ldquo;our&rdquo;), concerning your access and use of the Service (&ldquo;Leduc Receipt Pro&rdquo;).
             </p>
             <p>
               The Service is offered for use by business entities and their authorized representatives only.
@@ -126,7 +126,7 @@ export default function TermsPage() {
             <p>
               These Terms prevail over any conflicting terms in purchase orders, invoices, or other
               communications, unless expressly superseded by a signed written agreement between you and
-              9 Star Labs.
+              Leduc Receipt Pro.
             </p>
           </Section>
 
@@ -200,7 +200,7 @@ export default function TermsPage() {
             </div>
             <p>
               CRA Readiness Scores, tax rate validations, and compliance indicators are informational
-              tools only. <B>9 Star Labs does not provide tax, legal, or accounting advice.</B> We
+              tools only. <B>Leduc Receipt Pro does not provide tax, legal, or accounting advice.</B> We
               recommend consulting a qualified Canadian accountant or tax professional for advice
               specific to your situation.
             </p>
@@ -306,7 +306,7 @@ export default function TermsPage() {
             <div className="rounded-[2rem] border border-warning/20 bg-warning/[0.05] p-4 mb-4">
               <p className="font-semibold text-warning text-sm mb-1">Important Liability Cap</p>
               <p>
-                To the maximum extent permitted by applicable law, 9 Star Labs shall not be liable for
+                To the maximum extent permitted by applicable law, Leduc Receipt Pro shall not be liable for
                 any indirect, incidental, special, consequential, or punitive damages, including loss
                 of profits, data, tax penalties, or business interruption, arising out of your use of
                 or inability to use the Service.
@@ -314,7 +314,7 @@ export default function TermsPage() {
             </div>
             <p>
               Our total aggregate liability to you for all claims arising under these Terms shall not
-              exceed the total amount paid by you to 9 Star Labs in the twelve (12) months preceding
+              exceed the total amount paid by you to Leduc Receipt Pro in the twelve (12) months preceding
               the event giving rise to the claim.
             </p>
             <p>
@@ -327,14 +327,14 @@ export default function TermsPage() {
 
           <Section id="indemnities" title="12. Indemnities">
             <p>
-              <B>Customer indemnity:</B> You agree to indemnify, defend, and hold harmless 9 Star Labs
+              <B>Customer indemnity:</B> You agree to indemnify, defend, and hold harmless Leduc Receipt Pro
               from any claims, damages, liabilities, costs, and expenses arising from: (a) your misuse
               of the Service; (b) your violation of these Terms; (c) Customer Data that infringes
               third-party rights or violates applicable law; or (d) your failure to comply with
               tax or regulatory obligations.
             </p>
             <p>
-              <B>9 Star Labs indemnity:</B> We agree to indemnify you against claims that the Service
+              <B>Leduc Receipt Pro indemnity:</B> We agree to indemnify you against claims that the Service
               itself infringes a third-party Canadian intellectual property right, provided you notify
               us promptly and cooperate in the defense. If such a claim is likely, we may modify the
               Service or terminate your license with a refund of prepaid fees.
@@ -424,7 +424,7 @@ export default function TermsPage() {
             </p>
             <p>
               <B>Entire Agreement:</B> These Terms, together with the Privacy Policy and any order
-              forms, constitute the entire agreement between you and 9 Star Labs regarding the Service.
+              forms, constitute the entire agreement between you and Leduc Receipt Pro regarding the Service.
             </p>
             <p>
               <B>Severability:</B> If any provision of these Terms is found to be unenforceable, the

@@ -8,6 +8,51 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 -- ─── 1. Core Tables ───
 
+-- ─── Notifications ───
+CREATE TABLE IF NOT EXISTS notifications (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id uuid REFERENCES organizations(id) ON DELETE CASCADE NOT NULL,
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  type text NOT NULL CHECK (type IN (
+    'receipt_approved','receipt_rejected','receipt_submitted',
+    'team_joined','reimbursement_paid','reimbursement_requested',
+    'bank_unmatched','export_ready','digest_warning','system','comment_added'
+  )),
+  title text NOT NULL,
+  message text NOT NULL,
+  link text,
+  is_read boolean NOT NULL DEFAULT false,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_org_user ON notifications(org_id, user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(org_id, user_id) WHERE is_read = false;
+
+-- Enable RLS
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+-- Users can read their own notifications
+CREATE POLICY "Users read own notifications"
+  ON notifications FOR SELECT
+  USING (user_id = auth.uid());
+
+-- Users can update their own notifications (mark read)
+CREATE POLICY "Users update own notifications"
+  ON notifications FOR UPDATE
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+-- Users can delete their own notifications
+CREATE POLICY "Users delete own notifications"
+  ON notifications FOR DELETE
+  USING (user_id = auth.uid());
+
+-- Service role can insert (triggers, webhooks, etc.)
+CREATE POLICY "Service role insert notifications"
+  ON notifications FOR INSERT
+  WITH CHECK (true);
+
 CREATE TABLE IF NOT EXISTS organizations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
@@ -62,8 +107,14 @@ CREATE TABLE IF NOT EXISTS projects (
   name text NOT NULL,
   code text,
   budget_amount numeric,
+  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active','on_hold','completed','cancelled')),
   created_at timestamptz DEFAULT now()
 );
+
+-- Add status column for existing databases
+DO $$ BEGIN
+  ALTER TABLE projects ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
+EXCEPTION WHEN others THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS receipts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -11,6 +11,7 @@ import { getUserRole } from '@/lib/services/roles';
 import { getHistoricalCADRate } from '@/lib/services/fx-rates';
 import { updateVendorDefaults } from '@/lib/services/vendor-defaults';
 import { logError, logWarn } from '@/lib/logger';
+import { notifyUser } from '@/lib/notifications/notify';
 
 // ─── Zod Schemas ───
 
@@ -610,7 +611,7 @@ export const createProject = async (name: string, code?: string, budgetAmount?: 
     const { data, error } = await withRetry(
       () => supabase
         .from('projects')
-        .insert({ name, code: code ?? null, user_id: user.id, org_id: orgId, budget_amount: budgetAmount ?? null })
+        .insert({ name, code: code ?? null, user_id: user.id, org_id: orgId, budget_amount: budgetAmount ?? null, status: 'active' })
         .select()
         .single(),
       { maxRetries: 2, delayMs: 500 }
@@ -620,6 +621,27 @@ export const createProject = async (name: string, code?: string, budgetAmount?: 
   } catch (error) {
     const supabaseError = handleSupabaseError(error);
     logError(supabaseError, { action: 'create_project' });
+    throw supabaseError;
+  }
+};
+
+export const updateProjectStatus = async (projectId: string, status: Project['status']): Promise<void> => {
+  try {
+    const orgId = await getOrgIdString();
+    if (!orgId) throw new Error('No organization found');
+
+    const { error } = await withRetry(
+      () => supabase
+        .from('projects')
+        .update({ status })
+        .eq('id', projectId)
+        .eq('org_id', orgId),
+      { maxRetries: 2, delayMs: 500 }
+    );
+    if (error) throw handleSupabaseError(error);
+  } catch (error) {
+    const supabaseError = handleSupabaseError(error);
+    logError(supabaseError, { action: 'update_project_status' });
     throw supabaseError;
   }
 };
@@ -750,6 +772,88 @@ export const updateReceiptApproval = async (
       action: `receipt${status}`,
     details: `Receipt ${status}: ${vendorName} (${transactionDate}) by ${verifiedRole}`,
   });
+
+  // Notify the receipt uploader (the person who submitted the receipt)
+  // We can't get the uploader here without fetching the receipt, but we fire a best-effort notification
+  // The receipt uploader will be notified on the client side via the saveReceipt callback
+  try {
+    const { data: receiptData } = await supabase
+      .from('receipts')
+      .select('user_id')
+      .eq('id', receiptId)
+      .eq('org_id', orgData || '')
+      .single();
+
+    if (receiptData?.user_id && receiptData.user_id !== userId) {
+      await notifyUser({
+        type: status === 'approved' ? 'receipt_approved' : 'receipt_rejected',
+        title: status === 'approved' ? 'Receipt Approved ✓' : 'Receipt Rejected ✗',
+        message: `Your receipt from ${vendorName} (${transactionDate}) was ${status} by ${verifiedRole}.`,
+        link: `/?tab=receipts`,
+        userId: receiptData.user_id,
+        orgId: orgData || undefined,
+      });
+    }
+  } catch {
+    // Non-blocking — notification failure shouldn't block approval
+  }
+};
+
+export const markReimbursementPaid = async (
+  receiptId: string,
+  userId: string,
+  vendorName: string,
+  transactionDate: string
+) => {
+  // Verify role — same as approval
+  const verifiedRole = await getUserRole(userId);
+  if (!['Owner', 'Accountant'].includes(verifiedRole)) {
+    throw new Error('Unauthorized: only Owners and Accountants can mark reimbursements as paid');
+  }
+
+  const orgData = await getOrgId();
+  if (!orgData) throw new Error('No organization found');
+
+  const { error } = await supabase
+    .from('receipts')
+    .update({
+      reimbursement_status: 'approved',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', receiptId)
+    .eq('org_id', orgData);
+
+  if (error) throw new Error(`Failed to mark reimbursement paid: ${error.message}`);
+
+  await supabase.from('audit_logs').insert({
+    user_id: userId,
+    org_id: orgData || null,
+    action: 'reimbursement_paid',
+    details: `Reimbursement paid: ${vendorName} (${transactionDate}) by ${verifiedRole}`,
+  });
+
+  // Notify the receipt uploader
+  try {
+    const { data: receiptData } = await supabase
+      .from('receipts')
+      .select('user_id')
+      .eq('id', receiptId)
+      .eq('org_id', orgData || '')
+      .single();
+
+    if (receiptData?.user_id && receiptData.user_id !== userId) {
+      await notifyUser({
+        type: 'reimbursement_paid',
+        title: 'Reimbursement Paid 💰',
+        message: `Your reimbursement of ${vendorName} (${transactionDate}) has been marked as paid.`,
+        link: `/?tab=receipts`,
+        userId: receiptData.user_id,
+        orgId: orgData || undefined,
+      });
+    }
+  } catch {
+    // Non-blocking
+  }
 };
 
 export const bulkUpdateApproval = async (

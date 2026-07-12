@@ -31,6 +31,7 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
   const [imageBounds, setImageBounds] = useState({ width: 0, height: 0 });
   const [crop, setCrop] = useState<CropRect | null>(null);
   const [hoveredHandle, setHoveredHandle] = useState<ResizeHandle | null>(null);
+  const [dragMode, setDragMode] = useState<DragMode>(null);
 
   const dragState = useRef<{
     mode: DragMode;
@@ -40,6 +41,9 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
     handle: ResizeHandle | null;
   }>({ mode: null, startX: 0, startY: 0, originCrop: null, handle: null });
 
+  // Reset crop when image source changes
+  // Safe: only runs when imageSrc prop changes, not on every render
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setCrop(null); }, [imageSrc]);
 
   /* ─── Bounds syncing ─── */
@@ -104,6 +108,7 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
       const handleKey = getHandleAt(point.x, point.y, crop);
       if (handleKey) {
         dragState.current = { mode: 'resize', startX: point.x, startY: point.y, originCrop: crop, handle: handleKey };
+        setDragMode('resize');
         overlayRef.current.setPointerCapture(event.pointerId);
         return;
       }
@@ -113,6 +118,7 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
     const canMove = crop && isInsideCrop(point.x, point.y, crop);
     if (canMove) {
       dragState.current = { mode: 'move', startX: point.x, startY: point.y, originCrop: crop, handle: null };
+      setDragMode('move');
       overlayRef.current.setPointerCapture(event.pointerId);
       return;
     }
@@ -126,6 +132,7 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
     });
     setCrop(starter);
     dragState.current = { mode: 'new', startX: point.x, startY: point.y, originCrop: starter, handle: null };
+    setDragMode('new');
     overlayRef.current.setPointerCapture(event.pointerId);
   }, [getPoint, getCropBounds, crop, clampRect, isInsideCrop, getHandleAt]);
 
@@ -189,6 +196,7 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
       overlayRef.current.releasePointerCapture(event.pointerId);
     }
     dragState.current.mode = null;
+    setDragMode(null);
   }, []);
 
   /* ─── Apply crop ─── */
@@ -214,19 +222,19 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
     onApply(canvas.toDataURL('image/jpeg', 0.92));
   }, [crop, imageBounds, onApply]);
 
+  // Compute cursor style from drag state (not ref, to avoid React Compiler warnings)
   const cursorStyle = useMemo(() => {
-    const m = dragState.current.mode;
-    if (m === 'resize' && hoveredHandle) {
+    if (dragMode === 'resize' && hoveredHandle) {
       const h = HANDLES.find(h => h.key === hoveredHandle);
       if (h) return h.cursor;
     }
-    if (m === 'move') return 'grabbing';
+    if (dragMode === 'move') return 'grabbing';
     if (crop && hoveredHandle) {
       const h = HANDLES.find(h => h.key === hoveredHandle);
       if (h) return h.cursor;
     }
     return crop ? 'default' : 'crosshair';
-  }, [hoveredHandle, crop]);
+  }, [dragMode, hoveredHandle, crop]);
 
   return (
     <div

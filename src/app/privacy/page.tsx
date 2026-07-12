@@ -3,9 +3,9 @@ import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy — 9 Star Labs Receipt Intelligence',
+  title: 'Privacy Policy — Leduc Receipt Pro by 9 Star Labs',
   description:
-    'PIPEDA-compliant and Alberta PIPA-aligned privacy policy for 9 Star Labs — the CRA-ready receipt intelligence platform for Canadian businesses.',
+    'PIPEDA-compliant and Alberta PIPA-aligned privacy policy for Leduc Receipt Pro by 9 Star Labs — the CRA-ready receipt intelligence platform for Canadian businesses.',
   robots: { index: true, follow: true },
 };
 
@@ -72,7 +72,7 @@ export default function PrivacyPage() {
                 Privacy Policy
               </h1>
               <p className="mt-2 text-sm text-text-secondary">
-                <B>9 Star Labs Inc.</B> — Edmonton, Alberta, Canada
+                <B>9 Star Labs Inc.</B> — Edmonton, Alberta, Canada<br /><span className="text-[11px]">Operating as Leduc Receipt Pro</span>
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <span className="rounded-full border border-champagne/30 bg-champagne/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-champagne">
@@ -111,7 +111,7 @@ export default function PrivacyPage() {
           {/* Opening Statement */}
           <div className="mb-8 rounded-2xl border border-champagne/20 bg-champagne/[0.04] p-5">
             <p className="text-sm leading-7 text-text-secondary">
-              <B>9 Star Labs Inc.</B> (&ldquo;9 Star Labs,&rdquo; &ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;) operates the 9 Star Labs
+              <B>9 Star Labs Inc.</B> (&ldquo;9 Star Labs,&rdquo; &ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;) operates the Leduc Receipt Pro
               Receipt Intelligence platform (the &ldquo;Service&rdquo;), a CRA-compliant AI-powered receipt
               capture and expense management system designed for Canadian businesses. We are
               committed to protecting your personal and financial information in accordance with the{' '}
@@ -378,7 +378,7 @@ export default function PrivacyPage() {
             <div className="mt-6 rounded-[3rem] border border-champagne/20 bg-champagne/[0.04] p-6">
               <p className="text-sm font-bold text-champagne mb-3">Contact Our Privacy Officer</p>
               <div className="space-y-1 text-sm">
-                <p><B>9 Star Labs Inc.</B></p>
+                <p><B>9 Star Labs Inc.</B> — operating as Leduc Receipt Pro</p>
                 <p>Edmonton, Alberta, Canada</p>
                 <p>Email: <A href="mailto:9starlaba@gmail.com">9starlaba@gmail.com</A></p>
                 <p>Security: <A href="mailto:9starlaba@gmail.com">9starlaba@gmail.com</A></p>

@@ -1,6 +1,14 @@
 # Leduc Receipt Pro
 
-A multi-tenant receipt processing, anomaly detection, and expense management system for Canadian small businesses and accounting firms. Built with Next.js 16 + Supabase.
+[![License](https://img.shields.io/badge/license-MIT%20%2B%20Attribution-blue)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-181818?logo=supabase)](https://supabase.com/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](.github/PULL_REQUEST_TEMPLATE/pull_request_template.md)
+
+Open-source CRA-ready receipt processing, anomaly detection, and expense management for Canadian small businesses and accounting firms. Built with Next.js 16 + Supabase.
+
+> **⚠️ Important**: This project was originally created for a specific business need. It is now open source and community-maintained. See [LICENSE](LICENSE) for commercial use terms.
 
 ## Overview
 
@@ -27,22 +35,30 @@ Leduc Receipt Pro automates receipt capture, CRA-compliant expense tracking, fra
 | Language | TypeScript (strict mode, zero `any`) |
 | Styling | Tailwind CSS v4 (`@theme` directive) |
 | Database | PostgreSQL + Supabase (auth, RLS, realtime) |
-| ORM | Supabase JS client (typed via `database.types.ts`) |
 | Validation | Zod (API routes, forms, env vars) |
 | State | React Query (TanStack Query v5) |
 | Forms | React Hook Form + Zod resolvers |
 | Animations | Framer Motion, AutoAnimate, NextTopLoader |
 | Charts | Recharts (daily spend, category donut, sparklines) |
 | Auth | Supabase SSR (email/password, Google OAuth, TOTP MFA) |
-| Payments | Stripe (checkout, portal, webhooks) |
-| Email | Resend (transactional, inbound parsing) |
+| Payments | Stripe (checkout, portal, webhooks — optional) |
+| Email | Resend (transactional, inbound parsing — optional) |
 | Encryption | AES-256-GCM (QBO/Xero tokens) |
-| Monitoring | Sentry (error tracking), Rate limiting (token bucket) |
+| Monitoring | Sentry (error tracking — optional) |
 | Testing | Vitest (unit), Playwright (E2E, a11y), Storybook (visual) |
 | CI/CD | GitHub Actions (quality → build → security → e2e) |
 | AI | Google Gemini (receipt extraction, smart categorization) |
 
 ## Quick Start
+
+### Prerequisites
+
+- Node.js 20+
+- npm or pnpm
+- A Supabase project (free tier works)
+- Git
+
+### Setup
 
 ```bash
 # 1. Install dependencies
@@ -50,24 +66,39 @@ npm install
 
 # 2. Set up environment variables
 cp .env.example .env.local
-# Edit .env.local with your Supabase URL, anon key, etc.
+# Edit .env.local with your Supabase URL and anon key
+# At minimum you need: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 # 3. Set up the database
-# Open setup.sql in your Supabase SQL Editor and run it.
-# Or run the timestamped migrations in order:
-#   supabase/migrations/00001_initial_schema.sql
-#   supabase/migrations/00002_rls_policies.sql
-#   supabase/migrations/00003_functions_and_triggers.sql
-#   supabase/migrations/00004_seed_data.sql
+# Run supabase/setup.sql in your Supabase SQL Editor.
 
 # 4. Start the dev server
 npm run dev
-
-# 5. Run tests
-npm test          # Vitest unit tests
-npx playwright test  # E2E tests
-npx tsc --noEmit  # TypeScript check
 ```
+
+### Optional Services
+
+| Service | Env Vars Needed | Purpose |
+|---------|----------------|---------|
+| **AI Extraction** | `GEMINI_API_KEY` | Smart receipt scanning |
+| **Stripe Billing** | `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Subscription management |
+| **Resend Email** | `RESEND_API_KEY` | Transactional emails, inbound receipts |
+| **QBO Sync** | `QBO_CLIENT_ID`, `QBO_CLIENT_SECRET` | QuickBooks Online integration |
+| **Sentry** | `NEXT_PUBLIC_SENTRY_DSN` | Error tracking |
+| **PostHog** | `NEXT_PUBLIC_POSTHOG_KEY` | Product analytics |
+
+**All optional services gracefully degrade** — the core app works without them.
+
+## Self-Hosting
+
+This project is designed to be self-hosted. The recommended approach:
+
+1. **Database**: Supabase free tier (500MB, 50,000 rows — plenty for small businesses)
+2. **Hosting**: Vercel (Hobby tier works) or any Node.js host
+3. **AI**: Google Gemini API (free tier: 60 requests/min)
+4. **Domain**: Any domain you own
+
+All paid service integrations (Stripe, Resend, QBO) are optional. The app runs fully with just Supabase.
 
 ## Project Structure
 
@@ -90,42 +121,11 @@ src/
 │   ├── env.ts        # Zod-validated environment variables
 │   ├── logger.ts     # Structured JSON logging
 │   ├── encryption.ts # AES-256-GCM token encryption
-│   ├── rate-limiter.ts # Token-bucket rate limiter
 │   └── supabase.ts   # Client factory with timeout + SSR auth
 ├── proxy.ts          # Edge middleware (auth guard, CSP, rate-limit)
 ├── middleware.ts      # Next.js middleware (superseded by proxy.ts)
 └── globals.css       # Tailwind v4 @theme + design tokens
 ```
-
-## Database
-
-18 tables managed via `setup.sql` (canonical, idempotent) or timestamped migrations in `supabase/migrations/`:
-
-- `organizations` — Multi-tenant root
-- `user_roles` — Role-based access (Owner, Employee, Accountant)
-- `receipts` — Core entity (50+ columns: financials, audit, fraud, embeddings)
-- `audit_logs` — Immutable audit trail with event hashes
-- `access_codes` — Self-serve team onboarding
-- `subscriptions` — Stripe plan tracking
-- `receipt_history` — Archival snapshots of deleted/modified receipts
-- `mileage_logs`, `vehicles` — CRA-compliant mileage tracking
-- `bank_transactions` — Plaid/QBO transaction matching
-- `vendor_defaults` — Learned categories per vendor
-- `fx_rate_cache` — Historical CAD exchange rates
-- `scan_attempts` — Rate-limiting for scanner
-- And more...
-
-All tables have RLS enabled. Tenant isolation enforced via `get_user_org()` RPC and `auth.uid()` checks.
-
-## Security
-
-- **CSP**: Nonce-based. Off in dev (Turbopack bug). Production: `default-src 'self'` with Stripe/PostHog CDNs.
-- **Rate limiting**: Token-bucket (30 req/min per IP) on all API routes via proxy.
-- **Encryption**: QBO/Xero tokens encrypted with AES-256-GCM before storage.
-- **Input validation**: Zod schemas on all API route inputs and environment variables.
-- **Row-Level Security**: Every table has per-org policies. No direct role mutation — uses `SECURITY DEFINER` RPCs.
-- **Audit trail**: All receipt mutations logged with hash chain for integrity verification.
-- **CRA retention**: `BEFORE DELETE` trigger blocks deletion of approved receipts within the 6-year CRA window.
 
 ## Testing
 
@@ -133,12 +133,9 @@ All tables have RLS enabled. Tenant isolation enforced via `get_user_org()` RPC 
 # Unit tests (Vitest)
 npm test                    # Run all
 npx vitest run              # CI mode
-npx vitest --ui             # Watch mode
 
 # E2E tests (Playwright)
 npx playwright test         # All E2E
-npx playwright test --ui    # Interactive
-npx playwright test tests/auth.spec.ts  # Specific file
 
 # TypeScript
 npx tsc --noEmit            # Zero errors required
@@ -151,25 +148,27 @@ npm run storybook           # Dev
 npm run build-storybook     # Static export
 ```
 
-**Coverage**: 128 unit tests (14 files) + 50 E2E tests (7 files). CI pipeline enforces all gates.
+## License
 
-## CI/CD
+**MIT License with Attribution and Commercial Notification** — see [LICENSE](LICENSE).
 
-GitHub Actions (`.github/workflows/ci.yml`):
+In short:
+- ✅ **Free to use, modify, and share** for any purpose
+- ✅ **Attribution required** — retain the copyright notice
+- ✅ **Personal & internal business use** — no restrictions
+- ⚠️ **Commercial use** (SaaS, resale, revenue-generating products) — you must contact the copyright holder for terms
 
-1. **quality** — `tsc --noEmit` + `eslint` + `vitest run`
-2. **build** — `next build` (26 pages, 23 routes, middleware)
-3. **security** — `audit-ci` for high/critical vulnerabilities
-4. **e2e** — Playwright on Chromium
-5. **Lighthouse** — Performance (80+), Accessibility (90+), Best Practices (90+), SEO (90+)
+## Contributing
 
-## Environments
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, and our [Code of Conduct](CODE_OF_CONDUCT.md).
 
-| Env | File | Purpose |
-|-----|------|---------|
-| Development | `.env.local` | Local Supabase + Mailpit (docker-compose) |
-| Preview | Vercel Preview | PR previews with ephemeral DB |
-| Production | Vercel Production | Supabase production project |
+- [Bug reports](.github/ISSUE_TEMPLATE/bug_report.md)
+- [Feature requests](.github/ISSUE_TEMPLATE/feature_request.md)
+- [Pull requests](.github/PULL_REQUEST_TEMPLATE/pull_request_template.md)
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for our security policy and vulnerability reporting process.
 
 ## Design System
 
@@ -177,20 +176,4 @@ GitHub Actions (`.github/workflows/ci.yml`):
 - **Font**: Geist Variable (Vercel)
 - **Sidebar**: Always dark (`#09090b`) in both themes
 - **Content**: Zinc-50 (light) / Near-black (dark)
-- **Cards**: White/zinc-900 with glass borders, shadow depth on hover
-- **Focus rings**: Champagne outline on all interactive elements
 - **CSS variables**: 40+ tokens in `globals.css` using `@theme` directive
-
-## Multi-Agent Development
-
-This project uses a coordinated multi-agent system for development. See `.agent-coordination/COORDINATION.md` for protocol details.
-
-Active agents: deepseek-v4, codex-1, gemini-cli-1, opencode-1.
-
-## License
-
-Proprietary. All rights reserved. See LICENSE file.
-
-## Support
-
-Report vulnerabilities: security@9starlabs.ca

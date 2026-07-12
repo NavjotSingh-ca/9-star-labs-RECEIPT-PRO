@@ -1,4 +1,3 @@
-// LOCKED: UNSTABLE
 import { create } from 'zustand';
 import type { UserRole } from '@/lib/types';
 
@@ -17,11 +16,11 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set) => ({
   activeTab: 'dashboard',
-  setActiveTab: (_tab: Tab) => {},
+  setActiveTab: (tab) => set({ activeTab: tab }),
   activeFilter: 'all',
-  setActiveFilter: (_filter: string) => {},
+  setActiveFilter: (filter) => set({ activeFilter: filter }),
   role: 'Owner',
-  setRole: (_role: UserRole) => {},
+  setRole: (role) => set({ role }),
   sidebarCollapsed: false,
-  setSidebarCollapsed: (_collapsed: boolean) => {},
+  setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
 }));

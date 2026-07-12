@@ -48,6 +48,7 @@ import type { ReceiptRow, UserRole } from '@/lib/types';
 import type { User } from '@supabase/supabase-js';
 import { getReceipts, getDashboardSummary, getDailySpend } from '@/lib/services/receipts';
 import { getUserRole } from '@/lib/services/roles';
+import { getPlan, formatPlanLabel } from '@/lib/services/subscription';
 
 type Tab = 'dashboard' | 'receipts' | 'scan' | 'more';
 
@@ -275,8 +276,14 @@ function AppContent() {
     retry: 1,
   });
 
-  const plan = 'free';
-  const planLabel = 'Free';
+  const { data: currentPlan } = useQuery({
+    queryKey: ['plan'],
+    queryFn: getPlan,
+    enabled: !!userId,
+    staleTime: 60_000,
+  });
+  const plan = currentPlan || 'free';
+  const planLabel = formatPlanLabel(plan);
   const planLoading = false;
 
   useReceiptRealtimeSync(role, userId);

@@ -1,7 +1,9 @@
 {
-  "name": "9-star-labs-receipt-pro",
-  "version": "0.1.0",
-  "private": true,
+  "name": "leduc-receipt-pro",
+  "version": "1.0.0",
+  "private": false,
+  "description": "Open-source CRA-ready receipt processing and expense management for Canadian businesses",
+  "license": "MIT-with-attribution",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -20,6 +22,9 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@fontsource/instrument-sans": "^5.2.8",
     "@formkit/auto-animate": "^0.9.0",
     "@google/generative-ai": "^0.24.1",

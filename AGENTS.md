@@ -261,7 +261,7 @@ Renovate (configured in `renovate.json`) auto-creates PRs. Patches auto-merge; m
 `docker/docker-compose.yml` runs Supabase local + Mailpit for local email testing.
 
 ### Security
-Report vulnerabilities to `security@9starlabs.ca` per `SECURITY.md`.
+Report vulnerabilities per `SECURITY.md`.
 
 ## Key Decisions
 - Date-based delete protection moved from RLS policy to `BEFORE DELETE` trigger.

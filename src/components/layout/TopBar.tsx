@@ -3,6 +3,7 @@
 import { ReceiptText, Crown } from 'lucide-react';
 import { APP_NAME } from '@/lib/constants';
 import Link from 'next/link';
+import NotificationBell from '@/components/notifications/NotificationBell';
 
 interface TopBarProps {
   planLabel: string;
@@ -29,6 +30,7 @@ export default function TopBar({ planLabel, plan, planLoading, children }: TopBa
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-3">
+          <NotificationBell />
           {children}
 
           <Link

@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { APP_NAME } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
+import { useNotificationStore } from '@/lib/stores/notifications';
 import {
   LayoutDashboard,
   Camera,
   ReceiptText,
+  Bell,
   Crown,
   Settings,
   LogOut,
@@ -95,6 +97,7 @@ export default function Sidebar({
   const setCollapsed = useAppStore((s) => s.setSidebarCollapsed);
 
   const isPrivileged = role !== 'Employee';
+  const unreadCount = useNotificationStore((s) => s.unreadCount());
 
   const navGroups: Array<{
     id: string;
@@ -204,6 +207,22 @@ export default function Sidebar({
         >
           <Settings className="h-3.5 w-3.5 flex-shrink-0" />
           {!collapsed && <span>Organization</span>}
+        </Link>
+
+        {/* Notifications */}
+        <Link
+          href="/notifications"
+          aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+          className={`relative flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition mb-0.5 ${collapsed ? 'justify-center px-2' : ''}`}
+          title={collapsed ? `Notifications${unreadCount > 0 ? ` — ${unreadCount} unread` : ''}` : undefined}
+        >
+          <Bell className="h-3.5 w-3.5 flex-shrink-0" />
+          {!collapsed && <span className="flex-1">Notifications</span>}
+          {unreadCount > 0 && (
+            <span className={`flex items-center justify-center rounded-full bg-danger px-1.5 text-[9px] font-bold leading-none text-white ${collapsed ? 'absolute -right-0.5 -top-0.5' : ''}`}>
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
         </Link>
 
         {/* Collapse toggle */}
