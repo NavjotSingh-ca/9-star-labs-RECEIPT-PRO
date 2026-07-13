@@ -26,12 +26,40 @@ import {
   PanelLeft,
   Menu,
   X,
+  Search,
+  CalendarDays,
+  History,
+  Store,
+  PiggyBank,
+  Receipt,
+  TrendingUp,
+  DollarSign,
+  Tags,
+  ListChecks,
+  GitCompare,
+  Repeat,
+  Kanban,
+  FileSpreadsheet,
+  FileText,
+  BarChart,
+  Mail,
+  ClipboardCheck,
+  Lightbulb,
+  Share2,
+  TriangleAlert,
+  MessageSquare,
+  Moon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import type { UserRole } from '@/lib/types';
 
-type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more';
+type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more'
+  | 'smart-search' | 'receipt-calendar' | 'receipt-timeline' | 'vendor-analytics'
+  | 'budgets' | 'tax-dashboard' | 'cashflow-forecast' | 'multi-currency'
+  | 'receipt-tags' | 'batch-operations' | 'receipt-comparison' | 'recurring-detector' | 'kanban-workflow'
+  | 'qbo-export' | 'xero-export' | 'export-dashboard' | 'email-forward'
+  | 'readiness-score' | 'spending-insights' | 'share-receipt' | 'payables-dashboard' | 'slack-alerts' | 'dark-sync';
 
 interface SidebarProps {
   activeTab: Tab;
@@ -128,6 +156,9 @@ export default function Sidebar({
         { id: 'receipts' as Tab, label: 'Receipts', icon: <ReceiptText className="h-4 w-4" /> },
         ...(isPrivileged ? [{ id: 'mileage' as Tab, label: 'Mileage', icon: <Route className="h-4 w-4" /> }] : []),
         ...(isPrivileged ? [{ id: 'projects' as Tab, label: 'Projects', icon: <Building2 className="h-4 w-4" /> }] : []),
+        { id: 'smart-search' as Tab, label: 'Smart Search', icon: <Search className="h-4 w-4" /> },
+        { id: 'receipt-calendar' as Tab, label: 'Calendar', icon: <CalendarDays className="h-4 w-4" /> },
+        { id: 'receipt-timeline' as Tab, label: 'Timeline', icon: <History className="h-4 w-4" /> },
       ],
     },
     {
@@ -137,6 +168,22 @@ export default function Sidebar({
         ...(isPrivileged ? [{ id: 'export' as Tab, label: 'Exports', icon: <FileDown className="h-4 w-4" /> }] : []),
         ...(isPrivileged ? [{ id: 'reconcile' as Tab, label: 'Banking', icon: <Landmark className="h-4 w-4" /> }] : []),
         ...(isPrivileged ? [{ id: 'payables' as Tab, label: 'Payables', icon: <Wallet className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'budgets' as Tab, label: 'Budgets', icon: <PiggyBank className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'tax-dashboard' as Tab, label: 'Tax', icon: <Receipt className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'cashflow-forecast' as Tab, label: 'Cash Flow', icon: <TrendingUp className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'vendor-analytics' as Tab, label: 'Vendors', icon: <Store className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'multi-currency' as Tab, label: 'Multi-Currency', icon: <DollarSign className="h-4 w-4" /> }] : []),
+      ],
+    },
+    {
+      id: 'tools',
+      label: 'Productivity',
+      items: [
+        { id: 'receipt-tags' as Tab, label: 'Tags & Labels', icon: <Tags className="h-4 w-4" /> },
+        ...(isPrivileged ? [{ id: 'batch-operations' as Tab, label: 'Batch Ops', icon: <ListChecks className="h-4 w-4" /> }] : []),
+        { id: 'receipt-comparison' as Tab, label: 'Compare', icon: <GitCompare className="h-4 w-4" /> },
+        { id: 'recurring-detector' as Tab, label: 'Recurring', icon: <Repeat className="h-4 w-4" /> },
+        ...(isPrivileged ? [{ id: 'kanban-workflow' as Tab, label: 'Kanban', icon: <Kanban className="h-4 w-4" /> }] : []),
       ],
     },
     {
@@ -147,8 +194,45 @@ export default function Sidebar({
         ...(isPrivileged ? [{ id: 'approvals' as Tab, label: 'Approvals', icon: <Users className="h-4 w-4" /> }] : []),
         ...(isPrivileged ? [{ id: 'alerts' as Tab, label: 'Alerts', icon: <AlertTriangle className="h-4 w-4" /> }] : []),
         ...(isPrivileged ? [{ id: 'reports' as Tab, label: 'Reports', icon: <BarChart3 className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'readiness-score' as Tab, label: 'Readiness', icon: <ClipboardCheck className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'spending-insights' as Tab, label: 'Insights', icon: <Lightbulb className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'payables-dashboard' as Tab, label: 'Payables', icon: <Wallet className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'slack-alerts' as Tab, label: 'Notifications', icon: <MessageSquare className="h-4 w-4" /> }] : []),
       ],
     },
+    {
+      id: 'integrations',
+      label: 'Integrations',
+      items: [
+        ...(isPrivileged ? [{ id: 'qbo-export' as Tab, label: 'QBO', icon: <FileSpreadsheet className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'xero-export' as Tab, label: 'Xero', icon: <FileText className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'export-dashboard' as Tab, label: 'Export Logs', icon: <BarChart className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'email-forward' as Tab, label: 'Email Forward', icon: <Mail className="h-4 w-4" /> }] : []),
+      ],
+    },
+    ...(!isPrivileged ? [{
+      id: 'tools',
+      label: 'Tools',
+      items: [
+        { id: 'smart-search' as Tab, label: 'Search', icon: <Search className="h-4 w-4" /> },
+        { id: 'receipt-calendar' as Tab, label: 'Calendar', icon: <CalendarDays className="h-4 w-4" /> },
+        { id: 'receipt-timeline' as Tab, label: 'Timeline', icon: <History className="h-4 w-4" /> },
+        { id: 'vendor-analytics' as Tab, label: 'Vendors', icon: <Store className="h-4 w-4" /> },
+        { id: 'receipt-tags' as Tab, label: 'Tags', icon: <Tags className="h-4 w-4" /> },
+        { id: 'receipt-comparison' as Tab, label: 'Compare', icon: <GitCompare className="h-4 w-4" /> },
+        { id: 'recurring-detector' as Tab, label: 'Recurring', icon: <Repeat className="h-4 w-4" /> },
+        { id: 'share-receipt' as Tab, label: 'Share', icon: <Share2 className="h-4 w-4" /> },
+      ],
+    }] : []),
+    // Non-privileged get a simplified Tools group; extra items only for privileged above
+    ...(isPrivileged ? [{
+      id: 'extra',
+      label: 'Extra',
+      items: [
+        { id: 'share-receipt' as Tab, label: 'Share Receipt', icon: <Share2 className="h-4 w-4" /> },
+        { id: 'dark-sync' as Tab, label: 'Dark Sync', icon: <Moon className="h-4 w-4" /> },
+      ],
+    }] : []),
   ];
 
   const sidebarContent = (

@@ -9,7 +9,12 @@ import {
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 
-type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more';
+type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more'
+  | 'smart-search' | 'receipt-calendar' | 'receipt-timeline' | 'vendor-analytics'
+  | 'budgets' | 'tax-dashboard' | 'cashflow-forecast' | 'multi-currency'
+  | 'receipt-tags' | 'batch-operations' | 'receipt-comparison' | 'recurring-detector' | 'kanban-workflow'
+  | 'qbo-export' | 'xero-export' | 'export-dashboard' | 'email-forward'
+  | 'readiness-score' | 'spending-insights' | 'share-receipt' | 'payables-dashboard' | 'slack-alerts' | 'dark-sync';
 
 interface MobileNavProps {
   activeTab: Tab;

@@ -17,10 +17,37 @@ import {
   Users,
   AlertTriangle,
   BarChart3,
+  Search,
+  CalendarDays,
+  History,
+  Store,
+  PiggyBank,
+  Receipt,
+  TrendingUp,
+  DollarSign,
+  Tags,
+  ListChecks,
+  GitCompare,
+  Repeat,
+  Kanban,
+  FileSpreadsheet,
+  FileText,
+  BarChart,
+  Mail,
+  ClipboardCheck,
+  Lightbulb,
+  Share2,
+  MessageSquare,
+  Moon,
 } from 'lucide-react';
 import Link from 'next/link';
 
-type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more';
+type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more'
+  | 'smart-search' | 'receipt-calendar' | 'receipt-timeline' | 'vendor-analytics'
+  | 'budgets' | 'tax-dashboard' | 'cashflow-forecast' | 'multi-currency'
+  | 'receipt-tags' | 'batch-operations' | 'receipt-comparison' | 'recurring-detector' | 'kanban-workflow'
+  | 'qbo-export' | 'xero-export' | 'export-dashboard' | 'email-forward'
+  | 'readiness-score' | 'spending-insights' | 'share-receipt' | 'payables-dashboard' | 'slack-alerts' | 'dark-sync';
 
 interface MoreSheetProps {
   activeTab: Tab;
@@ -103,15 +130,40 @@ export default function MoreSheet({
                     <MoreNavLink icon={<ReceiptText className="h-4 w-4" />} label="Receipts" tab="receipts" onTabChange={onTabChange} onClose={onClose} />
                     <MoreNavLink icon={<Route className="h-4 w-4" />} label="Mileage" tab="mileage" onTabChange={onTabChange} onClose={onClose} />
                     <MoreNavLink icon={<Building2 className="h-4 w-4" />} label="Projects" tab="projects" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<Search className="h-4 w-4" />} label="Smart Search" tab="smart-search" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<CalendarDays className="h-4 w-4" />} label="Calendar" tab="receipt-calendar" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<History className="h-4 w-4" />} label="Timeline" tab="receipt-timeline" onTabChange={onTabChange} onClose={onClose} />
                     <p className="mt-3 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted/60">Finance</p>
                     <MoreNavLink icon={<FileDown className="h-4 w-4" />} label="Exports" tab="export" onTabChange={onTabChange} onClose={onClose} />
                     <MoreNavLink icon={<Landmark className="h-4 w-4" />} label="Banking" tab="reconcile" onTabChange={onTabChange} onClose={onClose} />
                     <MoreNavLink icon={<Wallet className="h-4 w-4" />} label="Payables" tab="payables" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<PiggyBank className="h-4 w-4" />} label="Budgets" tab="budgets" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<Receipt className="h-4 w-4" />} label="Tax Dashboard" tab="tax-dashboard" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<TrendingUp className="h-4 w-4" />} label="Cash Flow" tab="cashflow-forecast" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<Store className="h-4 w-4" />} label="Vendors" tab="vendor-analytics" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<DollarSign className="h-4 w-4" />} label="Multi-Currency" tab="multi-currency" onTabChange={onTabChange} onClose={onClose} />
+                    <p className="mt-3 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted/60">Productivity</p>
+                    <MoreNavLink icon={<Tags className="h-4 w-4" />} label="Tags & Labels" tab="receipt-tags" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<ListChecks className="h-4 w-4" />} label="Batch Ops" tab="batch-operations" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<GitCompare className="h-4 w-4" />} label="Compare" tab="receipt-comparison" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<Repeat className="h-4 w-4" />} label="Recurring" tab="recurring-detector" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<Kanban className="h-4 w-4" />} label="Kanban" tab="kanban-workflow" onTabChange={onTabChange} onClose={onClose} />
                     <p className="mt-3 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted/60">Oversight</p>
                     <MoreNavLink icon={<ScrollText className="h-4 w-4" />} label="Audit" tab="audit" onTabChange={onTabChange} onClose={onClose} />
                     <MoreNavLink icon={<Users className="h-4 w-4" />} label="Approvals" tab="approvals" onTabChange={onTabChange} onClose={onClose} />
                     <MoreNavLink icon={<AlertTriangle className="h-4 w-4" />} label="Alerts" tab="alerts" onTabChange={onTabChange} onClose={onClose} />
                     <MoreNavLink icon={<BarChart3 className="h-4 w-4" />} label="Reports" tab="reports" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<ClipboardCheck className="h-4 w-4" />} label="Readiness" tab="readiness-score" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<Lightbulb className="h-4 w-4" />} label="Insights" tab="spending-insights" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<MessageSquare className="h-4 w-4" />} label="Notifications" tab="slack-alerts" onTabChange={onTabChange} onClose={onClose} />
+                    <p className="mt-3 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted/60">Integrations</p>
+                    <MoreNavLink icon={<FileSpreadsheet className="h-4 w-4" />} label="QBO Export" tab="qbo-export" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<FileText className="h-4 w-4" />} label="Xero Export" tab="xero-export" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<BarChart className="h-4 w-4" />} label="Export Logs" tab="export-dashboard" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<Mail className="h-4 w-4" />} label="Email Forward" tab="email-forward" onTabChange={onTabChange} onClose={onClose} />
+                    <p className="mt-3 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted/60">Extra</p>
+                    <MoreNavLink icon={<Share2 className="h-4 w-4" />} label="Share Receipt" tab="share-receipt" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<Moon className="h-4 w-4" />} label="Dark Sync" tab="dark-sync" onTabChange={onTabChange} onClose={onClose} />
                   </div>
 
                   <p className="mt-6 mb-2 text-xs font-bold uppercase tracking-widest text-text-muted">Legal</p>

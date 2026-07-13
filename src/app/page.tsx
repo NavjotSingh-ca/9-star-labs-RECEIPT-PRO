@@ -70,6 +70,31 @@ const ReportsPage = dynamic(() => import('@/components/reports/ReportsPage').the
   loading: () => <ReceiptTableSkeleton /> 
 });
 
+// === NEW FEATURES (23) ===
+const SmartSearch = dynamic(() => import('@/components/features/SmartSearch'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const ReceiptCalendar = dynamic(() => import('@/components/features/ReceiptCalendar'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const ReceiptTimeline = dynamic(() => import('@/components/features/ReceiptTimeline'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const VendorAnalytics = dynamic(() => import('@/components/features/VendorAnalytics'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const BudgetManager = dynamic(() => import('@/components/features/BudgetManager'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const TaxDashboard = dynamic(() => import('@/components/features/TaxDashboard'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const CashFlowForecast = dynamic(() => import('@/components/features/CashFlowForecast'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const MultiCurrency = dynamic(() => import('@/components/features/MultiCurrency'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const ReceiptTags = dynamic(() => import('@/components/features/ReceiptTags'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const BatchOperations = dynamic(() => import('@/components/features/BatchOperations'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const ReceiptComparison = dynamic(() => import('@/components/features/ReceiptComparison'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const RecurringDetector = dynamic(() => import('@/components/features/RecurringDetector'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const KanbanWorkflow = dynamic(() => import('@/components/features/KanbanWorkflow'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const QBOExport = dynamic(() => import('@/components/features/QBOExport'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const XeroExport = dynamic(() => import('@/components/features/XeroExport'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const ExportDashboard = dynamic(() => import('@/components/features/ExportDashboard'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const EmailForwardSetup = dynamic(() => import('@/components/features/EmailForwardSetup'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const ReadinessScore = dynamic(() => import('@/components/features/ReadinessScore'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const SpendingInsights = dynamic(() => import('@/components/features/SpendingInsights'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const ShareReceipt = dynamic(() => import('@/components/features/ShareReceipt'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const PayablesDashboard = dynamic(() => import('@/components/features/PayablesDashboard'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const SlackAlerts = dynamic(() => import('@/components/features/SlackAlerts'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+const DarkModeSync = dynamic(() => import('@/components/features/DarkModeSync'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
+
 
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -86,7 +111,12 @@ import { getReceipts, getDashboardSummary, getDailySpend } from '@/lib/services/
 import { getUserRole } from '@/lib/services/roles';
 import { getPlan, formatPlanLabel } from '@/lib/services/subscription';
 
-type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more';
+type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more'
+  | 'smart-search' | 'receipt-calendar' | 'receipt-timeline' | 'vendor-analytics'
+  | 'budgets' | 'tax-dashboard' | 'cashflow-forecast' | 'multi-currency'
+  | 'receipt-tags' | 'batch-operations' | 'receipt-comparison' | 'recurring-detector' | 'kanban-workflow'
+  | 'qbo-export' | 'xero-export' | 'export-dashboard' | 'email-forward'
+  | 'readiness-score' | 'spending-insights' | 'share-receipt' | 'payables-dashboard' | 'slack-alerts' | 'dark-sync';
 
 const cad = new Intl.NumberFormat('en-CA', {
   style: 'currency',
@@ -165,7 +195,13 @@ function AppContent() {
   const [hasMounted, setHasMounted] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useQueryState('tab', parseAsStringEnum<Tab>(['dashboard', 'receipts', 'scan', 'export', 'audit', 'reconcile', 'mileage', 'approvals', 'payables', 'projects', 'alerts', 'reports', 'more']).withDefault('dashboard'));
+  const [activeTab, setActiveTab] = useQueryState('tab', parseAsStringEnum<Tab>(['dashboard', 'receipts', 'scan', 'export', 'audit', 'reconcile', 'mileage', 'approvals', 'payables', 'projects', 'alerts', 'reports', 'more',
+  'smart-search', 'receipt-calendar', 'receipt-timeline', 'vendor-analytics',
+  'budgets', 'tax-dashboard', 'cashflow-forecast', 'multi-currency',
+  'receipt-tags', 'batch-operations', 'receipt-comparison', 'recurring-detector', 'kanban-workflow',
+  'qbo-export', 'xero-export', 'export-dashboard', 'email-forward',
+  'readiness-score', 'spending-insights', 'share-receipt', 'payables-dashboard', 'slack-alerts', 'dark-sync',
+]).withDefault('dashboard'));
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
@@ -187,7 +223,7 @@ function AppContent() {
 
   useEffect(() => {
     if (role === 'Employee') {
-      const allowedEmployeeTabs: Tab[] = ['scan', 'receipts', 'mileage', 'more'];
+      const allowedEmployeeTabs: Tab[] = ['scan', 'receipts', 'mileage', 'smart-search', 'receipt-calendar', 'receipt-timeline', 'vendor-analytics', 'receipt-tags', 'share-receipt', 'more'];
       if (!(allowedEmployeeTabs as readonly Tab[]).includes(activeTab)) {
         setTabWithUrl('scan');
       }
@@ -375,6 +411,27 @@ function AppContent() {
         e.preventDefault();
         setTabWithUrl('reconcile');
       }
+      // New feature keyboard shortcuts
+      if (e.key === 'f' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setTabWithUrl('smart-search');
+      }
+      if (e.key === 'b' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setTabWithUrl('budgets');
+      }
+      if (e.key === 't' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setTabWithUrl('tax-dashboard');
+      }
+      if (e.key === 'k' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setTabWithUrl('kanban-workflow');
+      }
+      if (e.key === 'i' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setTabWithUrl('spending-insights');
+      }
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -390,8 +447,13 @@ function AppContent() {
     const deltaY = e.changedTouches[0].clientY - touchStartY.current;
     if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
     const tabOrder: Tab[] = role === 'Employee'
-      ? ['receipts', 'scan', 'mileage', 'more']
-      : ['dashboard', 'receipts', 'scan', 'mileage', 'export', 'reconcile', 'approvals', 'payables', 'projects', 'audit', 'alerts', 'reports', 'more'];
+      ? ['receipts', 'scan', 'mileage', 'smart-search', 'receipt-calendar', 'receipt-timeline', 'vendor-analytics', 'receipt-tags', 'share-receipt', 'more']
+      : ['dashboard', 'receipts', 'scan', 'mileage', 'export', 'reconcile', 'approvals', 'payables', 'projects', 'audit', 'alerts', 'reports',
+        'smart-search', 'receipt-calendar', 'receipt-timeline', 'vendor-analytics',
+        'budgets', 'tax-dashboard', 'cashflow-forecast', 'multi-currency',
+        'receipt-tags', 'batch-operations', 'receipt-comparison', 'recurring-detector', 'kanban-workflow',
+        'qbo-export', 'xero-export', 'export-dashboard', 'email-forward',
+        'readiness-score', 'spending-insights', 'share-receipt', 'payables-dashboard', 'slack-alerts', 'dark-sync', 'more'];
     const currentIndex = tabOrder.indexOf(activeTab);
     if (currentIndex === -1) return;
     if (deltaX < 0 && currentIndex < tabOrder.length - 1) setTabWithUrl(tabOrder[currentIndex + 1]);
@@ -531,6 +593,53 @@ function AppContent() {
               <ReportsPage orgId={orgId ?? ''} />
             </ErrorBoundary>
           );
+        // === NEW FEATURES (23) ===
+        case 'smart-search':
+          return <ErrorBoundary componentName="SmartSearch"><SmartSearch /></ErrorBoundary>;
+        case 'receipt-calendar':
+          return <ErrorBoundary componentName="ReceiptCalendar"><ReceiptCalendar /></ErrorBoundary>;
+        case 'receipt-timeline':
+          return <ErrorBoundary componentName="ReceiptTimeline"><ReceiptTimeline /></ErrorBoundary>;
+        case 'vendor-analytics':
+          return <ErrorBoundary componentName="VendorAnalytics"><VendorAnalytics /></ErrorBoundary>;
+        case 'budgets':
+          return <ErrorBoundary componentName="BudgetManager"><BudgetManager /></ErrorBoundary>;
+        case 'tax-dashboard':
+          return <ErrorBoundary componentName="TaxDashboard"><TaxDashboard /></ErrorBoundary>;
+        case 'cashflow-forecast':
+          return <ErrorBoundary componentName="CashFlowForecast"><CashFlowForecast /></ErrorBoundary>;
+        case 'multi-currency':
+          return <ErrorBoundary componentName="MultiCurrency"><MultiCurrency /></ErrorBoundary>;
+        case 'receipt-tags':
+          return <ErrorBoundary componentName="ReceiptTags"><ReceiptTags /></ErrorBoundary>;
+        case 'batch-operations':
+          return <ErrorBoundary componentName="BatchOperations"><BatchOperations /></ErrorBoundary>;
+        case 'receipt-comparison':
+          return <ErrorBoundary componentName="ReceiptComparison"><ReceiptComparison /></ErrorBoundary>;
+        case 'recurring-detector':
+          return <ErrorBoundary componentName="RecurringDetector"><RecurringDetector /></ErrorBoundary>;
+        case 'kanban-workflow':
+          return <ErrorBoundary componentName="KanbanWorkflow"><KanbanWorkflow /></ErrorBoundary>;
+        case 'qbo-export':
+          return <ErrorBoundary componentName="QBOExport"><QBOExport /></ErrorBoundary>;
+        case 'xero-export':
+          return <ErrorBoundary componentName="XeroExport"><XeroExport /></ErrorBoundary>;
+        case 'export-dashboard':
+          return <ErrorBoundary componentName="ExportDashboard"><ExportDashboard /></ErrorBoundary>;
+        case 'email-forward':
+          return <ErrorBoundary componentName="EmailForwardSetup"><EmailForwardSetup /></ErrorBoundary>;
+        case 'readiness-score':
+          return <ErrorBoundary componentName="ReadinessScore"><ReadinessScore /></ErrorBoundary>;
+        case 'spending-insights':
+          return <ErrorBoundary componentName="SpendingInsights"><SpendingInsights /></ErrorBoundary>;
+        case 'share-receipt':
+          return <ErrorBoundary componentName="ShareReceipt"><ShareReceipt /></ErrorBoundary>;
+        case 'payables-dashboard':
+          return <ErrorBoundary componentName="PayablesDashboard"><PayablesDashboard /></ErrorBoundary>;
+        case 'slack-alerts':
+          return <ErrorBoundary componentName="SlackAlerts"><SlackAlerts /></ErrorBoundary>;
+        case 'dark-sync':
+          return <ErrorBoundary componentName="DarkModeSync"><DarkModeSync /></ErrorBoundary>;
         case 'more':
           return null;
         default:
