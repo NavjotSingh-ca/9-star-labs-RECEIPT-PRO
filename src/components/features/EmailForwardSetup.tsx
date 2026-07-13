@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { supabase, getOrgIdString } from '@/lib/supabase';
+import { getOrgIdString } from '@/lib/supabase';
 import PageHeader from '@/components/layout/PageHeader';
 import { Loader2, AlertCircle, Copy, Check, Mail, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';

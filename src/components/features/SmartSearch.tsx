@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useQueryState } from 'nuqs';
 import { AlertCircle, Loader2, Search, X } from 'lucide-react';
@@ -14,11 +14,6 @@ import type { ReceiptRow } from '@/lib/types';
 function getTodayISO(): string {
   const d = new Date();
   return d.toISOString().slice(0, 10);
-}
-
-function getStartOfMonth(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
 async function fetchCategories(orgId: string): Promise<string[]> {
@@ -75,14 +70,11 @@ export default function SmartSearch() {
   const [maxAmount, setMaxAmount] = useQueryState('max', { defaultValue: '', history: 'push' });
   const [category, setCategory] = useQueryState('cat', { defaultValue: '', history: 'push' });
 
-  const [orgIdState, setOrgIdState] = useState<string | null>(null);
-
   const { data: orgId } = useQuery({
     queryKey: ['smart-search-org-id'],
     queryFn: async () => {
       const id = await getOrgIdString();
       if (!id) throw new Error('No organization found');
-      setOrgIdState(id);
       return id;
     },
     staleTime: Infinity,

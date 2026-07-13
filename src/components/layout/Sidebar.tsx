@@ -46,7 +46,6 @@ import {
   ClipboardCheck,
   Lightbulb,
   Share2,
-  TriangleAlert,
   MessageSquare,
   Moon,
 } from 'lucide-react';

@@ -148,15 +148,13 @@ export default function VendorAnalytics() {
     }
   }
 
-  function SortIcon({ column }: { column: SortKey }) {
-    return (
-      <ArrowUpDown
-        className={`ml-1 inline h-3 w-3 ${
-          sortKey === column ? 'text-champagne' : 'text-text-muted'
-        }`}
-      />
-    );
-  }
+  const renderSortIcon = (column: SortKey) => (
+    <ArrowUpDown
+      className={`ml-1 inline h-3 w-3 ${
+        sortKey === column ? 'text-champagne' : 'text-text-muted'
+      }`}
+    />
+  );
 
   return (
     <div className="space-y-5 fade-in">
@@ -227,31 +225,31 @@ export default function VendorAnalytics() {
                       className="cursor-pointer px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-text-muted"
                       onClick={() => toggleSort('vendor_name')}
                     >
-                      Vendor <SortIcon column="vendor_name" />
+                      Vendor {renderSortIcon('vendor_name')}
                     </th>
                     <th
                       className="cursor-pointer px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-text-muted"
                       onClick={() => toggleSort('total_spend')}
                     >
-                      Total Spend <SortIcon column="total_spend" />
+                      Total Spend {renderSortIcon('total_spend')}
                     </th>
                     <th
                       className="cursor-pointer px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-text-muted"
                       onClick={() => toggleSort('transaction_count')}
                     >
-                      Count <SortIcon column="transaction_count" />
+                      Count {renderSortIcon('transaction_count')}
                     </th>
                     <th
                       className="cursor-pointer px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-text-muted"
                       onClick={() => toggleSort('average_amount')}
                     >
-                      Avg <SortIcon column="average_amount" />
+                      Avg {renderSortIcon('average_amount')}
                     </th>
                     <th
                       className="cursor-pointer px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-text-muted"
                       onClick={() => toggleSort('last_transaction')}
                     >
-                      Last Transaction <SortIcon column="last_transaction" />
+                      Last Transaction {renderSortIcon('last_transaction')}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-text-muted">
                       Trend

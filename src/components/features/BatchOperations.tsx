@@ -22,7 +22,7 @@ import { formatCurrency, formatDate } from '@/lib/ui-utils';
 import { cn } from '@/lib/utils';
 import { logError } from '@/lib/logger';
 import type { ReceiptRow } from '@/lib/types';
-import { bulkDeleteReceipts, bulkUpdateApproval } from '@/lib/services/receipts';
+import { bulkDeleteReceipts } from '@/lib/services/receipts';
 
 const TAG_DEFS = [
   { value: 'important', label: 'Important' },
@@ -32,15 +32,6 @@ const TAG_DEFS = [
   { value: 'client', label: 'Client' },
   { value: 'other', label: 'Other' },
 ] as const;
-
-function parseTags(notes: string | null | undefined): string[] {
-  if (!notes) return [];
-  try {
-    const parsed = JSON.parse(notes);
-    if (Array.isArray(parsed?.tags)) return parsed.tags;
-  } catch { /* ignore */ }
-  return [];
-}
 
 function tagNotes(notes: string | null | undefined, tag: string): string {
   const current = (() => {

@@ -8,7 +8,6 @@ import PageHeader from '@/components/layout/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { supabase, getOrgIdString } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/ui-utils';
-import { cn } from '@/lib/utils';
 import type { ReceiptRow } from '@/lib/types';
 
 interface RecurringVendor {

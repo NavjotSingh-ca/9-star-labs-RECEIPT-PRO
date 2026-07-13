@@ -32,6 +32,26 @@ function parseDate(s: string): Date {
   return new Date(y, m - 1, day);
 }
 
+function formatXAxis(val: string): string {
+  const d = parseDate(val);
+  return d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+}
+
+function CashFlowTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; dataKey: string }>; label?: string }) {
+  if (!active || !payload || !label) return null;
+  return (
+    <div className="rounded-xl border border-glass-border bg-card px-3 py-2 shadow-md text-xs">
+      <p className="font-semibold text-text-primary mb-1">{formatXAxis(label)}</p>
+      {payload.map((entry, i) => (
+        <p key={i} className="tabular-nums text-text-secondary">
+          {entry.dataKey === 'actual' ? 'Actual: ' : 'Forecast: '}
+          {formatCurrency(entry.value)}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 async function fetchReceipts90(orgId: string): Promise<ReceiptRow[]> {
   const cutoff = addDays(new Date(), -90).toISOString().slice(0, 10);
   const { data, error } = await supabase
@@ -121,26 +141,6 @@ export default function CashFlowForecast() {
       .reduce((sum, p) => sum + (p.forecast || 0), 0);
   }, [chartData]);
 
-  const formatXAxis = (val: string) => {
-    const d = parseDate(val);
-    return d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
-  };
-
-  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; dataKey: string }>; label?: string }) => {
-    if (!active || !payload || !label) return null;
-    return (
-      <div className="rounded-xl border border-glass-border bg-card px-3 py-2 shadow-md text-xs">
-        <p className="font-semibold text-text-primary mb-1">{formatXAxis(label)}</p>
-        {payload.map((entry, i) => (
-          <p key={i} className="tabular-nums text-text-secondary">
-            {entry.dataKey === 'actual' ? 'Actual: ' : 'Forecast: '}
-            {formatCurrency(entry.value)}
-          </p>
-        ))}
-      </div>
-    );
-  };
-
   return (
     <div className="space-y-5 fade-in">
       <PageHeader
@@ -199,7 +199,7 @@ export default function CashFlowForecast() {
                   tickLine={false}
                   width={50}
                 />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<CashFlowTooltip />} />
                 <Area
                   type="monotone"
                   dataKey="actual"

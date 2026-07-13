@@ -9,7 +9,6 @@ import {
   X,
   Edit3,
   Trash2,
-  DollarSign,
   BarChart3,
 } from 'lucide-react';
 import { RadialBarChart, RadialBar, ResponsiveContainer } from 'recharts';

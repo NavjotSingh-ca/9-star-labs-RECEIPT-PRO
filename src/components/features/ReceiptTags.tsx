@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Loader2, Tags, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import PageHeader from '@/components/layout/PageHeader';
-import { Badge } from '@/components/ui/badge';
 import { supabase, getOrgIdString } from '@/lib/supabase';
 import { formatCurrency, formatDate } from '@/lib/ui-utils';
 import { cn } from '@/lib/utils';

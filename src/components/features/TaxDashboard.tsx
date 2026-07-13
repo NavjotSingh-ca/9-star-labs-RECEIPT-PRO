@@ -6,8 +6,6 @@ import { motion } from 'framer-motion';
 import PageHeader from '@/components/layout/PageHeader';
 import { supabase, getOrgIdString } from '@/lib/supabase';
 import { formatDineroIntl } from '@/lib/finance-utils';
-import { formatCurrency } from '@/lib/ui-utils';
-import { cn } from '@/lib/utils';
 import type { ReceiptRow } from '@/lib/types';
 
 async function fetchYearReceipts(orgId: string): Promise<ReceiptRow[]> {
