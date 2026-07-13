@@ -2,8 +2,8 @@
   "name": "leduc-receipt-pro",
   "version": "1.0.0",
   "private": false,
-  "description": "Open-source CRA-ready receipt processing and expense management for Canadian businesses",
-  "license": "MIT-with-attribution",
+  "description": "CRA-ready receipt processing and expense management for Canadian businesses",
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

@@ -99,6 +99,7 @@ const DarkModeSync = dynamic(() => import('@/components/features/DarkModeSync'),
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AuthScreen from '@/components/AuthScreen';
+import LandingPage from '@/components/LandingPage';
 import Sidebar from '@/components/layout/Sidebar';
 import MobileNav from '@/components/layout/MobileNav';
 import TopBar from '@/components/layout/TopBar';
@@ -213,6 +214,7 @@ function AppContent() {
     setActiveTab(tab);
   }, [setActiveTab]);
 
+  const [showAuth, setShowAuth] = useState(false);
   const [role, setRole] = useState<UserRole>('Owner');
   const [orgId, setOrgId] = useState<string | null>(null);
 
@@ -461,7 +463,10 @@ function AppContent() {
   }, [activeTab, role, setTabWithUrl]);
 
   if (authLoading || !hasMounted) return <FullPageLoader />;
-  if (!user) return <AuthScreen />;
+  if (!user) {
+    if (showAuth) return <AuthScreen onBackToLanding={() => setShowAuth(false)} />;
+    return <LandingPage onGetStarted={() => setShowAuth(true)} />;
+  }
 
   const tabContent = (() => {
     if (receiptsLoading) {

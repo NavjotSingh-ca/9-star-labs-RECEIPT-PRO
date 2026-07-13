@@ -44,7 +44,7 @@ const orbs = [
   { size: 30, x: 45, y: 40, duration: 28, color: 'rgba(139,115,85,0.04)' },
 ];
 
-export default function AuthScreen() {
+export default function AuthScreen({ onBackToLanding }: { onBackToLanding?: () => void }) {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -149,6 +149,17 @@ export default function AuthScreen() {
       {/* Base gradient layers */}
       <div className="absolute inset-0 bg-gradient-to-br from-champagne/[0.03] via-transparent to-[#08080a]" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(190,169,142,0.08),transparent)]" />
+
+      {/* Back to landing */}
+      {onBackToLanding && (
+        <button
+          type="button"
+          onClick={onBackToLanding}
+          className="absolute left-4 top-4 z-20 flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs font-medium text-text-muted hover:bg-white/10 hover:text-text-primary transition backdrop-blur-sm"
+        >
+          ← Back
+        </button>
+      )}
 
       {/* Subtle grid texture */}
       <div
