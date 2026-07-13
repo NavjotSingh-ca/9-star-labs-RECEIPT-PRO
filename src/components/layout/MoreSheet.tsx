@@ -7,6 +7,16 @@ import {
   Settings,
   LogOut,
   X,
+  ReceiptText,
+  Route,
+  Building2,
+  FileDown,
+  Landmark,
+  Wallet,
+  ScrollText,
+  Users,
+  AlertTriangle,
+  BarChart3,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -87,6 +97,23 @@ export default function MoreSheet({
                     <span>Sign out</span>
                   </button>
 
+                  <p className="mt-6 mb-2 text-xs font-bold uppercase tracking-widest text-text-muted">Navigation</p>
+                  <div className="space-y-0.5">
+                    <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted/60">Records</p>
+                    <MoreNavLink icon={<ReceiptText className="h-4 w-4" />} label="Receipts" tab="receipts" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<Route className="h-4 w-4" />} label="Mileage" tab="mileage" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<Building2 className="h-4 w-4" />} label="Projects" tab="projects" onTabChange={onTabChange} onClose={onClose} />
+                    <p className="mt-3 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted/60">Finance</p>
+                    <MoreNavLink icon={<FileDown className="h-4 w-4" />} label="Exports" tab="export" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<Landmark className="h-4 w-4" />} label="Banking" tab="reconcile" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<Wallet className="h-4 w-4" />} label="Payables" tab="payables" onTabChange={onTabChange} onClose={onClose} />
+                    <p className="mt-3 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted/60">Oversight</p>
+                    <MoreNavLink icon={<ScrollText className="h-4 w-4" />} label="Audit" tab="audit" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<Users className="h-4 w-4" />} label="Approvals" tab="approvals" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<AlertTriangle className="h-4 w-4" />} label="Alerts" tab="alerts" onTabChange={onTabChange} onClose={onClose} />
+                    <MoreNavLink icon={<BarChart3 className="h-4 w-4" />} label="Reports" tab="reports" onTabChange={onTabChange} onClose={onClose} />
+                  </div>
+
                   <p className="mt-6 mb-2 text-xs font-bold uppercase tracking-widest text-text-muted">Legal</p>
                   <MoreSettingLink
                     icon={<Download className="h-4 w-4 text-text-muted" />}
@@ -117,6 +144,25 @@ export default function MoreSheet({
         </div>
       )}
     </AnimatePresence>
+  );
+}
+
+function MoreNavLink({ icon, label, tab, onTabChange, onClose }: {
+  icon: React.ReactNode;
+  label: string;
+  tab: Tab;
+  onTabChange: (tab: Tab) => void;
+  onClose: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => { onTabChange(tab); onClose(); }}
+      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-hover transition"
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
   );
 }
 

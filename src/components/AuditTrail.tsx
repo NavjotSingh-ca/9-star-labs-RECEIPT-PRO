@@ -18,6 +18,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { formatDate } from '@/lib/ui-utils';
 import { Button } from '@/components/ui/button';
+import PageHeader from '@/components/layout/PageHeader';
 import type { AuditLogRow } from '@/lib/types';
 
 const PAGE_SIZE = 50;
@@ -127,24 +128,21 @@ export default function AuditTrail() {
 
   return (
     <div className="space-y-4 fade-in" role="region" aria-label="Audit trail">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold text-text-primary">Audit Trail</h2>
-          <p className="mt-0.5 text-sm text-text-secondary">
-            View key record events, exports, and integrity-related actions.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="inline-flex items-center gap-2 rounded-[2rem] border border-glass-border bg-surface px-3 py-2 text-sm font-medium text-text-secondary shadow-sm transition hover:border-glass-border-hover hover:text-champagne disabled:opacity-50"
-        >
-          <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
-        </button>
-      </div>
+      <PageHeader
+        title="Audit Trail"
+        subtitle="View key record events, exports, and integrity-related actions."
+        action={
+          <button
+            type="button"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="inline-flex items-center gap-2 rounded-[2rem] border border-glass-border bg-surface px-3 py-2 text-sm font-medium text-text-secondary shadow-sm transition hover:border-glass-border-hover hover:text-champagne disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+        }
+      />
 
       <div className="rounded-[3rem] border border-champagne/15 bg-champagne/[0.04] p-4">
         <div className="flex items-start gap-3">

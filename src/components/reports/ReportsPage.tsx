@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import PageHeader from '@/components/layout/PageHeader';
 import { useReportTemplates, useReportGenerate } from '@/hooks/useReports';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -47,18 +48,16 @@ export function ReportsPage({ orgId }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Reports</h1>
-          <p className="text-sm text-text-muted mt-1">
-            Generate, export, and schedule reports from your receipt data
-          </p>
-        </div>
-        <Button onClick={() => setShowBuilder(!showBuilder)} variant="outline" className="gap-2">
-          <Plus className="h-4 w-4" />
-          Custom Report
-        </Button>
-      </div>
+      <PageHeader
+        title="Reports"
+        subtitle="Generate, export, and schedule reports from your receipt data."
+        action={
+          <Button onClick={() => setShowBuilder(!showBuilder)} variant="outline" className="gap-2">
+            <Plus className="h-4 w-4" />
+            Custom Report
+          </Button>
+        }
+      />
 
       <ReportFilters onChange={handleFiltersChange} />
 

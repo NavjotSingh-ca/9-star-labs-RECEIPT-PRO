@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, Loader2, Plus, Trash2, Briefcase, X, Columns3, List } from 'lucide-react';
 
+import PageHeader from '@/components/layout/PageHeader';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getProjects, createProject, deleteProject } from '@/lib/services/receipts';
@@ -69,17 +70,11 @@ export default function ProjectManager() {
 
   return (
     <section className="space-y-6" role="region" aria-label="Project management">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-champagne">Jobs & Sites</p>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-text-primary">Project Portfolio</h2>
-          <p className="mt-1 text-sm text-text-secondary">
-            Track project-wise spend against allocated budgets for jobs and sites.
-          </p>
-        </div>
-
-        {/* View toggle */}
-        <div className="flex items-center gap-1 rounded-lg border border-glass-border bg-surface p-0.5">
+      <PageHeader
+        title="Project Portfolio"
+        subtitle="Track project-wise spend against allocated budgets for jobs and sites."
+        action={
+          <div className="flex items-center gap-1 rounded-lg border border-glass-border bg-surface p-0.5">
           <button
             type="button"
             onClick={() => setViewMode('list')}
@@ -109,7 +104,8 @@ export default function ProjectManager() {
             <span className="hidden sm:inline">Board</span>
           </button>
         </div>
-      </div>
+      }
+      />
 
       {/* Create form */}
       <div className="rounded-3xl border border-glass-border bg-surface p-6 shadow-sm">

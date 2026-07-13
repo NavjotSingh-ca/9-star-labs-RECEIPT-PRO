@@ -19,6 +19,7 @@ import type { ReceiptRow, UserRole } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { getReceiptImageUrl } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
+import PageHeader from '@/components/layout/PageHeader';
 
 interface ApprovalsQueueProps {
   role: UserRole;
@@ -284,20 +285,10 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
 
   return (
     <section className="space-y-5 fade-in" role="region" aria-label="Approvals queue">
-      {/* Header */}
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-champagne">Approvals</p>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">
-            Pending Queue
-          </h2>
-        </div>
-        {pending.length > 0 && (
-          <div className="rounded-[3rem] border border-champagne/30 bg-champagne/[0.05] px-3 py-1.5 text-sm font-black text-champagne">
-            {pending.length} pending
-          </div>
-        )}
-      </div>
+      <PageHeader
+        title="Approvals Queue"
+        subtitle="Review and approve receipts submitted by team members."
+      />
 
       {/* Bulk actions bar */}
       <AnimatePresence>

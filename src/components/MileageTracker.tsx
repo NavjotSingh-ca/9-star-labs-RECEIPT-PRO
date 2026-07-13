@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
 import { formatCurrency } from '@/lib/ui-utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import PageHeader from '@/components/layout/PageHeader';
 import {
   getVehicles, createVehicle, deleteVehicle,
   getMileageLogs, createMileageLog, deleteMileageLog,
@@ -186,28 +187,28 @@ export default function MileageTracker() {
 
   return (
     <div className="space-y-6 fade-in pb-10" role="region" aria-label="Mileage tracking">
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-text-primary">Mileage Tracker</h2>
-          <p className="mt-1 text-sm text-text-secondary">CRA-compliant mileage log with prescribed per-km rates.</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => { setShowAddVehicle(true); setShowAddTrip(false); }}
-            type="button"
-            className="flex items-center gap-1.5 rounded-full border border-glass-border bg-surface px-3 py-2 text-xs font-semibold text-text-primary hover:bg-surface-raised transition"
-          >
-            <Car className="h-3.5 w-3.5" /> Add Vehicle
-          </button>
-          <button
-            onClick={() => { setShowAddTrip(true); setShowAddVehicle(false); }}
-            type="button"
-            className="flex items-center gap-1.5 rounded-full bg-gradient-to-b from-champagne-dim to-champagne px-4 py-2 text-xs font-bold text-black shadow-lg hover:opacity-90 transition"
-          >
-            <Plus className="h-3.5 w-3.5" /> Log Trip
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Mileage Tracker"
+        subtitle="CRA-compliant mileage log with prescribed per-km rates."
+        action={
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setShowAddVehicle(true); setShowAddTrip(false); }}
+              type="button"
+              className="flex items-center gap-1.5 rounded-full border border-glass-border bg-surface px-3 py-2 text-xs font-semibold text-text-primary hover:bg-surface-raised transition"
+            >
+              <Car className="h-3.5 w-3.5" /> Add Vehicle
+            </button>
+            <button
+              onClick={() => { setShowAddTrip(true); setShowAddVehicle(false); }}
+              type="button"
+              className="flex items-center gap-1.5 rounded-full bg-gradient-to-b from-champagne-dim to-champagne px-4 py-2 text-xs font-bold text-black shadow-lg hover:opacity-90 transition"
+            >
+              <Plus className="h-3.5 w-3.5" /> Log Trip
+            </button>
+          </div>
+        }
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

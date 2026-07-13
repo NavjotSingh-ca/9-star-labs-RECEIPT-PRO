@@ -8,6 +8,7 @@ import type { ReceiptRow } from '@/lib/types';
 import { toNumber, formatCurrency } from '@/lib/ui-utils';
 import { parseBankStatement } from '@/app/actions/parse-bank-statement';
 import { logError } from '@/lib/logger';
+import PageHeader from '@/components/layout/PageHeader';
 import { getBankTransactions, confirmBankMatch } from '@/lib/services/receipts';
 
 interface BankReconciliationProps {
@@ -190,10 +191,10 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
 
   return (
     <div className="space-y-6 fade-in pb-10" role="region" aria-label="Bank reconciliation">
-      <div>
-        <h2 className="text-xl font-bold text-text-primary">Bank Reconciliation</h2>
-        <p className="mt-1 text-sm text-text-secondary">Upload a bank statement (PDF, OFX, QFX, or CSV) to AI-fuzzy match against receipts.</p>
-      </div>
+      <PageHeader
+        title="Bank Reconciliation"
+        subtitle="Upload a bank statement (PDF, OFX, QFX, or CSV) to AI-fuzzy match against receipts."
+      />
 
       {bankData.length === 0 && !loading && (
         <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-glass-border bg-surface/30 py-16 text-center" role="status" aria-live="polite">

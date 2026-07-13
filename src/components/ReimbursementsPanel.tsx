@@ -9,6 +9,7 @@ import { getReimbursementsPending, markReimbursementPaid } from '@/lib/services/
 import type { ReceiptRow, UserRole } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
+import PageHeader from '@/components/layout/PageHeader';
 
 interface ReimbursementsPanelProps {
   role: UserRole;
@@ -138,20 +139,17 @@ export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) 
 
   return (
     <section className="space-y-5 fade-in" role="region" aria-label="Reimbursements panel">
-      {/* Header */}
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-warning">Payables</p>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">
-            Reimbursements
-          </h2>
-        </div>
-        {payables.length > 0 && (
-          <div className="rounded-[3rem] border border-warning/30 bg-warning/[0.05] px-3 py-1.5 text-sm font-black text-warning">
-            {cad.format(totalPending)} outstanding
-          </div>
-        )}
-      </div>
+      <PageHeader
+        title="Reimbursements"
+        subtitle="Review and approve reimbursement requests from employee-paid expenses."
+        action={
+          payables.length > 0 ? (
+            <div className="rounded-[3rem] border border-warning/30 bg-warning/[0.05] px-3 py-1.5 text-sm font-black text-warning">
+              {cad.format(totalPending)} outstanding
+            </div>
+          ) : undefined
+        }
+      />
 
       {/* Loading */}
       {(isLoading || userLoading) && (
