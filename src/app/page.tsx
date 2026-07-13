@@ -33,6 +33,42 @@ const Scanner = dynamic(() => import('@/components/Scanner'), {
   ssr: false, 
   loading: () => <ScannerSkeleton /> 
 });
+const MileageTracker = dynamic(() => import('@/components/MileageTracker'), { 
+  ssr: false, 
+  loading: () => <ReceiptTableSkeleton /> 
+});
+const Export = dynamic(() => import('@/components/Export'), { 
+  ssr: false, 
+  loading: () => <ReceiptTableSkeleton /> 
+});
+const BankReconciliation = dynamic(() => import('@/components/BankReconciliation'), { 
+  ssr: false, 
+  loading: () => <ReceiptTableSkeleton /> 
+});
+const AuditTrail = dynamic(() => import('@/components/AuditTrail'), { 
+  ssr: false, 
+  loading: () => <ReceiptTableSkeleton /> 
+});
+const ApprovalsQueue = dynamic(() => import('@/components/ApprovalsQueue'), { 
+  ssr: false, 
+  loading: () => <ReceiptTableSkeleton /> 
+});
+const ReimbursementsPanel = dynamic(() => import('@/components/ReimbursementsPanel'), { 
+  ssr: false, 
+  loading: () => <ReceiptTableSkeleton /> 
+});
+const ProjectManager = dynamic(() => import('@/components/ProjectManager'), { 
+  ssr: false, 
+  loading: () => <ReceiptTableSkeleton /> 
+});
+const AnomalyDashboard = dynamic(() => import('@/components/AnomalyDashboard'), { 
+  ssr: false, 
+  loading: () => <ReceiptTableSkeleton /> 
+});
+const ReportsPage = dynamic(() => import('@/components/reports/ReportsPage').then(m => m.ReportsPage), { 
+  ssr: false, 
+  loading: () => <ReceiptTableSkeleton /> 
+});
 
 
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -50,7 +86,7 @@ import { getReceipts, getDashboardSummary, getDailySpend } from '@/lib/services/
 import { getUserRole } from '@/lib/services/roles';
 import { getPlan, formatPlanLabel } from '@/lib/services/subscription';
 
-type Tab = 'dashboard' | 'receipts' | 'scan' | 'more';
+type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more';
 
 const cad = new Intl.NumberFormat('en-CA', {
   style: 'currency',
@@ -129,7 +165,7 @@ function AppContent() {
   const [hasMounted, setHasMounted] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useQueryState('tab', parseAsStringEnum<Tab>(['dashboard', 'receipts', 'scan', 'more']).withDefault('dashboard'));
+  const [activeTab, setActiveTab] = useQueryState('tab', parseAsStringEnum<Tab>(['dashboard', 'receipts', 'scan', 'export', 'audit', 'reconcile', 'mileage', 'approvals', 'payables', 'projects', 'alerts', 'reports', 'more']).withDefault('dashboard'));
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
@@ -142,6 +178,7 @@ function AppContent() {
   }, [setActiveTab]);
 
   const [role, setRole] = useState<UserRole>('Owner');
+  const [orgId, setOrgId] = useState<string | null>(null);
 
   const closeMoreMenu = useCallback(() => {
     const fallback: Tab = role === 'Employee' ? 'scan' : 'dashboard';
@@ -150,7 +187,7 @@ function AppContent() {
 
   useEffect(() => {
     if (role === 'Employee') {
-      const allowedEmployeeTabs: Tab[] = ['scan', 'receipts', 'more'];
+      const allowedEmployeeTabs: Tab[] = ['scan', 'receipts', 'mileage', 'more'];
       if (!(allowedEmployeeTabs as readonly Tab[]).includes(activeTab)) {
         setTabWithUrl('scan');
       }
@@ -189,6 +226,13 @@ function AppContent() {
         }
         if (active) {
           setRole(finalRole);
+          if (orgId) {
+            setOrgId(orgId);
+          } else {
+            // After bootstrap org was created, re-fetch org id
+            const { data: newOrgId } = await supabase.rpc('get_user_org');
+            if (newOrgId) setOrgId(newOrgId);
+          }
           setAuthLoading(false);
         }
       } catch (err) {
@@ -315,6 +359,22 @@ function AppContent() {
         e.preventDefault();
         setTabWithUrl('receipts');
       }
+      if (e.key === 'm' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setTabWithUrl('mileage');
+      }
+      if (e.key === 'e' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setTabWithUrl('export');
+      }
+      if (e.key === 'a' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setTabWithUrl('audit');
+      }
+      if (e.key === 'g' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setTabWithUrl('reconcile');
+      }
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -330,8 +390,8 @@ function AppContent() {
     const deltaY = e.changedTouches[0].clientY - touchStartY.current;
     if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
     const tabOrder: Tab[] = role === 'Employee'
-      ? ['receipts', 'scan', 'more']
-      : ['dashboard', 'receipts', 'scan', 'more'];
+      ? ['receipts', 'scan', 'mileage', 'more']
+      : ['dashboard', 'receipts', 'scan', 'mileage', 'export', 'reconcile', 'approvals', 'payables', 'projects', 'audit', 'alerts', 'reports', 'more'];
     const currentIndex = tabOrder.indexOf(activeTab);
     if (currentIndex === -1) return;
     if (deltaX < 0 && currentIndex < tabOrder.length - 1) setTabWithUrl(tabOrder[currentIndex + 1]);
@@ -415,6 +475,60 @@ function AppContent() {
                   setTabWithUrl('receipts');
                 }}
               />
+            </ErrorBoundary>
+          );
+        case 'mileage':
+          return (
+            <ErrorBoundary componentName="MileageTracker">
+              <MileageTracker />
+            </ErrorBoundary>
+          );
+        case 'export':
+          return (
+            <ErrorBoundary componentName="Export">
+              <Export receipts={receipts} />
+            </ErrorBoundary>
+          );
+        case 'reconcile':
+          return (
+            <ErrorBoundary componentName="BankReconciliation">
+              <BankReconciliation receipts={receipts} />
+            </ErrorBoundary>
+          );
+        case 'audit':
+          return (
+            <ErrorBoundary componentName="AuditTrail">
+              <AuditTrail />
+            </ErrorBoundary>
+          );
+        case 'approvals':
+          return (
+            <ErrorBoundary componentName="ApprovalsQueue">
+              <ApprovalsQueue role={role} />
+            </ErrorBoundary>
+          );
+        case 'payables':
+          return (
+            <ErrorBoundary componentName="ReimbursementsPanel">
+              <ReimbursementsPanel role={role} />
+            </ErrorBoundary>
+          );
+        case 'projects':
+          return (
+            <ErrorBoundary componentName="ProjectManager">
+              <ProjectManager />
+            </ErrorBoundary>
+          );
+        case 'alerts':
+          return (
+            <ErrorBoundary componentName="AnomalyDashboard">
+              <AnomalyDashboard />
+            </ErrorBoundary>
+          );
+        case 'reports':
+          return (
+            <ErrorBoundary componentName="ReportsPage">
+              <ReportsPage orgId={orgId ?? ''} />
             </ErrorBoundary>
           );
         case 'more':

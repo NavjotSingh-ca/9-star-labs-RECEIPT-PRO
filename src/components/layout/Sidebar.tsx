@@ -9,6 +9,15 @@ import {
   LayoutDashboard,
   Camera,
   ReceiptText,
+  Route,
+  FileDown,
+  Landmark,
+  ScrollText,
+  Users,
+  Wallet,
+  Building2,
+  BarChart3,
+  AlertTriangle,
   Bell,
   Crown,
   Settings,
@@ -22,7 +31,7 @@ import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import type { UserRole } from '@/lib/types';
 
-type Tab = 'dashboard' | 'receipts' | 'scan' | 'more';
+type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more';
 
 interface SidebarProps {
   activeTab: Tab;
@@ -117,6 +126,27 @@ export default function Sidebar({
       label: 'Records',
       items: [
         { id: 'receipts' as Tab, label: 'Receipts', icon: <ReceiptText className="h-4 w-4" /> },
+        ...(isPrivileged ? [{ id: 'mileage' as Tab, label: 'Mileage', icon: <Route className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'projects' as Tab, label: 'Projects', icon: <Building2 className="h-4 w-4" /> }] : []),
+      ],
+    },
+    {
+      id: 'finance',
+      label: 'Finance',
+      items: [
+        ...(isPrivileged ? [{ id: 'export' as Tab, label: 'Exports', icon: <FileDown className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'reconcile' as Tab, label: 'Banking', icon: <Landmark className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'payables' as Tab, label: 'Payables', icon: <Wallet className="h-4 w-4" /> }] : []),
+      ],
+    },
+    {
+      id: 'oversight',
+      label: 'Oversight',
+      items: [
+        ...(isPrivileged ? [{ id: 'audit' as Tab, label: 'Audit', icon: <ScrollText className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'approvals' as Tab, label: 'Approvals', icon: <Users className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'alerts' as Tab, label: 'Alerts', icon: <AlertTriangle className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'reports' as Tab, label: 'Reports', icon: <BarChart3 className="h-4 w-4" /> }] : []),
       ],
     },
   ];

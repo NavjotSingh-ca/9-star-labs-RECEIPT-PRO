@@ -236,8 +236,23 @@ export default function History({
     }
   };
 
-  const handleBulkExport = () => {
-    toast.info('Bulk export coming soon! For now, please export individual receipts.');
+  const handleBulkExport = async () => {
+    if (selectedIds.length === 0) return;
+    const selected = receipts.filter(r => selectedIds.includes(r.id));
+    const csvRows = [
+      ['Date', 'Vendor', 'Category', 'Amount', 'Tax', 'Status'].join(','),
+      ...selected.map(r =>
+        [r.transaction_date, r.vendor_name, r.category, r.total_amount, r.tax_amount, r.approval_status].join(',')
+      ),
+    ];
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `receipts-export-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${selected.length} receipts as CSV`);
   };
 
   const handleSemanticSearch = async (query: string) => {

@@ -1,7 +1,6 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'sonner';
 import {
   Download,
   Crown,
@@ -11,7 +10,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-type Tab = 'dashboard' | 'receipts' | 'scan' | 'more';
+type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more';
 
 interface MoreSheetProps {
   activeTab: Tab;
@@ -24,6 +23,7 @@ interface MoreSheetProps {
 
 export default function MoreSheet({
   activeTab,
+  onTabChange,
   onClose,
   planLabel,
   plan,
@@ -98,17 +98,17 @@ export default function MoreSheet({
                     label="Privacy Policy (PIPEDA)"
                     href="/privacy"
                   />
-                  {/* Data export is temporarily disabled during stabilization — see LOCKED_FILES.md */}
                   <button
                     type="button"
-                    disabled
-                    onClick={() => toast.info('Data export is being rebuilt. Check back soon.')}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary opacity-50 cursor-not-allowed"
-                    title="Data export temporarily disabled"
+                    onClick={() => {
+                      onTabChange('export');
+                      onClose();
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-hover transition"
+                    title="Export your data"
                   >
                     <Download className="h-4 w-4" />
                     <span>Download My Data (PIPEDA)</span>
-                    <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-surface-raised text-text-muted">Coming Soon</span>
                   </button>
                 </div>
               </div>
