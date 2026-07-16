@@ -118,9 +118,9 @@ function buildCSP(nonce: string): string {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // CI/placeholder mode: skip auth checks to avoid hanging on fake Supabase URL
-  const isPlaceholder = SUPABASE_URL.includes('placeholder') || SUPABASE_ANON_KEY.includes('placeholder');
-  if (process.env.CI === 'true' || isPlaceholder) {
+  // Placeholder mode: skip auth checks to avoid hanging on fake Supabase URL
+  // (CI tests with real mock URLs will pass through to the mocked createServerClient)
+  if (SUPABASE_URL.includes('placeholder') || SUPABASE_ANON_KEY.includes('placeholder')) {
     const resp = NextResponse.next({ request });
     resp.headers.set('x-request-id', generateUUID());
     return resp;
