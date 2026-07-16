@@ -48,8 +48,8 @@ function validateCSRFToken(request: NextRequest): boolean {
   return result === 0;
 }
 
-const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const SUPABASE_ANON_KEY = env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 
 // Page routes accessible without a session. Everything else requires auth.
 const publicPaths = ['/', '/privacy', '/terms', '/auth/callback'];
