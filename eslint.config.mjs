@@ -28,6 +28,8 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     // Build artifacts (compiled JS — not source):
+    "scripts/*.js",
+    "storybook-static/**",
     "storybook-static/**",
     "playwright-report/**",
     "test-results/**",
