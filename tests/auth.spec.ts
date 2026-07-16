@@ -5,12 +5,17 @@ test.describe('Auth page', () => {
     await page.goto('/');
   });
 
-  test('shows sign-in form and brand panel', async ({ page }) => {
+  test('shows landing page with app branding', async ({ page }) => {
     await expect(page.getByText('Leduc Receipt Pro')).toBeVisible();
+    await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
+  });
+
+  test('shows sign-in form after clicking sign in button', async ({ page }) => {
+    await page.getByRole('button', { name: /sign in/i }).click();
     await expect(page.getByText(/AI-powered/i)).toBeVisible();
     await expect(page.getByLabel(/email/i)).toBeVisible();
     await expect(page.getByLabel(/password/i)).toBeVisible();
-    await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^sign in$/i })).toBeVisible();
   });
 
   test('shows forgot password link', async ({ page }) => {
