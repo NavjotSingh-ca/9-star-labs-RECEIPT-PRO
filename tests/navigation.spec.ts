@@ -48,6 +48,6 @@ test.describe('Navigation — mobile (<768px)', () => {
     // Landing page shows first - click "Start Free Trial" because "Sign In" is hidden on mobile
     await page.getByRole('button', { name: /start free trial/i }).first().click();
     await expect(page.getByLabel(/email/i)).toBeVisible({ timeout: 10000 });
-    await expect(page.getByLabel(/password/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('textbox', { name: /password/i })).toBeVisible({ timeout: 10000 });
   });
 });

@@ -59,11 +59,13 @@ export default function AuthScreen({ onBackToLanding }: { onBackToLanding?: () =
   const signinForm = useForm<SignInData>({
     resolver: zodResolver(signinSchema),
     defaultValues: { email: '', password: '', rememberMe: false },
+    mode: 'onBlur',
   });
 
   const signupForm = useForm<SignUpData>({
     resolver: zodResolver(signupSchema),
     defaultValues: { email: '', password: '', inviteCode: '', accepted: false },
+    mode: 'onBlur',
   });
 
   const password = signupForm.watch('password');

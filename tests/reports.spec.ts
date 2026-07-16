@@ -6,7 +6,7 @@ const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || 'TestPass123!';
 async function signIn(page: import('@playwright/test').Page) {
   await page.goto('/');
   await page.getByLabel(/email/i).fill(TEST_EMAIL);
-  await page.getByLabel(/password/i).fill(TEST_PASSWORD);
+  await page.getByRole('textbox', { name: /password/i }).fill(TEST_PASSWORD);
   await page.getByRole('button', { name: /sign in/i }).click();
   await page.waitForURL(/\/dashboard|\/overview|\/\?tab=overview/, { timeout: 15000 });
 }

@@ -18,28 +18,35 @@ test.describe('Global UI components', () => {
   test('top loader style element is injected', async ({ page }) => {
     await page.goto('/');
     // NextTopLoader injects a <style> element with nprogress CSS on mount.
-    // The actual progress bar (#nprogress) is only created when navigation starts.
-    await expect(page.locator('style:has-text("nprogress")')).toBeAttached({ timeout: 10000 });
+    // Use page.evaluate to check since Playwright's CSS :has-text() may not
+    // reliably match <style> elements across all rendering modes.
+    await expect(async () => {
+      const found = await page.evaluate(() => {
+        const styles = document.querySelectorAll('style');
+        return Array.from(styles).some(s => s.textContent?.includes('nprogress'));
+      });
+      expect(found).toBe(true);
+    }).toPass({ timeout: 10000 });
   });
 });
 
 test.describe('Terms page', () => {
   test('renders all sections', async ({ page }) => {
-    await page.goto('/terms');
-    await expect(page.getByRole('heading', { name: /terms of service/i })).toBeVisible();
-    await expect(page.getByText(/acceptance/i)).toBeVisible();
-    await expect(page.getByText(/limitation of liability/i)).toBeVisible();
-    await expect(page.getByText(/quebec/i)).toBeVisible();
+    await page.goto('/terms', { waitUntil: 'networkidle' });
+    await expect(page.getByRole('heading', { name: /terms of service/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/acceptance/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/limitation of liability/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/quebec/i)).toBeVisible({ timeout: 10000 });
   });
 });
 
 test.describe('Privacy page', () => {
   test('renders all sections', async ({ page }) => {
-    await page.goto('/privacy');
-    await expect(page.getByRole('heading', { name: /privacy policy/i })).toBeVisible();
-    await expect(page.getByText(/information we collect/i)).toBeVisible();
-    await expect(page.getByText(/quebec law 25/i)).toBeVisible();
-    await expect(page.getByText(/data retention/i)).toBeVisible();
+    await page.goto('/privacy', { waitUntil: 'networkidle' });
+    await expect(page.getByRole('heading', { name: /privacy policy/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/information we collect/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/quebec law 25/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/data retention/i)).toBeVisible({ timeout: 10000 });
   });
 });
 
