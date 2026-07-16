@@ -1,8 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 // Skip all tests in this file if running in CI (no real Supabase credentials)
-const skipInCI = process.env.CI === 'true';
-const skipIfCI = skipInCI ? test.skip : test;
+const CI = process.env.CI === 'true';
 
 const TEST_EMAIL = process.env.TEST_USER_EMAIL || 'test@leduc-receipt-pro.ca';
 const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || 'TestPass123!';
@@ -16,48 +15,56 @@ async function signIn(page: import('@playwright/test').Page) {
 }
 
 test.describe('Authenticated flows', () => {
-  skipIfCI('signs in successfully and shows dashboard', async ({ page }) => {
+  test('signs in successfully and shows dashboard', async ({ page }) => {
+    test.skip(CI, 'Requires real Supabase credentials');
     await signIn(page);
     await expect(page.getByText(/overview|dashboard|spend|receipts/i).first()).toBeVisible();
   });
 
-  skipIfCI('navigates to Scan page', async ({ page }) => {
+  test('navigates to Scan page', async ({ page }) => {
+    test.skip(CI, 'Requires real Supabase credentials');
     await signIn(page);
     await page.getByRole('link', { name: /scan/i }).first().click();
     await expect(page).toHaveURL(/scan|\?tab=scan/);
   });
 
-  skipIfCI('navigates to Banking page', async ({ page }) => {
+  test('navigates to Banking page', async ({ page }) => {
+    test.skip(CI, 'Requires real Supabase credentials');
     await signIn(page);
     await page.getByRole('link', { name: /banking/i }).first().click();
     await expect(page).toHaveURL(/banking|\?tab=bank/);
   });
 
-  skipIfCI('navigates to Tax Export page', async ({ page }) => {
+  test('navigates to Tax Export page', async ({ page }) => {
+    test.skip(CI, 'Requires real Supabase credentials');
     await signIn(page);
     await page.getByRole('link', { name: /tax/i }).first().click();
     await expect(page).toHaveURL(/tax|\?tab=tax/);
   });
 
-  skipIfCI('navigates to Business page', async ({ page }) => {
+  test('navigates to Business page', async ({ page }) => {
+    test.skip(CI, 'Requires real Supabase credentials');
     await signIn(page);
     await page.getByRole('link', { name: /business/i }).first().click();
     await expect(page).toHaveURL(/business|\?tab=business/);
   });
 
-  skipIfCI('navigates to Audit page', async ({ page }) => {
+  test('navigates to Audit page', async ({ page }) => {
+    test.skip(CI, 'Requires real Supabase credentials');
     await signIn(page);
     await page.getByRole('link', { name: /audit/i }).first().click();
     await expect(page).toHaveURL(/audit|\?tab=audit/);
   });
 
-  skipIfCI('navigates to Alerts page', async ({ page }) => {
+  test('navigates to Alerts page', async ({ page }) => {
+    test.skip(CI, 'Requires real Supabase credentials');
     await signIn(page);
     await page.getByRole('link', { name: /alerts|risk/i }).first().click();
     await expect(page).toHaveURL(/alerts|\?tab=alert/);
   });
 
-  skipIfCI('settings pages are accessible when authenticated', async ({ page }) => {
+  test('settings pages are accessible when authenticated', async ({ page }) => {
+    test.skip(CI, 'Requires real Supabase credentials');
     await signIn(page);
 
     await page.goto('/settings/billing');
@@ -70,14 +77,16 @@ test.describe('Authenticated flows', () => {
     await expect(page).toHaveURL(/settings\/security/);
   });
 
-  skipIfCI('sidebar shows navigation items', async ({ page }) => {
+  test('sidebar shows navigation items', async ({ page }) => {
+    test.skip(CI, 'Requires real Supabase credentials');
     await signIn(page);
     const sidebar = page.locator('nav, aside, [class*="sidebar"]').first();
     await expect(sidebar).toBeVisible();
     await expect(sidebar.getByText(/overview|scan|banking|audit/i).first()).toBeVisible();
   });
 
-  skipIfCI('theme toggle is accessible', async ({ page }) => {
+  test('theme toggle is accessible', async ({ page }) => {
+    test.skip(CI, 'Requires real Supabase credentials');
     await signIn(page);
     const toggle = page.locator('button[title*="theme" i], button[aria-label*="theme" i], [class*="theme-toggle"]').first();
     if (await toggle.isVisible()) {
@@ -86,7 +95,8 @@ test.describe('Authenticated flows', () => {
     }
   });
 
-  skipIfCI('logout redirects to auth page', async ({ page }) => {
+  test('logout redirects to auth page', async ({ page }) => {
+    test.skip(CI, 'Requires real Supabase credentials');
     await signIn(page);
     await page.goto('/logout');
     await page.waitForURL('/', { timeout: 10000 });
@@ -94,7 +104,8 @@ test.describe('Authenticated flows', () => {
     await expect(emailInput).toBeVisible({ timeout: 5000 });
   });
 
-  skipIfCI('KPI cards display numeric values on dashboard', async ({ page }) => {
+  test('KPI cards display numeric values on dashboard', async ({ page }) => {
+    test.skip(CI, 'Requires real Supabase credentials');
     await signIn(page);
 
     const kpiCards = page.locator('[class*="kpi"]:has(p,span,strong), [class*="KPI"]:has(p,span,strong), [class*="stat"]');
