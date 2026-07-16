@@ -45,7 +45,7 @@ export interface AppShellProps {
 
 export default function AppShell({ user, role, orgId, handleSignOut }: AppShellProps) {
   const userId = user.id;
-  const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [activeFilter] = useState<string>('all');
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
   const [showFeatureWizard, setShowFeatureWizard] = useState(false);

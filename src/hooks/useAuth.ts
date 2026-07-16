@@ -14,7 +14,6 @@ export interface AuthState {
   role: UserRole;
   orgId: string | null;
   authLoading: boolean;
-  hasMounted: boolean;
 }
 
 export interface AuthActions {
@@ -23,17 +22,13 @@ export interface AuthActions {
 }
 
 export function useAuth(): AuthState & AuthActions & { showAuth: boolean } {
-  const [hasMounted, setHasMounted] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<UserRole>('Owner');
   const [orgId, setOrgId] = useState<string | null>(null);
   const [showAuth, setShowAuth] = useState(false);
 
-  useEffect(() => { setHasMounted(true); }, []);
-
   useEffect(() => {
-    if (!hasMounted) return;
     let active = true;
     let authResolved = false;
 
@@ -53,7 +48,6 @@ export function useAuth(): AuthState & AuthActions & { showAuth: boolean } {
 
         if (!active) return;
         let finalRole = roleResult;
-        let wasBootstrapped = false;
 
         if (!orgIdResult) {
           const result = await bootstrapOrgAction(currentUser.id);
@@ -62,7 +56,6 @@ export function useAuth(): AuthState & AuthActions & { showAuth: boolean } {
             toast.error('Organization setup failed. Some features may be limited.');
           } else {
             finalRole = await getUserRole(currentUser.id);
-            wasBootstrapped = true;
           }
         }
 
@@ -116,14 +109,14 @@ export function useAuth(): AuthState & AuthActions & { showAuth: boolean } {
         resolveAuth();
       }
     }
-  }, [hasMounted]);
+  }, []);
 
   const handleSignOut = useCallback(async () => {
     await supabase.auth.signOut();
   }, []);
 
   return {
-    user, role, orgId, authLoading, hasMounted,
+    user, role, orgId, authLoading,
     showAuth, setShowAuth,
     handleSignOut,
   };

@@ -36,9 +36,9 @@ function FullPageLoader() {
 }
 
 function AppContent() {
-  const { user, role, orgId, authLoading, hasMounted, showAuth, setShowAuth, handleSignOut } = useAuth();
+  const { user, role, orgId, authLoading, showAuth, setShowAuth, handleSignOut } = useAuth();
 
-  if (authLoading || !hasMounted) return <FullPageLoader />;
+  if (authLoading) return <FullPageLoader />;
   if (!user) {
     if (showAuth) return <AuthScreen onBackToLanding={() => setShowAuth(false)} />;
     return <LandingPage onGetStarted={() => setShowAuth(true)} />;
