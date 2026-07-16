@@ -338,7 +338,11 @@ function AppContent() {
         if (user) {
           resolveUser(user);
         } else {
-          resolveAuth(false);
+          // Auth resolved successfully — the answer is "no user".
+          // The !isResolved logic in resolveAuth(setAuthLoading) means
+          // resolveAuth(false) KEEPS the loading screen on. So we must
+          // call resolveAuth(true) to stop loading and show the landing page.
+          resolveAuth(true);
         }
       }).catch(() => {
         if (active) resolveAuth(true);
@@ -350,7 +354,8 @@ function AppContent() {
           resolveUser(session.user);
         } else {
           setUser(null);
-          resolveAuth(false);
+          // Same as above — auth resolved, user is not authenticated.
+          resolveAuth(true);
         }
       });
       subscription = subResult.subscription;
