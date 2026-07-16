@@ -19,14 +19,17 @@ test.describe('Auth page', () => {
   });
 
   test('shows forgot password link', async ({ page }) => {
+    await page.getByRole('button', { name: /sign in/i }).click();
     await expect(page.getByText(/forgot password/i)).toBeVisible();
   });
 
   test('shows Google OAuth button', async ({ page }) => {
+    await page.getByRole('button', { name: /sign in/i }).click();
     await expect(page.getByText(/google/i)).toBeVisible();
   });
 
   test('shows sign up / sign in toggle', async ({ page }) => {
+    await page.getByRole('button', { name: /sign in/i }).click();
     await expect(page.getByRole('button', { name: /sign up/i })).toBeVisible();
 
     const signUpBtn = page.getByRole('button', { name: /sign up/i });
@@ -39,6 +42,7 @@ test.describe('Auth page', () => {
   });
 
   test('sign-up form has password requirements checklist', async ({ page }) => {
+    await page.getByRole('button', { name: /sign in/i }).click();
     await page.getByRole('button', { name: /sign up/i }).click();
     await expect(page.getByText(/at least 8 characters/i)).toBeVisible();
     await expect(page.getByText(/uppercase/i)).toBeVisible();
@@ -46,6 +50,7 @@ test.describe('Auth page', () => {
   });
 
   test('email validation shows error for invalid email', async ({ page }) => {
+    await page.getByRole('button', { name: /sign in/i }).click();
     const emailInput = page.getByLabel(/email/i);
     await emailInput.fill('not-an-email');
     await emailInput.press('Tab');
@@ -53,6 +58,7 @@ test.describe('Auth page', () => {
   });
 
   test('password show/hide toggle works', async ({ page }) => {
+    await page.getByRole('button', { name: /sign in/i }).click();
     const passwordInput = page.getByLabel(/password/i);
     await passwordInput.fill('TestPass123');
 

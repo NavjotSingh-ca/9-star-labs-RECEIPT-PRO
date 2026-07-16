@@ -11,7 +11,7 @@ test.describe('Navigation — logged-out layout', () => {
 
   test('page has proper lang attribute', async ({ page }) => {
     const html = page.locator('html');
-    await expect(html).toHaveAttribute('lang', 'en');
+    await expect(html).toHaveAttribute('lang', 'en-CA');
   });
 
   test('viewport meta tag exists', async ({ page }) => {
@@ -45,6 +45,8 @@ test.describe('Navigation — mobile (<768px)', () => {
 
   test('mobile viewport renders correctly', async ({ page }) => {
     await page.goto('/');
+    // Landing page shows first - need to click sign in
+    await page.getByRole('button', { name: /sign in/i }).click();
     await expect(page.getByLabel(/email/i)).toBeVisible();
     await expect(page.getByLabel(/password/i)).toBeVisible();
   });

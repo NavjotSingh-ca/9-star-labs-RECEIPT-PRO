@@ -17,6 +17,8 @@ test.describe('Accessibility Audit', () => {
   });
 
   test('auth page accessibility', async ({ page }) => {
+    // Click Sign In to show auth screen (landing page shows first when not authenticated)
+    await page.getByRole('button', { name: /sign in/i }).click();
     // Check if AuthScreen is visible - mode is signin by default, so "Welcome back"
     const authHeading = page.getByRole('heading', { name: /welcome back/i });
     await expect(authHeading).toBeVisible();
