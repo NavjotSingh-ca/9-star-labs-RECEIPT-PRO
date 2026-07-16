@@ -6,7 +6,9 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git push *)",
-      "Bash(taskkill *)"
+      "Bash(taskkill *)",
+      "Bash(curl -s https://openrouter.ai/api/v1/models)",
+      "Bash(node *)"
     ]
   }
 }
