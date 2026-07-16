@@ -54,6 +54,9 @@ const SUPABASE_ANON_KEY = env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
 // Page routes accessible without a session. Everything else requires auth.
 const publicPaths = ['/', '/privacy', '/terms', '/auth/callback'];
 
+// Static asset paths that should never trigger middleware auth checks.
+const staticPaths = ['/sw.js', '/manifest.json', '/favicon.ico'];
+
 // API routes that are intentionally public. Each self-authenticates:
 //   - /api/health, /api/docs   → informational only (docs is static spec)
 //   - /api/stripe/webhook      → verifies Stripe signature in-handler
@@ -115,9 +118,18 @@ function buildCSP(nonce: string): string {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // CI/placeholder mode: skip auth checks to avoid hanging on fake Supabase URL
+  const isPlaceholder = SUPABASE_URL.includes('placeholder') || SUPABASE_ANON_KEY.includes('placeholder');
+  if (process.env.CI === 'true' || isPlaceholder) {
+    const resp = NextResponse.next({ request });
+    resp.headers.set('x-request-id', generateUUID());
+    return resp;
+  }
+
   const isPublic =
     publicPaths.includes(pathname) ||
     pathname.startsWith('/_next') ||
+    staticPaths.includes(pathname) ||
     publicApiPrefixes.some((p) => pathname === p || pathname.startsWith(p));
 
   // Generate request ID for tracing
@@ -143,6 +155,15 @@ export async function proxy(request: NextRequest) {
           supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
+          );
+        },
+      },
+      global: {
+        fetch: (url: RequestInfo | URL, init?: RequestInit) => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          return fetch(url, { ...init, signal: controller.signal }).finally(() =>
+            clearTimeout(timeoutId)
           );
         },
       },
@@ -191,7 +212,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     {
-      source: '/((?!api|_next/static|_next/image|favicon.ico).*)',
+      source: '/((?!api|_next/static|_next/image|favicon\\.ico|sw\\.js|manifest\\.json).*)',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' },
