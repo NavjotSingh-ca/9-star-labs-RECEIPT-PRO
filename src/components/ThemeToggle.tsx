@@ -5,6 +5,10 @@ import { useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+/**
+ * ThemeToggle — Dark/light mode toggle with animated Sun/Moon icon swap.
+ * Uses next-themes `useTheme` hook. Shows placeholder skeleton until mounted (hydration safety).
+ */
 export function ThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -35,7 +39,7 @@ export function ThemeToggle() {
             initial={{ scale: 0, opacity: 0, rotate: -90 }}
             animate={{ scale: 1, opacity: 1, rotate: 0 }}
             exit={{ scale: 0, opacity: 0, rotate: 90 }}
-            transition={{ duration: 0.2 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20, mass: 0.5 }}
           >
             <Moon className="h-5 w-5" />
           </motion.div>
@@ -45,7 +49,7 @@ export function ThemeToggle() {
             initial={{ scale: 0, opacity: 0, rotate: 90 }}
             animate={{ scale: 1, opacity: 1, rotate: 0 }}
             exit={{ scale: 0, opacity: 0, rotate: -90 }}
-            transition={{ duration: 0.2 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20, mass: 0.5 }}
           >
             <Sun className="h-5 w-5" />
           </motion.div>

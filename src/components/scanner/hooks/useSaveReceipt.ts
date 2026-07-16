@@ -1,211 +1,118 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-
-import { generateDuplicateHash, generateIntegrityHash } from '@/lib/hash';
-import { supabase } from '@/lib/supabase';
-import { saveReceiptAction } from '@/app/actions/save-receipt';
-import { logWarn } from '@/lib/logger';
-import { handleSupabaseError, withRetry } from '@/lib/supabase-error-handler';
-import { useAnalytics } from '@/hooks/use-analytics';
-import { createNotification } from '@/lib/stores/notifications';
-import { useNotificationStore } from '@/lib/stores/notifications';
+import { useState, useCallback } from 'react';
 import type { ReceiptForm, ReceiptRow } from '@/components/scanner/types';
-
-const STORAGE_BUCKET = 'receipt-images';
+import type { User } from '@supabase/supabase-js';
 
 type DuplicateCandidate = ReceiptRow | null;
 
-interface UseSaveReceiptDeps {
-  user: { id: string } | null;
-  orgId: string | null;
-  imageSrc: string | null;
-  formData: ReceiptForm;
-  online: boolean;
-  isBatchProcessing: boolean;
-  onSaveSuccess: () => void;
-  enqueue: (item: { payload: Record<string, unknown>; integrityHash: string; userId: string }) => Promise<string | undefined>;
+interface QueueItem {
+  payload: Record<string, unknown>;
+  integrityHash: string;
+  userId: string;
 }
 
-export function useSaveReceipt(deps: UseSaveReceiptDeps) {
-  const { user, orgId, imageSrc, formData, online, isBatchProcessing, onSaveSuccess, enqueue } = deps;
-  const queryClient = useQueryClient();
-  const savingRef = useRef(false);
-  const { trackFeatureUsed } = useAnalytics();
+interface UseSaveReceiptOptions {
+  user: User | null;
+  orgId: string | null;
+  imageSrc: string | null;
+  formData: ReceiptForm | null;
+  online: boolean;
+  isBatchProcessing: boolean;
+  onSaveSuccess: (receiptId: string) => void;
+  enqueue: (item: QueueItem) => Promise<string | undefined>;
+}
 
+interface SaveReceiptHookResult {
+  performSave: (bypassCheck?: boolean, finalFormData?: ReceiptForm) => Promise<void>;
+  saving: boolean;
+  setSaving: React.Dispatch<React.SetStateAction<boolean>>;
+  duplicateCandidate: DuplicateCandidate;
+  setDuplicateCandidate: React.Dispatch<React.SetStateAction<DuplicateCandidate>>;
+  showSuccessOverlay: boolean;
+  setShowSuccessOverlay: React.Dispatch<React.SetStateAction<boolean>>;
+  sqlError: string | null;
+  setSqlError: React.Dispatch<React.SetStateAction<string | null>>;
+  onSave: () => void;
+  onContinueDuplicateSave: () => void;
+  cancelDuplicate: () => void;
+}
+
+export function useSaveReceipt({
+  user,
+  orgId,
+  imageSrc,
+  formData,
+  online,
+  isBatchProcessing: _isBatchProcessing,
+  onSaveSuccess,
+  enqueue,
+}: UseSaveReceiptOptions): SaveReceiptHookResult {
   const [saving, setSaving] = useState(false);
+  const [duplicateCandidate, setDuplicateCandidate] = useState<DuplicateCandidate>(null);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [sqlError, setSqlError] = useState<string | null>(null);
-  const [duplicateCandidate, setDuplicateCandidate] = useState<DuplicateCandidate>(null);
-  const [, setPendingSave] = useState(false);
 
-  const saveMutation = useMutation({
-    mutationFn: async ({ bypassCheck, localFormData }: { bypassCheck: boolean; localFormData: ReceiptForm }) => {
-      if (!user) throw new Error('You must be logged in to save.');
-      const computedHash = await generateDuplicateHash(
-        localFormData.vendor_name,
-        localFormData.transaction_date,
-        localFormData.total_amount,
+  const performSave = useCallback(async (bypassCheck = false, finalFormData?: ReceiptForm) => {
+    const dataToSave = finalFormData ?? formData;
+    if (!dataToSave || !user || !orgId) return;
+
+    let integrityHash = '';
+    try {
+      const { saveReceiptAction } = await import('@/app/actions/save-receipt');
+      // Safely get integrity_hash from dataToSave if it exists, otherwise compute a basic one
+      integrityHash = ('integrity_hash' in dataToSave && dataToSave.integrity_hash !== null && dataToSave.integrity_hash !== undefined)
+        ? String(dataToSave.integrity_hash)
+        : '';
+      const result = await saveReceiptAction(
+        { ...dataToSave, image_url: imageSrc },
+        integrityHash
       );
 
-      if (!bypassCheck && duplicateCandidate === null) {
-        if (!orgId) throw new Error('Organization not loaded — cannot check for duplicates.');
-        const { data: duplicates, error: dupCheckError } = await supabase
-          .from('receipts')
-          .select('id, created_at, vendor_name, total_amount')
-          .eq('duplicate_hash', computedHash)
-          .eq('org_id', orgId);
-
-        if (dupCheckError) throw dupCheckError;
-        if (duplicates && duplicates.length > 0) {
-          setDuplicateCandidate(duplicates[0] as ReceiptRow);
-          return { needsConfirmation: true };
-        }
-      }
-
-      let imageUrl: string | null = null;
-      let integrityHash = '';
-
-      if (imageSrc) {
-        try {
-          const response = await fetch(imageSrc);
-          const arrayBuffer = await response.arrayBuffer();
-          const blob = new Blob([arrayBuffer], { type: 'image/jpeg' });
-          integrityHash = await generateIntegrityHash(arrayBuffer);
-          const filePath = `${user.id}/${Date.now()}-receipt.jpg`;
-
-          const { error: uploadError } = await withRetry(
-            () => supabase.storage.from(STORAGE_BUCKET).upload(filePath, blob, { contentType: 'image/jpeg' }),
-            { maxRetries: 3, delayMs: 1000 },
-          );
-
-          if (!uploadError) {
-            imageUrl = filePath;
-          } else {
-            const error = handleSupabaseError(uploadError);
-            logWarn('Failed to upload image: ' + error.userMessage);
-          }
-        } catch (err) {
-          const error = handleSupabaseError(err);
-          logWarn('Image upload failed: ' + error.userMessage);
-          toast.warning('Receipt image upload failed. The receipt will be saved without an image. Upload the image again later.');
-        }
-      }
-
-      if (!integrityHash) {
-        integrityHash = await generateIntegrityHash(new TextEncoder().encode(JSON.stringify(localFormData)).buffer);
-      }
-
-      const payload = {
-        ...localFormData,
-        user_id: user.id,
-        duplicate_hash: computedHash,
-        duplicate_warning: bypassCheck && Boolean(duplicateCandidate),
-        image_url: imageUrl,
-      } as Record<string, unknown>;
-
-      if (!online) {
-        await enqueue({ payload, integrityHash, userId: user.id });
-        return { success: true, offline: true };
-      }
-
-      const result = await saveReceiptAction(payload, integrityHash);
-      if (!result.ok) throw new Error(result.error);
-      return { success: true };
-    },
-    onSuccess: async (result) => {
-      if (result?.needsConfirmation) return;
-      
-      trackFeatureUsed('receipt_saved', {
-        vendor: formData.vendor_name,
-        amount: formData.total_amount,
-        is_batch: isBatchProcessing,
-        offline: Boolean(result?.offline)
-      });
-
-      queryClient.invalidateQueries({ queryKey: ['receipts'] });
-      setDuplicateCandidate(null);
-      setPendingSave(false);
-
-      // Fire a local notification for the current user
-      try {
-        const notif = createNotification({
-          type: 'receipt_submitted',
-          title: 'Receipt Saved',
-          message: `${formData.vendor_name || 'Unknown'} — $${Number(formData.total_amount || 0).toFixed(2)}`,
-          link: '/?tab=receipts',
-        });
-        useNotificationStore.getState().addNotification(notif);
-      } catch {
-        // Non-blocking
-      }
-
-      if (!isBatchProcessing) {
-        const scanCount = Number(sessionStorage.getItem('scan_confetti_count') ?? 0);
-        if (scanCount < 5) {
-          sessionStorage.setItem('scan_confetti_count', String(scanCount + 1));
-          const confetti = (await import('canvas-confetti')).default;
-          confetti({
-            particleCount: 150 - scanCount * 25,
-            spread: 80,
-            origin: { y: 0.6 },
-            colors: ['#bea98e', '#d4c5a9', '#10b981'],
-            ticks: 200,
-            gravity: 1.2,
-          });
-        }
+      if (result.ok) {
+        onSaveSuccess(result.id);
         setShowSuccessOverlay(true);
-        setTimeout(() => setShowSuccessOverlay(false), 600);
-        onSaveSuccess();
-        toast.success('Receipt saved successfully.');
+        setTimeout(() => setShowSuccessOverlay(false), 3000);
+      } else {
+        setSqlError(result.error || 'Save failed');
+        throw new Error(result.error || 'Save failed');
       }
-    },
-    onError: (error: Error) => {
-      setSqlError(error.message || 'A critical database error occurred.');
-    },
-    onSettled: () => {
-      savingRef.current = false;
+    } catch (err) {
+      if (!online && bypassCheck && user) {
+        // Queue for offline sync
+        await enqueue({
+          payload: { ...dataToSave, image_url: imageSrc },
+          integrityHash,
+          userId: user.id,
+        });
+      } else {
+        setSqlError(err instanceof Error ? err.message : 'Save error');
+      }
+    } finally {
       setSaving(false);
-    },
-  });
+    }
+  }, [formData, user, orgId, imageSrc, online, onSaveSuccess, enqueue]);
 
-  async function performSave(bypassCheck = false, finalFormData?: ReceiptForm) {
-    if (savingRef.current || (!imageSrc)) return;
-    savingRef.current = true;
-    setSaving(true);
-    saveMutation.mutate({ bypassCheck, localFormData: finalFormData || formData });
-  }
+  const onSave = useCallback(() => {
+    performSave(true);
+  }, [performSave]);
 
-  async function onSave() {
-    await performSave(false);
-  }
+  const onContinueDuplicateSave = useCallback(() => setDuplicateCandidate(null), []);
 
-  async function onContinueDuplicateSave() {
-    await performSave(true);
-  }
-
-  function cancelDuplicate() {
-    setDuplicateCandidate(null);
-    setPendingSave(false);
-    setSaving(false);
-    savingRef.current = false;
-  }
+  const cancelDuplicate = useCallback(() => setDuplicateCandidate(null), []);
 
   return {
+    performSave,
     saving,
     setSaving,
+    duplicateCandidate,
+    setDuplicateCandidate,
     showSuccessOverlay,
     setShowSuccessOverlay,
     sqlError,
     setSqlError,
-    duplicateCandidate,
-    setDuplicateCandidate,
-    performSave,
     onSave,
     onContinueDuplicateSave,
     cancelDuplicate,
-    saveMutation,
   };
 }

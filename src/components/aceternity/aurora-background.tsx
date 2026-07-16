@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 interface AuroraBackgroundProps extends React.HTMLProps<HTMLDivElement> {
@@ -16,7 +16,7 @@ export const AuroraBackground = ({
     <main>
       <div
         className={cn(
-          "relative flex flex-col h-[100vh] items-center justify-center bg-zinc-50 dark:bg-zinc-900 text-slate-950 transition-bg",
+          "relative flex flex-col h-[100vh] items-center justify-center bg-obsidian text-text-primary transition-bg",
           className
         )}
         {...props}
@@ -25,9 +25,9 @@ export const AuroraBackground = ({
           <div
             className={cn(
               `
-              [--white-gradient:repeating-linear-gradient(100deg,var(--white)_0%,var(--white)_7%,var(--transparent)_10%,var(--transparent)_12%,var(--white)_16%)]
-              [--dark-gradient:repeating-linear-gradient(100deg,var(--black)_0%,var(--black)_7%,var(--transparent)_10%,var(--transparent)_12%,var(--black)_16%)]
-              [--aurora:repeating-linear-gradient(100deg,var(--blue-500)_10%,var(--indigo-300)_15%,var(--blue-300)_20%,var(--violet-200)_25%,var(--blue-400)_30%)]
+              [--white-gradient:repeating-linear-gradient(100deg,var(--surface)_0%,var(--surface)_7%,transparent_10%,transparent_12%,var(--surface)_16%)]
+              [--dark-gradient:repeating-linear-gradient(100deg,var(--sidebar-bg)_0%,var(--sidebar-bg)_7%,transparent_10%,transparent_12%,var(--sidebar-bg)_16%)]
+              [--aurora:repeating-linear-gradient(100deg,var(--champagne-light)_10%,var(--champagne)_15%,var(--champagne-dim)_20%,var(--champagne-light)_25%,var(--champagne)_30%)]
               [--aurora-dark:repeating-linear-gradient(100deg,#bea98e_10%,#dccba8_15%,#685743_20%,#bea98e_25%,#e5ded0_30%)]
               [background-image:var(--white-gradient),var(--aurora)]
               dark:[background-image:var(--dark-gradient),var(--aurora-dark)]
@@ -41,9 +41,9 @@ export const AuroraBackground = ({
               pointer-events-none
               absolute -inset-[10px] opacity-50 will-change-transform`,
               showRadialGradient &&
-                `[mask-image:radial-gradient(ellipse_at_100%_0%,black_10%,var(--transparent)_70%)]`
+                `[mask-image:radial-gradient(ellipse_at_100%_0%,black_10%,transparent_70%)]`
             )}
-          ></div>
+          />
         </div>
         {children}
       </div>

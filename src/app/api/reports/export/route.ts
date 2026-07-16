@@ -5,6 +5,15 @@ import { getOrgIdString } from '@/lib/supabase';
 import { logError } from '@/lib/logger';
 import type { Metric } from '@/lib/services/reports';
 
+/**
+ * POST /api/reports/export
+ *
+ * Generates a report and returns it in CSV or JSON format.
+ * Body: { config: ReportConfig, format?: 'csv' | 'json' }
+ *
+ * CSV output includes readable headers via METRIC_LABELS and formatted values.
+ * Rate limited: 20 requests per 60s.
+ */
 async function POST(request: Request) {
   try {
     // Auth gate — `generateReport` is org-scoped via get_user_org(), which

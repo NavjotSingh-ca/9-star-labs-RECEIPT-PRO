@@ -25,38 +25,33 @@ async function* jsonChunks(
   yield `"app":${JSON.stringify(APP_NAME)},\n`;
   yield `"user":${JSON.stringify({ id: user.id, email: user.email, created_at: user.created_at })},\n`;
 
-  const receiptsPromise = supabase
-    .from('receipts')
-    .select('id,user_id,org_id,vendor_name,total_amount,cad_equivalent,currency,tax_amount,pst_amount,category,transaction_date,receipt_url,description,approval_status,paid_by,payment_account,payment_date,reimbursement_status,business_unit_id,project_id,is_deleted,duplicate_hash,flagged_audit,comment')
-    .eq('user_id', user.id);
+  const receiptsPromise = userOrgId
+    ? supabase.from('receipts').select('id,user_id,org_id,vendor_name,total_amount,cad_equivalent,currency,tax_amount,pst_amount,category,transaction_date,receipt_url,description,approval_status,paid_by,payment_account,payment_date,reimbursement_status,business_unit_id,project_id,is_deleted,duplicate_hash,flagged_audit,comment').eq('org_id', userOrgId).eq('user_id', user.id)
+    : supabase.from('receipts').select('id').limit(0);
 
   const unitsPromise = userOrgId
     ? supabase.from('business_units').select('id,org_id,name,code').eq('org_id', userOrgId)
     : supabase.from('business_units').select('id').limit(0);
 
-  const auditPromise = supabase
-    .from('audit_logs')
-    .select('id,user_id,org_id,action,entity_type,entity_id,details,created_at')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(500);
+  const auditPromise = userOrgId
+    ? supabase.from('audit_logs').select('id,user_id,org_id,action,entity_type,entity_id,details,created_at').eq('org_id', userOrgId).eq('user_id', user.id).order('created_at', { ascending: false }).limit(500)
+    : supabase.from('audit_logs').select('id').limit(0);
 
   const mileagePromise = userOrgId
-    ? supabase.from('mileage_logs').select('id,user_id,org_id,trip_date,purpose,distance_km,total_amount,vehicle_id,notes').eq('user_id', user.id)
+    ? supabase.from('mileage_logs').select('id,user_id,org_id,trip_date,purpose,distance_km,total_amount,vehicle_id,notes').eq('org_id', userOrgId).eq('user_id', user.id)
     : supabase.from('mileage_logs').select('id').limit(0);
 
   const vehiclesPromise = userOrgId
-    ? supabase.from('vehicles').select('id,user_id,org_id,nickname,make,model,year,plate,is_default').eq('user_id', user.id)
+    ? supabase.from('vehicles').select('id,user_id,org_id,nickname,make,model,year,plate,is_default').eq('org_id', userOrgId).eq('user_id', user.id)
     : supabase.from('vehicles').select('id').limit(0);
 
   const projectsPromise = userOrgId
-    ? supabase.from('projects').select('id,user_id,org_id,name,description,budget,start_date,end_date,status').eq('user_id', user.id)
+    ? supabase.from('projects').select('id,user_id,org_id,name,description,budget,start_date,end_date,status').eq('org_id', userOrgId).eq('user_id', user.id)
     : supabase.from('projects').select('id').limit(0);
 
-  const commentsPromise = supabase
-    .from('receipt_comments')
-    .select('id,receipt_id,user_id,content,created_at')
-    .eq('user_id', user.id);
+  const commentsPromise = userOrgId
+    ? supabase.from('receipt_comments').select('id,receipt_id,user_id,content,created_at').eq('org_id', userOrgId).eq('user_id', user.id)
+    : supabase.from('receipt_comments').select('id').limit(0);
 
   const subscriptionsPromise = userOrgId
     ? supabase.from('subscriptions').select('id,org_id,plan_type,status,current_period_start,current_period_end,stripe_subscription_id').eq('org_id', userOrgId).single()
@@ -97,6 +92,15 @@ async function* jsonChunks(
   yield '}';
 }
 
+/**
+ * GET /api/export/data
+ * 
+ * Streams all user data as a JSON file (receipts, business units, audit logs,
+ * mileage logs, vehicles, projects, comments, subscriptions).
+ * 
+ * Requires a valid Bearer token. Uses ReadableStream to avoid Lambda memory limits.
+ * Rate limited: 5 requests per 120s.
+ */
 async function exportHandler(request: Request): Promise<Response> {
   try {
     const authHeader = request.headers.get('Authorization');

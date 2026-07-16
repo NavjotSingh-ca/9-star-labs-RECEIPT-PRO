@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS user_roles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
   org_id uuid REFERENCES organizations(id) ON DELETE CASCADE,
-  role text NOT NULL DEFAULT 'Employee' CHECK (role IN ('Owner','Employee','Accountant')),
+  role text NOT NULL DEFAULT 'Employee' CHECK (role IN ('Owner','Employee','Accountant','Admin','Auditor')),
   invited_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at timestamptz DEFAULT now(),
   CONSTRAINT uniq_user_role UNIQUE (user_id)
@@ -89,7 +89,7 @@ STABLE
 AS $$
   SELECT EXISTS (
     SELECT 1 FROM user_roles
-    WHERE user_id = auth.uid() AND role IN ('Owner', 'Accountant')
+    WHERE user_id = auth.uid() AND role IN ('Owner', 'Accountant', 'Admin')
   );
 $$;
 
@@ -457,6 +457,7 @@ ALTER TABLE processed_webhook_events ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
   CREATE POLICY "Select_Org" ON organizations FOR SELECT USING (id = get_user_org());
+  CREATE POLICY "Insert_Org" ON organizations FOR INSERT WITH CHECK (true); -- Service role inserts via bootstrap
   CREATE POLICY "Select_Roles" ON user_roles FOR SELECT USING (org_id = get_user_org());
   CREATE POLICY "Select_BU" ON business_units FOR SELECT USING (org_id = get_user_org());
   CREATE POLICY "Insert_BU" ON business_units FOR ALL USING (org_id = get_user_org());
@@ -579,10 +580,13 @@ $$;
 
 CREATE OR REPLACE FUNCTION bootstrap_first_user_org(p_user_id uuid, p_org_name text)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
-DECLARE v_org_id uuid;
+DECLARE v_org_id uuid; v_slug text;
 BEGIN
   IF EXISTS (SELECT 1 FROM user_roles WHERE user_id = p_user_id) THEN RETURN; END IF;
-  INSERT INTO organizations (name) VALUES (p_org_name) RETURNING id INTO v_org_id;
+  -- Generate a URL-safe slug from the org name
+  v_slug := lower(regexp_replace(regexp_replace(p_org_name, '[^a-zA-Z0-9\s-]', '', 'g'), '\s+', '-', 'g'));
+  IF length(v_slug) > 50 THEN v_slug := left(v_slug, 50); END IF;
+  INSERT INTO organizations (name, org_slug) VALUES (p_org_name, v_slug) RETURNING id INTO v_org_id;
   INSERT INTO user_roles (user_id, org_id, role) VALUES (p_user_id, v_org_id, 'Owner');
 END;
 $$;
@@ -720,6 +724,52 @@ $$;
 CREATE OR REPLACE FUNCTION get_user_email(p_user_id uuid)
 RETURNS TABLE (email varchar) LANGUAGE sql SECURITY DEFINER STABLE AS $$
   SELECT email::varchar FROM auth.users WHERE id = p_user_id;
+$$;
+
+-- ─── Bulk approval RPC (atomic batch update with audit log) ───
+CREATE OR REPLACE FUNCTION bulk_approve_receipts(
+  p_receipt_ids uuid[],
+  p_status text,
+  p_user_id uuid
+) RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_org_id uuid;
+  v_role text;
+  v_updated integer;
+BEGIN
+  -- Verify user has permission (Owner or Accountant)
+  SELECT role INTO v_role FROM user_roles WHERE user_id = p_user_id LIMIT 1;
+  IF v_role NOT IN ('Owner', 'Accountant') THEN
+    RAISE EXCEPTION 'Unauthorized: only Owners and Accountants can approve receipts';
+  END IF;
+  
+  -- Get user's org
+  SELECT org_id INTO v_org_id FROM user_roles WHERE user_id = p_user_id LIMIT 1;
+  IF v_org_id IS NULL THEN
+    RAISE EXCEPTION 'No organization found for user';
+  END IF;
+  
+  -- Atomic bulk update
+  UPDATE receipts
+  SET approval_status = p_status,
+      updated_at = now()
+  WHERE id = ANY(p_receipt_ids)
+    AND org_id = v_org_id
+    AND is_deleted = false;
+  
+  GET DIAGNOSTICS v_updated = ROW_COUNT;
+  
+  -- Audit log
+  INSERT INTO audit_logs (user_id, org_id, action, details)
+  VALUES (p_user_id, v_org_id, 'bulk_' || p_status, 
+          'Bulk ' || p_status || ': ' || v_updated || ' receipts by ' || p_user_id);
+  
+  RETURN v_updated;
+END;
 $$;
 
 -- ─── Report generation RPC ───
@@ -963,6 +1013,16 @@ CREATE INDEX IF NOT EXISTS idx_receipts_high_confidence ON receipts(org_id) WHER
 CREATE INDEX IF NOT EXISTS idx_receipts_missing_bn ON receipts(org_id) WHERE vendor_tax_number IS NULL AND is_deleted = false;
 CREATE INDEX IF NOT EXISTS idx_receipts_reimbursement ON receipts(org_id) WHERE paid_by = 'employee_cash' AND needs_reimbursement = true AND is_deleted = false;
 CREATE INDEX IF NOT EXISTS idx_receipts_vendor_fts ON receipts USING gin(to_tsvector('english', coalesce(vendor_name, '')));
+
+-- Composite indexes for common query patterns (performance optimization)
+-- Main receipts list: org_id + is_deleted + user_id + transaction_date (for non-elevated users)
+CREATE INDEX IF NOT EXISTS idx_receipts_org_user_date ON receipts(org_id, is_deleted, user_id, transaction_date);
+-- Receipts ordered by date then created_at (for paginated lists)
+CREATE INDEX IF NOT EXISTS idx_receipts_org_date_created ON receipts(org_id, is_deleted, transaction_date, created_at);
+-- Receipts filtered by category + date range
+CREATE INDEX IF NOT EXISTS idx_receipts_org_category_date ON receipts(org_id, is_deleted, category, transaction_date);
+-- Receipts filtered by approval status + date range
+CREATE INDEX IF NOT EXISTS idx_receipts_org_status_date ON receipts(org_id, is_deleted, approval_status, transaction_date);
 
 -- Report engine indexes
 CREATE INDEX IF NOT EXISTS idx_report_templates_org_id ON report_templates(org_id);

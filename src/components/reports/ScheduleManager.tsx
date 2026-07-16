@@ -5,21 +5,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Clock, Bell, Trash2, Power, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useOrgSchedules, useCreateSchedule, useUpdateSchedule, useDeleteSchedule } from '@/hooks/useReports';
 
 interface Props {
+  /** Organization ID for scoping schedules */
   orgId: string;
 }
 
 export function ScheduleManager({ orgId }: Props) {
   const { data, isLoading } = useOrgSchedules(orgId);
-  const createMutation = useCreateSchedule();
   const updateMutation = useUpdateSchedule();
   const deleteMutation = useDeleteSchedule();
   const [showCreate, setShowCreate] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const schedules = data ?? [];
 
@@ -81,7 +82,7 @@ export function ScheduleManager({ orgId }: Props) {
                     <Power className="h-3.5 w-3.5" />
                   </button>
                   <button
-                    onClick={() => { if (confirm('Delete this schedule?')) deleteMutation.mutate(schedule.id); }}
+                    onClick={() => setDeleteTarget(schedule.id)}
                     className="p-1.5 rounded-md hover:bg-danger/10 text-text-muted hover:text-danger transition-colors"
                     title="Delete schedule"
                   >
@@ -99,6 +100,33 @@ export function ScheduleManager({ orgId }: Props) {
         onClose={() => setShowCreate(false)}
         orgId={orgId}
       />
+
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Schedule</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this scheduled report. You can create a new schedule later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel render={<Button variant="outline" />} />
+            <AlertDialogAction
+              disabled={deleteMutation.isPending}
+              render={<Button variant="destructive" />}
+              onClick={() => {
+                if (deleteTarget) {
+                  deleteMutation.mutate(deleteTarget);
+                  setDeleteTarget(null);
+                }
+              }}
+            >
+              {deleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -247,7 +247,6 @@ describe('getCustomTemplates', () => {
 
   it('returns formatted custom templates', async () => {
     const { supabase } = await import('@/lib/supabase');
-    const mockOrder = supabase.from('report_templates').select('id, name, config, created_at').eq('test-org-id', undefined).order as ReturnType<typeof vi.fn>;
     // Re-mock for this test
     const mockFrom = supabase.from as ReturnType<typeof vi.fn>;
     mockFrom.mockReturnValue({
@@ -317,10 +316,11 @@ describe('saveCustomTemplate', () => {
 });
 
 describe('deleteCustomTemplate', () => {
-  it('calls delete with template id', async () => {
+  it('calls delete with template id and org scoping', async () => {
     const { supabase } = await import('@/lib/supabase');
-    const eqSpy = vi.fn().mockResolvedValue({ error: null });
-    const deleteSpy = vi.fn(() => ({ eq: eqSpy }));
+    const eqOrgSpy = vi.fn().mockResolvedValue({ error: null });
+    const eqIdSpy = vi.fn(() => ({ eq: eqOrgSpy }));
+    const deleteSpy = vi.fn(() => ({ eq: eqIdSpy }));
     (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
@@ -334,6 +334,7 @@ describe('deleteCustomTemplate', () => {
     await deleteCustomTemplate('template-1');
     expect(supabase.from).toHaveBeenCalledWith('report_templates');
     expect(deleteSpy).toHaveBeenCalled();
-    expect(eqSpy).toHaveBeenCalledWith('id', 'template-1');
+    expect(eqIdSpy).toHaveBeenCalledWith('id', 'template-1');
+    expect(eqOrgSpy).toHaveBeenCalledWith('org_id', 'test-org-id');
   });
 });

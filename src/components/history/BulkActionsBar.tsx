@@ -7,12 +7,19 @@ import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface BulkActionsBarProps {
+  /** Number of currently selected items */
   selectedCount: number;
+  /** Approve all selected receipts */
   onApprove: () => void;
+  /** Reject all selected receipts */
   onReject: () => void;
+  /** Delete all selected receipts */
   onDelete: () => void;
+  /** Export selected receipts */
   onExport: () => void;
+  /** Whether a bulk action is in progress */
   isLoading?: boolean;
+  /** Clear all selections */
   onClear: () => void;
 }
 

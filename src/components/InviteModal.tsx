@@ -11,6 +11,11 @@ interface InviteModalProps {
   businessUnits: { id: string; name: string }[];
 }
 
+/**
+ * InviteModal — Generate 6-digit access codes for inviting team members.
+ * Supports role selection (Employee/Accountant) and optional business unit assignment.
+ * Displays generated code with copy-to-clipboard. Codes expire in 24h (server-side).
+ */
 export default function InviteModal({ onClose, businessUnits }: InviteModalProps) {
   const [role, setRole] = useState<UserRole>('Employee');
   const [businessUnitId, setBusinessUnitId] = useState('');

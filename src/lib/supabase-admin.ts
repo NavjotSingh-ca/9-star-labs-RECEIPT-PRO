@@ -29,3 +29,11 @@ export const supabaseAdmin = new Proxy<SupabaseClient>({} as SupabaseClient, {
     return getClient()[prop];
   },
 });
+
+/**
+ * Create an admin client for webhook processing (uses service role key)
+ * This is the same as supabaseAdmin but with explicit naming for clarity
+ */
+export function createWebhookAdminClient(): SupabaseClient {
+  return getClient();
+}

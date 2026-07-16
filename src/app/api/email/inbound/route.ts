@@ -3,6 +3,7 @@ import { supabaseAdmin as supabaseServiceRole } from '@/lib/supabase-admin';
 import { env } from '@/lib/env';
 import { logError, logInfo } from '@/lib/logger';
 import { sanitizeFilename } from '@/lib/sanitization';
+import { withRateLimit } from '@/lib/rate-limiter';
 import crypto from 'crypto';
 import { z } from 'zod';
 
@@ -38,7 +39,18 @@ function verifySignature(payload: string, signature: string, secret: string) {
   }
 }
 
-export async function POST(request: Request) {
+/**
+ * POST /api/email/inbound
+ *
+ * Receives inbound emails via Resend webhook. Supports the receipts+{slug}@
+ * addressing scheme for auto-importing receipts via email.
+ *
+ * Validates Resend webhook signature, extracts org slug from recipient address,
+ * processes image/PDF attachments, uploads to storage, and creates pending receipts.
+ *
+ * Rate limited: 10 requests per 60s.
+ */
+async function handler(request: Request) {
   try {
     const rawBody = await request.text();
     // M3: Resend uses 'resend-signature' header, not 'svix-signature'
@@ -156,3 +168,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 422 });
   }
 }
+
+export const POST = withRateLimit(handler, { maxTokens: 10, windowMs: 60_000, keyPrefix: 'email:inbound' });

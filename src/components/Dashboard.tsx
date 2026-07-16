@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { AlertCircle, Camera, Receipt, ShieldAlert, TrendingUp, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
@@ -15,20 +15,25 @@ import { supabase, getOrgIdString } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { getDashboardSummary } from '@/lib/services/receipts';
 import { toNumber, formatCurrency } from '@/lib/ui-utils';
+import { fadeUp, staggerContainer, springGentle } from '@/lib/animations';
 
 interface DashboardProps {
-  onFilterClick: (filterType: string) => void;
+  /** Navigate to scanner */
   onScan?: () => void;
+  /** Current user role */
   role?: UserRole;
+  /** Current user ID */
   userId?: string;
 }
 
+/** Format YYYY-MM to short month + year label */
 function formatMonthLabel(value: string | undefined | null): string {
   if (!value || typeof value !== 'string' || !/^\d{4}-\d{2}$/.test(value)) return String(value || 'Unknown');
   const [y, m] = value.split('-').map(Number);
   return new Date(y, m - 1).toLocaleDateString('en-CA', { month: 'short', year: '2-digit' });
 }
 
+/** Return time-appropriate greeting */
 function getGreeting(): string {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning.';
@@ -36,23 +41,16 @@ function getGreeting(): string {
   return 'Good evening.';
 }
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
-};
-
-const container = {
-  hidden: { opacity: 0 },
-  show: { transition: { staggerChildren: 0.05 } },
-};
-
-export default function Dashboard({ onFilterClick, onScan, role = 'Owner', userId }: DashboardProps) {
+export default function Dashboard({ onScan, role = 'Owner', userId }: DashboardProps) {
   const [forwardingEmail, setForwardingEmail] = useState(false);
 
   const { data: summary, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboard_summary', role, userId],
-    queryFn: () => getDashboardSummary(role, userId!),
-    enabled: !!userId, retry: false, staleTime: 5 * 60 * 1000,
+    queryFn: () => {
+      if (!userId) throw new Error('No user ID');
+      return getDashboardSummary(role, userId);
+    },
+    enabled: !!userId, retry: 1, staleTime: 5 * 60 * 1000,
   });
 
   const thisMonth = useMemo(() => {
@@ -73,7 +71,7 @@ export default function Dashboard({ onFilterClick, onScan, role = 'Owner', userI
     return ((thisMonth.amount - lastMonth.amount) / lastMonth.amount) * 100;
   }, [thisMonth, lastMonth]);
 
-  const handleCopyEmail = async () => {
+  const handleCopyEmail = useCallback(async () => {
     setForwardingEmail(true);
     try {
       const orgId = await getOrgIdString();
@@ -83,9 +81,12 @@ export default function Dashboard({ onFilterClick, onScan, role = 'Owner', userI
         await navigator.clipboard.writeText(data.receipt_email);
         toast.success(`Receipt email copied: ${data.receipt_email}`);
       } else toast.error('No receipt email configured');
-    } catch { toast.error('Failed to lookup'); }
-    finally { setForwardingEmail(false); }
-  };
+    } catch {
+      toast.error('Failed to lookup organization email');
+    } finally {
+      setForwardingEmail(false);
+    }
+  }, []);
 
   if (isLoading) return <div role="status" aria-live="polite"><DashboardSkeleton /></div>;
 
@@ -108,7 +109,7 @@ export default function Dashboard({ onFilterClick, onScan, role = 'Owner', userI
   if (role === 'Employee') return <EmployeeView scans={receiptCount} total={totalSpent} gst={gstRecoverable} />;
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="space-y-4" aria-live="polite">
+    <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-4" aria-live="polite">
       <motion.p variants={fadeUp} className="text-xs font-medium text-text-muted">{getGreeting()}</motion.p>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -122,8 +123,8 @@ export default function Dashboard({ onFilterClick, onScan, role = 'Owner', userI
             </p>
             <div className="flex items-center gap-3 mt-2">
               {mom !== null && (
-                <span className={cn("inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold", mom >= 0 ? 'bg-accent/10 text-accent' : 'bg-danger/10 text-danger')}>
-                  <span className={cn("h-1.5 w-1.5 rounded-full", mom >= 0 ? 'bg-accent' : 'bg-danger')} />
+                <span className={cn("inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold", mom >= 0 ? 'bg-champagne/10 text-champagne' : 'bg-danger/10 text-danger')}>
+                  <span className={cn("h-1.5 w-1.5 rounded-full", mom >= 0 ? 'bg-champagne' : 'bg-danger')} />
                   {mom >= 0 ? '+' : ''}{Math.abs(mom).toFixed(1)}%
                 </span>
               )}
@@ -131,7 +132,7 @@ export default function Dashboard({ onFilterClick, onScan, role = 'Owner', userI
           </ShadcnCard>
         </motion.div>
 
-        <KpiCard variants={fadeUp} label="Receipts" value={receiptCount.toLocaleString()} icon={<Receipt className="h-4 w-4 text-accent" />} />
+        <KpiCard variants={fadeUp} label="Receipts" value={receiptCount.toLocaleString()} icon={<Receipt className="h-4 w-4 text-champagne" />} />
       </div>
     </motion.div>
   );
@@ -139,17 +140,25 @@ export default function Dashboard({ onFilterClick, onScan, role = 'Owner', userI
 
 /* ─── Sub-components ─── */
 
-const KpiCard = React.memo(function KpiCard({ variants: v, label, value, icon }: { variants: typeof fadeUp; label: string; value: string; icon: React.ReactNode }) {
+/** KPI metric card with animated counter */
+interface KpiCardProps {
+  variants: typeof fadeUp;
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+}
+
+const KpiCard = React.memo(function KpiCard({ variants: v, label, value, icon }: KpiCardProps) {
   const num = Number(String(value).replace(/,/g, '')) || 0;
   const isPct = value.includes('%');
   return (
     <motion.div variants={v}>
-      <ShadcnCard className="p-4 h-full">
+      <ShadcnCard className="p-4 h-full" role="figure" aria-label={`${label}: ${value}`}>
         <div className="flex items-center justify-between mb-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10">{icon}</div>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-champagne/10">{icon}</div>
         </div>
         <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">{label}</p>
-        <p className="text-xl font-bold tracking-tight tabular-nums mt-0.5">
+        <p className="text-xl font-bold tracking-tight tabular-nums mt-0.5" aria-live="polite" aria-atomic="true">
           {isPct ? value : <AnimatedCounter from={0} to={num} format={(v) => Number.isInteger(v) ? Math.round(v).toLocaleString() : v.toLocaleString()} delay={150} />}
         </p>
       </ShadcnCard>
@@ -158,9 +167,21 @@ const KpiCard = React.memo(function KpiCard({ variants: v, label, value, icon }:
 });
 
 
-const EmptyState = React.memo(function EmptyState({ onScan, handleCopyEmail, forwardingEmail }: { onScan?: () => void; handleCopyEmail: () => void; forwardingEmail: boolean }) {
+/** Empty state shown when user has no receipts yet */
+interface EmptyStateProps {
+  onScan?: () => void;
+  handleCopyEmail: () => void;
+  forwardingEmail: boolean;
+}
+
+const EmptyState = React.memo(function EmptyState({ onScan, handleCopyEmail, forwardingEmail }: EmptyStateProps) {
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="relative flex flex-col items-center justify-center py-20 text-center overflow-hidden">
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={springGentle}
+      className="relative flex flex-col items-center justify-center py-20 text-center overflow-hidden"
+    >
       {/* Ambient accent glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-champagne/5 rounded-full blur-[100px] pointer-events-none" />
 
@@ -168,7 +189,7 @@ const EmptyState = React.memo(function EmptyState({ onScan, handleCopyEmail, for
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
+        transition={{ type: 'spring', stiffness: 250, damping: 18, mass: 0.8 }}
         className="relative mb-5"
       >
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-champagne/15 to-champagne/5 ring-1 ring-champagne/20 ring-inset shadow-[0_0_30px_-8px_rgba(190,169,142,0.2)]">
@@ -244,11 +265,11 @@ const EmptyState = React.memo(function EmptyState({ onScan, handleCopyEmail, for
             key={f.title}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45 + i * 0.08 }}
+            transition={{ delay: 0.45 + i * 0.08, type: 'spring', stiffness: 250, damping: 20 }}
             className="group rounded-xl border border-glass-border/50 bg-card/50 p-4 text-center hover:border-champagne/15 hover:bg-champagne/[0.02] transition-all duration-300"
           >
             <div className="mx-auto mb-2.5 flex h-10 w-10 items-center justify-center rounded-lg bg-champagne/10 text-champagne group-hover:bg-champagne/15 group-hover:shadow-[0_0_15px_-4px_rgba(190,169,142,0.15)] transition-all duration-300">
-              <f.icon className="h-4.5 w-4.5" />
+              <f.icon className="h-5 w-5" />
             </div>
             <h3 className="text-sm font-semibold tracking-tight">{f.title}</h3>
             <p className="text-xs text-text-muted/80 mt-1 leading-relaxed">{f.desc}</p>
@@ -259,24 +280,25 @@ const EmptyState = React.memo(function EmptyState({ onScan, handleCopyEmail, for
   );
 });
 
+/** Employee-restricted view — shows personal stats only */
 const EmployeeView = React.memo(function EmployeeView({ scans, total, gst }: { scans: number; total: number; gst: number }) {
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="space-y-4">
+    <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-4" role="region" aria-label="Employee dashboard summary">
       <motion.div variants={fadeUp} className="rounded-xl border border-glass-border bg-card p-8 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/10 text-warning mx-auto mb-4"><ShieldAlert className="h-6 w-6" /></div>
         <h2 className="text-lg font-bold">Restricted Dashboard</h2>
         <p className="text-sm text-text-secondary mt-2">Detailed financial data is available to owners and accountants.</p>
       </motion.div>
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl border border-glass-border bg-card p-4">
+        <div className="rounded-xl border border-glass-border bg-card p-4" role="figure" aria-label={`Scans: ${scans}`}>
           <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">My Scans</p>
           <p className="text-xl font-bold tabular-nums mt-0.5">{scans}</p>
         </div>
-        <div className="rounded-xl border border-glass-border bg-card p-4">
+        <div className="rounded-xl border border-glass-border bg-card p-4" role="figure" aria-label={`Total: ${formatCurrency(total)}`}>
           <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">My Total</p>
           <p className="text-xl font-bold tabular-nums mt-0.5">{formatCurrency(total)}</p>
         </div>
-        <div className="rounded-xl border border-glass-border bg-card p-4">
+        <div className="rounded-xl border border-glass-border bg-card p-4" role="figure" aria-label={`GST: ${formatCurrency(gst)}`}>
           <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">My GST</p>
           <p className="text-xl font-bold tabular-nums mt-0.5">{formatCurrency(gst)}</p>
         </div>

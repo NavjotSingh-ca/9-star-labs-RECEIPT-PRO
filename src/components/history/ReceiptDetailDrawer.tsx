@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Image from 'next/image';
 import { AlertCircle, BrainCircuit, DollarSign, Loader2, MessageSquare, Send, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -28,9 +28,13 @@ import { toNumber, formatCurrency, formatDate, categoryColor, confidenceTone, ap
 import { Lightbox } from '@/components/ui/lightbox';
 
 interface ReceiptDetailModalProps {
+  /** The receipt to display */
   receipt: ReceiptRow;
+  /** Callback when the drawer should close */
   onClose: () => void;
+  /** Current user's role for permission gating */
   role?: UserRole;
+  /** Called after any mutation (approve/delete) completes */
   onUpdate?: () => Promise<void> | void;
 }
 
@@ -38,8 +42,8 @@ export default function ReceiptDetailDrawer({ receipt, onClose, role = 'Owner', 
   const score = toNumber(receipt.confidence_score);
   const tone = confidenceTone(score);
   const [localApproval, setLocalApproval] = useState(receipt.approval_status ?? 'submitted');
-  const [approvalLoading, setApprovalLoading] = useState(false);
-  const [editError, setEditError] = useState('');
+  const [, setApprovalLoading] = useState(false);
+  const [, setEditError] = useState('');
 
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<{ id: string; comment: string; created_at: string; user_id?: string; user?: { email: string } }[]>([]);
@@ -91,7 +95,9 @@ export default function ReceiptDetailDrawer({ receipt, onClose, role = 'Owner', 
       setLocalApproval(status);
       if (onUpdate) await onUpdate();
     } catch (err) {
-      setEditError(err instanceof Error ? err.message : 'Approval failed.');
+      const message = err instanceof Error ? err.message : 'Approval failed.';
+      setEditError(message);
+      toast.error(message);
     } finally {
       setApprovalLoading(false);
     }
@@ -111,7 +117,9 @@ export default function ReceiptDetailDrawer({ receipt, onClose, role = 'Owner', 
       onClose();
       if (onUpdate) await onUpdate();
     } catch (err) {
-      setEditError(err instanceof Error ? err.message : 'Delete failed.');
+      const message = err instanceof Error ? err.message : 'Delete failed.';
+      setEditError(message);
+      toast.error(message);
     } finally {
       setDeleteLoading(false);
       setShowDeleteConfirm(false);
@@ -138,6 +146,20 @@ export default function ReceiptDetailDrawer({ receipt, onClose, role = 'Owner', 
       }
     }
     getFreshUrl();
+  }, [receipt.image_url]);
+
+  const handleRetryImage = useCallback(async () => {
+    if (!receipt.image_url) return;
+    setImageLoading(true);
+    setImageError(false);
+    try {
+      const freshUrl = await getReceiptImageUrl(receipt.image_url);
+      setDisplayUrl(freshUrl);
+    } catch {
+      setImageError(true);
+    } finally {
+      setImageLoading(false);
+    }
   }, [receipt.image_url]);
 
   const imageUrl = displayUrl ?? '';
@@ -191,7 +213,7 @@ export default function ReceiptDetailDrawer({ receipt, onClose, role = 'Owner', 
               <p className="text-sm text-text-muted">Failed to load receipt image</p>
               <button
                 type="button"
-                onClick={() => { setImageLoading(true); setImageError(false); getReceiptImageUrl(receipt.image_url || '').then(setDisplayUrl).catch(() => setImageError(true)).finally(() => setImageLoading(false)); }}
+                onClick={handleRetryImage}
                 className="rounded-[2rem] border border-danger/30 px-4 py-1.5 text-xs font-semibold text-danger hover:bg-danger/10"
               >
                 Retry
@@ -304,6 +326,7 @@ export default function ReceiptDetailDrawer({ receipt, onClose, role = 'Owner', 
                   onClick={handlePostComment}
                   disabled={commentLoading || !commentText.trim()}
                   size="icon"
+                  aria-label="Send comment"
                 >
                   {commentLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </Button>

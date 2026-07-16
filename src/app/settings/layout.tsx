@@ -2,45 +2,54 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CreditCard, Building2, ShieldCheck, Users, ArrowLeft } from 'lucide-react';
+import { CreditCard, Building2, ShieldCheck, Users, LayoutDashboard, ArrowLeft, ToggleLeft } from 'lucide-react';
 
 const navItems = [
   { href: '/settings/billing', label: 'Billing & Plan', icon: CreditCard },
   { href: '/settings/team', label: 'Team', icon: Users },
   { href: '/settings/org', label: 'Organization', icon: Building2 },
+  { href: '/settings/features', label: 'Features', icon: ToggleLeft },
+  { href: '/settings/admin', label: 'Admin', icon: LayoutDashboard },
   { href: '/settings/security', label: 'Security', icon: ShieldCheck },
 ];
 
+/**
+ * Settings layout — provides sidebar navigation (desktop) and tab navigation (mobile)
+ * across all settings pages: Billing, Team, Organization, Admin, Security.
+ * Uses aria-current and role="tablist" for accessible navigation.
+ */
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
     <div className="mx-auto flex max-w-5xl gap-8 px-4 py-8 lg:px-0">
       {/* Settings sidebar nav */}
-      <nav className="hidden w-56 flex-shrink-0 lg:block" aria-label="Settings">
+      <nav className="hidden w-56 flex-shrink-0 lg:block" aria-label="Settings navigation">
         <div className="mb-6">
           <Link
             href="/"
-            className="mb-6 flex items-center gap-1.5 text-xs font-medium text-text-muted transition hover:text-text-secondary"
+            className="mb-6 inline-flex items-center gap-1.5 text-xs font-medium text-text-muted transition hover:text-text-secondary"
           >
             <ArrowLeft className="h-3 w-3" />
             Back to app
           </Link>
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1" role="list">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                role="listitem"
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
                   isActive
                     ? 'bg-champagne/10 text-champagne'
                     : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
                 }`}
+                {...(isActive ? { 'aria-current': 'page' as const } : {})}
               >
-                <item.icon className="h-4 w-4" />
+                <item.icon className="h-4 w-4" aria-hidden="true" />
                 {item.label}
               </Link>
             );
@@ -56,13 +65,15 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
             <Link
               key={item.href}
               href={item.href}
+              role="tab"
+              aria-selected={isActive}
               className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition ${
                 isActive
                   ? 'bg-champagne/10 text-champagne'
                   : 'text-text-muted hover:text-text-secondary'
               }`}
             >
-              <item.icon className="h-3.5 w-3.5" />
+              <item.icon className="h-3.5 w-3.5" aria-hidden="true" />
               {item.label}
             </Link>
           );

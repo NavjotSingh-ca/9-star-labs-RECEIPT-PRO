@@ -15,16 +15,23 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { ReceiptRow } from '@/lib/types';
-import { formatCurrency, formatDate, categoryColor, approvalBadge } from '@/lib/ui-utils';
+import { formatCurrency, formatDate, categoryColor } from '@/lib/ui-utils';
 import { exportReceiptPdf } from '@/lib/export-receipt-pdf';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 
+type SortableField = keyof Pick<ReceiptRow, 'vendor_name' | 'transaction_date' | 'total_amount'>;
+
 interface ProfessionalLedgerProps {
+  /** Full receipt data array */
   data: ReceiptRow[];
+  /** Callback when a row is clicked for detail view */
   onSelect: (receipt: ReceiptRow) => void;
+  /** Callback when delete action is triggered */
   onDelete: (id: string) => void;
+  /** Currently selected row IDs */
   selectedIds?: string[];
+  /** Callback when selection changes */
   onSelectionChange?: (ids: string[]) => void;
 }
 
@@ -35,7 +42,7 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({
   selectedIds = [],
   onSelectionChange
 }: ProfessionalLedgerProps) {
-  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<SortableField | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [globalFilter, setGlobalFilter] = useState('');
   const [debouncedFilter, setDebouncedFilter] = useState('');
@@ -74,14 +81,14 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({
   const rows = useMemo(() => {
     if (!sortField) return filtered;
     return [...filtered].sort((a, b) => {
-      const aVal = String(a[sortField as keyof ReceiptRow] ?? '');
-      const bVal = String(b[sortField as keyof ReceiptRow] ?? '');
+      const aVal = String(a[sortField] ?? '');
+      const bVal = String(b[sortField] ?? '');
       const cmp = aVal.localeCompare(bVal, undefined, { numeric: true });
       return sortDir === 'asc' ? cmp : -cmp;
     });
   }, [filtered, sortField, sortDir]);
 
-  function toggleSort(field: string) {
+  function toggleSort(field: SortableField) {
     if (sortField === field) {
       setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     } else {
@@ -108,7 +115,7 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({
     }
   }
 
-  function toggleOne(id: string, e?: React.MouseEvent | React.KeyboardEvent) {
+  function toggleOne(id: string, e?: React.MouseEvent) {
     e?.stopPropagation();
     if (selectedIds.includes(id)) {
       onSelectionChange?.(selectedIds.filter(i => i !== id));
@@ -152,14 +159,17 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({
                 aria-label="Select all"
               />
             </div>
-            <button type="button" onClick={() => toggleSort('vendor_name')} className="flex-[2] px-6 py-3 text-left flex items-center gap-1 hover:text-text-primary transition">
+            <button type="button" onClick={() => toggleSort('vendor_name')} className="flex-[2] px-6 py-3 text-left flex items-center gap-1 hover:text-text-primary transition"
+              aria-sort={sortField === 'vendor_name' ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
               Vendor {sortField === 'vendor_name' && <ArrowUpDown className="h-3 w-3" />}
             </button>
-            <button type="button" onClick={() => toggleSort('transaction_date')} className="flex-[1] px-6 py-3 text-left flex items-center gap-1 hover:text-text-primary transition">
+            <button type="button" onClick={() => toggleSort('transaction_date')} className="flex-[1] px-6 py-3 text-left flex items-center gap-1 hover:text-text-primary transition"
+              aria-sort={sortField === 'transaction_date' ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
               Date {sortField === 'transaction_date' && <ArrowUpDown className="h-3 w-3" />}
             </button>
             <div className="flex-[1] px-6 py-3">Category</div>
-            <button type="button" onClick={() => toggleSort('total_amount')} className="flex-[1] px-6 py-3 text-right flex items-center justify-end gap-1 hover:text-text-primary transition">
+            <button type="button" onClick={() => toggleSort('total_amount')} className="flex-[1] px-6 py-3 text-right flex items-center justify-end gap-1 hover:text-text-primary transition"
+              aria-sort={sortField === 'total_amount' ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
               Total {sortField === 'total_amount' && <ArrowUpDown className="h-3 w-3" />}
             </button>
             <div className="flex-[1] px-6 py-3">Status</div>
@@ -176,7 +186,7 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({
                   key={row.id}
                   className={`absolute left-0 w-full flex items-stretch border-b border-glass-border cursor-pointer transition-colors ${
                     isSelected ? 'bg-champagne/10' : virtualRow.index % 2 === 0 ? 'bg-surface-raised/50' : 'bg-surface-raised/30'
-                  } hover:bg-champagne/5 focus-visible:outline-2 focus-visible:outline-champagne/60 focus-visible:outline-offset-[-2px]`}
+                  } hover:bg-champagne/5 focus-visible:outline-2 focus-visible:outline-champagne/60 focus-visible:outline-offset-2`}
                   style={{ height: `${virtualRow.size}px`, transform: `translateY(${virtualRow.start}px)` }}
                   onClick={() => onSelect(row)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(row); } }}
@@ -209,31 +219,34 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({
                     {formatCurrency(Number(row.total_amount))}
                   </div>
                   <div className="flex-[1] px-6 py-3 flex items-center gap-2">
-                    <div className={`h-2 w-2 rounded-full ${approvalBadge(row.approval_status || '').cls.includes('emerald') ? 'bg-emerald-success' : 'bg-warning animate-pulse'}`} />
+                    <div className={`h-2 w-2 rounded-full ${row.approval_status === 'approved' || row.approval_status === 'reimbursed' ? 'bg-emerald-success' : 'bg-warning animate-pulse'}`} />
                     <span className="text-[10px] font-bold uppercase tracking-wider">{row.approval_status || ''}</span>
                   </div>
                   <div className="flex-[0.5] px-6 py-3 flex items-center justify-end">
                     <DropdownMenu>
-                      <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-full h-8 w-8 p-0 hover:bg-muted focus:outline-none">
+                      <DropdownMenuTrigger
+                        className="inline-flex items-center justify-center rounded-full h-8 w-8 p-0 hover:bg-muted focus:outline-none"
+                        onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48 rounded-xl p-2 shadow-md">
                         <DropdownMenuLabel className="text-xs font-bold text-muted-foreground">Actions</DropdownMenuLabel>
                         <DropdownMenuItem 
-                          onClick={(e) => { e.stopPropagation(); onSelect(row); }}
+                          onClick={() => onSelect(row)}
                           className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition cursor-pointer"
                         >
                           <Eye className="h-4 w-4" /> View Details
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={(e) => { e.stopPropagation(); exportReceiptPdf(row); }}
+                          onClick={() => exportReceiptPdf(row).catch(() => {})}
                           className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition cursor-pointer"
                         >
                           <FileDown className="h-4 w-4" /> Export PDF
                         </DropdownMenuItem>
                         <DropdownMenuSeparator className="my-1" />
                         <DropdownMenuItem 
-                          onClick={(e) => { e.stopPropagation(); onDelete(row.id); }}
+                          onClick={() => onDelete(row.id)}
                           className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-destructive focus:text-destructive transition cursor-pointer"
                         >
                           <Trash2 className="h-4 w-4" /> Delete Record

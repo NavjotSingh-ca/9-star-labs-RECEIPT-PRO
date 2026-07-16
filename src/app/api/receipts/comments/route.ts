@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { logError } from '@/lib/logger';
 import { env } from '@/lib/env';
+import { withRateLimit } from '@/lib/rate-limiter';
 import { Resend } from 'resend';
 
 const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -16,7 +17,20 @@ const commentInputSchema = z.object({
   comment: z.string().min(1).max(5000),
 });
 
-export async function POST(request: Request) {
+const receiptIdParamSchema = z.object({
+  receiptId: z.string().uuid(),
+});
+
+/**
+ * POST /api/receipts/comments
+ *
+ * Adds a comment to a receipt. The comment is org-scoped via the session.
+ * If the commenter is not the receipt uploader, sends an email notification via Resend.
+ *
+ * Body: { receiptId: string (uuid), comment: string (1-5000 chars) }
+ * Rate limited: 20 requests per 60s.
+ */
+async function postHandler(request: Request) {
   try {
     const body = await request.json();
     const parsed = commentInputSchema.safeParse(body);
@@ -37,21 +51,19 @@ export async function POST(request: Request) {
     const orgId = typeof orgData === 'string' ? orgData : null;
     if (!orgId) return NextResponse.json({ error: 'No org found' }, { status: 403 });
 
-    // Insert comment
     const { data, error } = await supabase
       .from('receipt_comments')
       .insert({
         receipt_id: receiptId,
         org_id: orgId,
         user_id: user.id,
-        comment: comment
+        comment: comment,
       })
       .select()
       .single();
 
     if (error) throw error;
 
-    // Fetch the receipt to notify the uploader
     const { data: receipt } = await supabase
       .from('receipts')
       .select('user_id, vendor_name, total_amount, currency')
@@ -81,11 +93,16 @@ export async function POST(request: Request) {
   }
 }
 
-const receiptIdParamSchema = z.object({
-  receiptId: z.string().uuid(),
-});
-
-export async function GET(request: Request) {
+/**
+ * GET /api/receipts/comments?receiptId=<uuid>
+ *
+ * Retrieves all comments for a given receipt, ordered by creation date ascending.
+ * Enforces org-scoped access — only users in the same org as the receipt can view.
+ *
+ * Query params: receiptId (uuid, required)
+ * Rate limited: 30 requests per 60s.
+ */
+async function getHandler(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const rawId = searchParams.get('receiptId');
@@ -127,3 +144,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to get comments' }, { status: 500 });
   }
 }
+
+export const GET = withRateLimit(getHandler, { maxTokens: 30, windowMs: 60_000, keyPrefix: 'comments:get' });
+export const POST = withRateLimit(postHandler, { maxTokens: 20, windowMs: 60_000, keyPrefix: 'comments:post' });

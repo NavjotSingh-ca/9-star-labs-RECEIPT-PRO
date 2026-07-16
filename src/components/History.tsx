@@ -69,6 +69,10 @@ type HistoryProps = {
   userId?: string | null;
 };
 
+/**
+ * History — paginated receipt ledger with semantic search, bulk actions, and detail drawer.
+ * Supports infinite scroll, bulk approve/reject/delete/export, and filter-by-status tabs.
+ */
 export default function History({
   activeFilter = 'all',
   onUpdate,
@@ -89,6 +93,7 @@ export default function History({
   // Bulk Operations State
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
   const {
     data: infiniteData,
@@ -221,7 +226,11 @@ export default function History({
 
   const handleBulkDelete = async () => {
     if (!userId || selectedIds.length === 0) return;
-    if (!confirm(`Are you sure you want to delete ${selectedIds.length} receipts?`)) return;
+    setShowBulkDeleteConfirm(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    if (!userId || selectedIds.length === 0) return;
     setBulkLoading(true);
     try {
       await bulkDeleteReceipts(selectedIds, userId);
@@ -233,6 +242,7 @@ export default function History({
       toast.error('Failed to delete receipts');
     } finally {
       setBulkLoading(false);
+      setShowBulkDeleteConfirm(false);
     }
   };
 
@@ -262,8 +272,12 @@ export default function History({
     }
     setSemanticLoading(true);
     try {
-      const results = await semanticSearchAction(query);
-      setSemanticResults(results.map(r => r.id));
+      const result = await semanticSearchAction(query);
+      if (result.ok) {
+        setSemanticResults(result.results.map(r => r.id));
+      } else {
+        toast.error(result.error);
+      }
     } catch (err) {
       logError(err, { action: 'semantic_search_failed' });
       toast.error('AI search failed. Please try a simpler query or check your connection.');
@@ -384,8 +398,8 @@ export default function History({
         shouldScaleBackground
       >
         <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-sm" />
-          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[160] flex flex-col rounded-t-2xl border-t bg-background outline-none focus:ring-0 sm:max-w-3xl sm:mx-auto sm:mb-6 sm:rounded-2xl sm:max-h-[95vh] bottom-nav">
+          <Drawer.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
+          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-50 flex flex-col rounded-t-2xl border-t bg-background outline-none focus:ring-0 sm:max-w-3xl sm:mx-auto sm:mb-6 sm:rounded-2xl sm:max-h-[95vh] bottom-nav">
             <div className="mx-auto mt-4 h-1.5 w-12 flex-shrink-0 rounded-full bg-muted" />
             
             {selectedReceipt && receipts.length > 1 && (
@@ -449,6 +463,31 @@ export default function History({
             >
               {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Delete Record
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={showBulkDeleteConfirm} onOpenChange={(open) => { if (!open) setShowBulkDeleteConfirm(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedIds.length} Records</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove {selectedIds.length} receipts from the ledger. The audit trail will preserve history, but these entries will no longer appear in reports or searches.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              render={<Button variant="outline" className="rounded-xl font-semibold" />}
+            />
+            <AlertDialogAction
+              disabled={bulkLoading}
+              render={<Button variant="destructive" className="rounded-xl font-semibold" />}
+              onClick={confirmBulkDelete}
+            >
+              {bulkLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Delete All
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

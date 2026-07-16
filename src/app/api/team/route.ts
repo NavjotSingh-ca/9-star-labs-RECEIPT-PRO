@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { logError } from '@/lib/logger';
-import { checkRateLimit, withRateLimit } from '@/lib/rate-limiter';
+import { withRateLimit } from '@/lib/rate-limiter';
 import { z } from 'zod';
 
 export const GET = withRateLimit(async (request: Request) => {
@@ -56,14 +56,6 @@ export const GET = withRateLimit(async (request: Request) => {
 
 export const DELETE = withRateLimit(async (request: Request) => {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    const rl = checkRateLimit(`team_delete:${ip}`, 5, 60_000);
-    if (!rl.allowed) {
-      const headers = new Headers();
-      headers.set('Retry-After', String(Math.ceil(rl.resetMs / 1000)));
-      return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers });
-    }
-
     const authHeader = request.headers.get('authorization') || '';
     const token = authHeader.replace('Bearer ', '');
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

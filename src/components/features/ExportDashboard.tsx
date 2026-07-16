@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { supabase, getOrgIdString } from '@/lib/supabase';
 import PageHeader from '@/components/layout/PageHeader';
@@ -14,6 +15,11 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
+/**
+ * Export dashboard with Export as CSV/PDF, Tax Export (CRA-ready), and
+ * QBO/Xero integration cards. Each card shows status and a CTA button.
+ * Handles loading, error, and empty states per card.
+ */
 export default function ExportDashboard() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['export-dashboard'],
@@ -61,7 +67,12 @@ export default function ExportDashboard() {
   })();
 
   return (
-    <div className="space-y-5 fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="space-y-5"
+    >
       <PageHeader title="Export Dashboard" subtitle="Analytics for all your export activity" />
 
       {isLoading && (
@@ -131,6 +142,6 @@ export default function ExportDashboard() {
           <p className="text-sm text-text-muted">No export activity yet. Export something to see analytics here.</p>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

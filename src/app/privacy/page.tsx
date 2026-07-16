@@ -14,8 +14,27 @@ function B({ children }: { children: React.ReactNode }) {
 }
 
 function A({ href, children }: { href: string; children: React.ReactNode }) {
+  const isExternal = href.startsWith('http');
   return (
-    <a href={href} className="text-champagne hover:text-champagne-dim underline underline-offset-2 transition">
+    <a
+      href={href}
+      className="text-champagne hover:text-champagne-dim underline underline-offset-2 transition"
+      {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+    >
+      {children}
+    </a>
+  );
+}
+
+function ExternalA({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`${label} (opens in new tab)`}
+      className="text-champagne hover:text-champagne-dim underline underline-offset-2 transition"
+    >
       {children}
     </a>
   );
@@ -48,6 +67,11 @@ const TOC = [
   { id: 'updates', label: '13. Policy Updates & Contact' },
 ];
 
+/**
+ * Privacy Policy page — PIPEDA-compliant and Alberta PIPA-aligned
+ * privacy disclosure with TOC, 13 sections, Quebec Law 25 compliance.
+ * Server-rendered for SEO and speed.
+ */
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-obsidian">
@@ -192,7 +216,7 @@ export default function PrivacyPage() {
               <p>Images of your financial documents are transmitted to Google LLC&apos;s Generative AI API for extraction processing. This occurs every time you scan a receipt through the Service.</p>
             </div>
             <p><B>What is transmitted to Google:</B> The base64-encoded image of your receipt or financial document, along with a structured prompt instructing the AI to extract specific financial fields. No other personal information (name, email, account ID) is transmitted alongside the image.</p>
-            <p><B>Google&apos;s data usage policy:</B> Under Google&apos;s enterprise API terms for Gemini API access, data processed through the API is <B>not used to train Google&apos;s public AI models</B>. Google acts as a data processor on our behalf. For full details, see <A href="https://ai.google.dev/gemini-api/terms">Google&apos;s Generative AI Terms</A> and <A href="https://policies.google.com/privacy">Google&apos;s Privacy Policy</A>.</p>
+            <p>              <B>Google&apos;s data usage policy:</B> Under Google&apos;s enterprise API terms for Gemini API access, data processed through the API is <B>not used to train Google&apos;s public AI models</B>. Google acts as a data processor on our behalf. For full details, see <ExternalA href="https://ai.google.dev/gemini-api/terms" label="Google Generative AI Terms">Google&apos;s Generative AI Terms</ExternalA> and <ExternalA href="https://policies.google.com/privacy" label="Google Privacy Policy">Google&apos;s Privacy Policy</ExternalA>.</p>
             <p><B>Vector embeddings for semantic search:</B> Text descriptions derived from your receipts (vendor name, category, notes, amount) are also transmitted to Google&apos;s text-embedding-004 model to generate numerical vector representations stored in our database. These vectors enable natural-language search but do not contain full receipt images or sensitive financial identifiers.</p>
             <p><B>AI accuracy limitations:</B> AI extraction is subject to error. You are responsible for reviewing and verifying all AI-extracted data before submission to the CRA or any accounting system. CRA readiness scores are informational tools, not legal guarantees of deductibility. Always consult a qualified Canadian accountant or tax professional for tax advice.</p>
             <p><B>Opt-out:</B> You may choose to manually enter receipt data without using the AI extraction feature. Contact <A href="mailto:9starlaba@gmail.com">9starlaba@gmail.com</A> to request a manual-entry-only account mode.</p>
@@ -260,13 +284,13 @@ export default function PrivacyPage() {
             <p>The Service uses only <B>essential first-party cookies</B> necessary for authentication and security. We do not use advertising cookies, cross-site tracking cookies, or third-party analytics cookies.</p>
             <div className="rounded-[2rem] border border-glass-border bg-surface/30 p-4 overflow-x-auto">
               <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-glass-border">
-                    <th className="text-left py-2 pr-4 font-bold text-text-primary">Cookie</th>
-                    <th className="text-left py-2 pr-4 font-bold text-text-primary">Purpose</th>
-                    <th className="text-left py-2 font-bold text-text-primary">Duration</th>
-                  </tr>
-                </thead>
+                  <thead>
+                    <tr className="border-b border-glass-border">
+                      <th scope="col" className="text-left py-2 pr-4 font-bold text-text-primary">Cookie</th>
+                      <th scope="col" className="text-left py-2 pr-4 font-bold text-text-primary">Purpose</th>
+                      <th scope="col" className="text-left py-2 font-bold text-text-primary">Duration</th>
+                    </tr>
+                  </thead>
                 <tbody>
                   <tr className="border-b border-glass-border/50">
                     <td className="py-2 pr-4 font-mono text-champagne">sb-access-token</td>
@@ -391,9 +415,9 @@ export default function PrivacyPage() {
             <div className="mt-4 rounded-[2rem] border border-glass-border bg-surface/30 p-4">
               <p className="text-xs text-text-muted">
                 <B>External Privacy Authorities:</B>{' '}
-                <A href="https://www.priv.gc.ca">Office of the Privacy Commissioner of Canada</A>{' '}
-                · <A href="https://www.oipc.ab.ca">Office of the Information and Privacy Commissioner of Alberta</A>{' '}
-                · <A href="https://www.cai.gouv.qc.ca">Commission d&rsquo;accès à l&rsquo;information du Québec</A>
+                <ExternalA href="https://www.priv.gc.ca" label="Office of the Privacy Commissioner of Canada">Office of the Privacy Commissioner of Canada</ExternalA>{' '}
+                · <ExternalA href="https://www.oipc.ab.ca" label="Office of the Information and Privacy Commissioner of Alberta">Office of the Information and Privacy Commissioner of Alberta</ExternalA>{' '}
+                · <ExternalA href="https://www.cai.gouv.qc.ca" label="Commission d&rsquo;accès à l&rsquo;information du Québec">Commission d&rsquo;accès à l&rsquo;information du Québec</ExternalA>
               </p>
             </div>
           </Section>

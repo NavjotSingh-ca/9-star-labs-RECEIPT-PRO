@@ -18,6 +18,7 @@ const DATE_PRESETS: { value: DatePreset; label: string }[] = [
 ];
 
 interface Props {
+  /** Called when filter presets or custom dates change */
   onChange: (filters: Partial<ReportConfig>) => void;
 }
 

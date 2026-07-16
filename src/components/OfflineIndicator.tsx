@@ -6,6 +6,10 @@ import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { WifiOff, CloudUpload } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+/**
+ * OfflineIndicator — Fixed-position status banner showing offline state
+ * (with 2s debounce) and pending offline queue count on reconnection.
+ */
 export default function OfflineIndicator() {
   const { online } = useNetworkStatus();
   const { queueCount } = useOfflineQueue();

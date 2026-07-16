@@ -1,6 +1,11 @@
 import type { ReceiptRow } from '@/lib/types';
 import { toNumber } from '@/lib/ui-utils';
 
+/**
+ * Formats a Date as `YYYY-MM-DD` for CSV export and form inputs.
+ * @param date - The date to format.
+ * @returns The formatted date string.
+ */
 export function formatDateInput(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -8,44 +13,96 @@ export function formatDateInput(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+/**
+ * Extracts the vendor name from a receipt, falling back to 'Unknown Vendor'.
+ * @param r - The receipt row.
+ * @returns The trimmed vendor name.
+ */
 export function getVendor(r: ReceiptRow): string {
-  return String(r.vendor_name ?? 'Unknown Vendor').trim() || 'Unknown Vendor';
+  const name = String(r.vendor_name ?? '').trim();
+  return name || 'Unknown Vendor';
 }
 
+/**
+ * Extracts the transaction date string from a receipt.
+ * @param r - The receipt row.
+ * @returns The date string, trimmed.
+ */
 export function getDate(r: ReceiptRow): string {
   return String(r.transaction_date ?? '').trim();
 }
 
+/**
+ * Extracts the category from a receipt, falling back to 'Uncategorized'.
+ * @param r - The receipt row.
+ * @returns The trimmed category name.
+ */
 export function getCategory(r: ReceiptRow): string {
-  return String(r.category ?? 'Uncategorized').trim() || 'Uncategorized';
+  const cat = String(r.category ?? '').trim();
+  return cat || 'Uncategorized';
 }
 
+/**
+ * Extracts the total amount from a receipt as a number.
+ * @param r - The receipt row.
+ * @returns The total amount (0 if missing or invalid).
+ */
 export function getTotal(r: ReceiptRow): number {
   return toNumber(r.total_amount);
 }
 
+/**
+ * Extracts the GST/HST amount from a receipt as a number.
+ * @param r - The receipt row.
+ * @returns The tax amount (0 if missing or invalid).
+ */
 export function getGST(r: ReceiptRow): number {
   return toNumber(r.tax_amount);
 }
 
+/**
+ * Extracts the PST amount from a receipt as a number.
+ * @param r - The receipt row.
+ * @returns The PST amount (0 if missing or invalid).
+ */
 export function getPST(r: ReceiptRow): number {
   return toNumber(r.pst_amount);
 }
 
+/**
+ * Extracts the vendor business number (BN) from a receipt.
+ * @param r - The receipt row.
+ * @returns The trimmed BN string, or empty string.
+ */
 export function getBN(r: ReceiptRow): string {
   return String(r.vendor_tax_number ?? '').trim();
 }
 
+/**
+ * Extracts the image URL from a receipt.
+ * @param r - The receipt row.
+ * @returns The trimmed URL string, or empty string.
+ */
 export function getImageUrl(r: ReceiptRow): string {
   return String(r.image_url ?? '').trim();
 }
 
+/**
+ * Extracts the integrity hash from a receipt.
+ * @param r - The receipt row.
+ * @returns The trimmed hash string, or empty string.
+ */
 export function getHash(r: ReceiptRow): string {
   return String(r.integrity_hash ?? '').trim();
 }
 
-
-
+/**
+ * Checks whether a receipt's transaction date falls within the given range.
+ * @param r - The receipt row.
+ * @param from - Inclusive start date (YYYY-MM-DD) or empty string for no lower bound.
+ * @param to - Inclusive end date (YYYY-MM-DD) or empty string for no upper bound.
+ * @returns True if the receipt date is within range (or no range specified).
+ */
 export function withinRange(r: ReceiptRow, from: string, to: string): boolean {
   const date = getDate(r);
   if (!date) return false;
@@ -54,11 +111,22 @@ export function withinRange(r: ReceiptRow, from: string, to: string): boolean {
   return true;
 }
 
+/**
+ * Escapes a value for CSV output, wrapping in double quotes and doubling internal quotes.
+ * @param value - The value to escape.
+ * @returns The CSV-safe string.
+ */
 export function csvEscape(value: unknown): string {
   const s = value === null || value === undefined ? '' : String(value);
   return `"${s.replace(/"/g, '""')}"`;
 }
 
+/**
+ * Serializes line items to a string for CSV export.
+ * Handles already-serialized strings, null, and parse errors gracefully.
+ * @param lineItems - The line items from a receipt row.
+ * @returns The JSON string, or empty string if no items.
+ */
 export function stringifyLineItems(lineItems: ReceiptRow['line_items']): string {
   if (!lineItems) return '';
   if (typeof lineItems === 'string') return lineItems;

@@ -6,13 +6,28 @@ import { Crown, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 interface UpgradePromptProps {
+  /** Current subscription plan */
   plan: Plan;
+  /** Number of receipts used this period */
   receiptCount: number;
+  /** Number of team members in the organization */
   teamSize: number;
+  /** Whether the account is currently on a free trial */
   isTrialing?: boolean;
+  /** Days remaining in the trial period */
   daysLeftInTrial?: number;
 }
 
+/**
+ * Displays upgrade warnings when plan limits are approaching or reached.
+ * Shows specific banners for receipt limits, user limits, and trial expiry.
+ * Returns null when no warnings are needed.
+ *
+ * @example
+ * ```tsx
+ * <UpgradePrompt plan="free" receiptCount={45} teamSize={1} />
+ * ```
+ */
 export function UpgradePrompt({ plan, receiptCount, teamSize, isTrialing, daysLeftInTrial }: UpgradePromptProps) {
   const gates = PLAN_GATES[plan];
   const receiptsRemaining = typeof gates.receiptLimit === 'number' ? Math.max(0, gates.receiptLimit - receiptCount) : Infinity;
@@ -30,7 +45,7 @@ export function UpgradePrompt({ plan, receiptCount, teamSize, isTrialing, daysLe
   return (
     <div className="space-y-2">
       {showReceiptBlock && (
-        <div className="flex items-center gap-3 rounded-[2rem] bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger">
+        <div className="flex items-center gap-3 rounded-2xl bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger">
           <AlertTriangle className="h-5 w-5 flex-shrink-0" />
           <div className="flex-1">
             <p className="font-semibold">Receipt limit reached</p>
@@ -38,7 +53,7 @@ export function UpgradePrompt({ plan, receiptCount, teamSize, isTrialing, daysLe
           </div>
           <Link
             href="/settings/billing"
-            className="flex-shrink-0 rounded-[2rem] bg-champagne px-3 py-1.5 text-xs font-bold text-black transition hover:bg-champagne/90"
+            className="flex-shrink-0 rounded-2xl bg-champagne px-3 py-1.5 text-xs font-bold text-black transition hover:bg-champagne-dim"
           >
             Upgrade
           </Link>
@@ -46,7 +61,7 @@ export function UpgradePrompt({ plan, receiptCount, teamSize, isTrialing, daysLe
       )}
 
       {showReceiptWarning && (
-        <div className="flex items-center gap-3 rounded-[2rem] bg-warning/10 border border-warning/20 px-4 py-3 text-sm text-warning">
+        <div className="flex items-center gap-3 rounded-2xl bg-warning/10 border border-warning/20 px-4 py-3 text-sm text-warning">
           <AlertTriangle className="h-5 w-5 flex-shrink-0" />
           <div className="flex-1">
             <p className="font-semibold">Low on receipts</p>
@@ -54,7 +69,7 @@ export function UpgradePrompt({ plan, receiptCount, teamSize, isTrialing, daysLe
           </div>
           <Link
             href="/settings/billing"
-            className="flex-shrink-0 rounded-[2rem] bg-surface-raised px-3 py-1.5 text-xs font-semibold text-text-primary transition hover:bg-surface-hover"
+            className="flex-shrink-0 rounded-2xl bg-surface-raised px-3 py-1.5 text-xs font-semibold text-text-primary transition hover:bg-surface-hover"
           >
             Upgrade
           </Link>
@@ -62,7 +77,7 @@ export function UpgradePrompt({ plan, receiptCount, teamSize, isTrialing, daysLe
       )}
 
       {showUserWarning && (
-        <div className="flex items-center gap-3 rounded-[2rem] bg-warning/10 border border-warning/20 px-4 py-3 text-sm text-warning">
+        <div className="flex items-center gap-3 rounded-2xl bg-warning/10 border border-warning/20 px-4 py-3 text-sm text-warning">
           <Crown className="h-5 w-5 flex-shrink-0" />
           <div className="flex-1">
             <p className="font-semibold">User limit reached</p>
@@ -70,7 +85,7 @@ export function UpgradePrompt({ plan, receiptCount, teamSize, isTrialing, daysLe
           </div>
           <Link
             href="/settings/billing"
-            className="flex-shrink-0 rounded-[2rem] bg-surface-raised px-3 py-1.5 text-xs font-semibold text-text-primary transition hover:bg-surface-hover"
+            className="flex-shrink-0 rounded-2xl bg-surface-raised px-3 py-1.5 text-xs font-semibold text-text-primary transition hover:bg-surface-hover"
           >
             Upgrade
           </Link>
@@ -78,7 +93,7 @@ export function UpgradePrompt({ plan, receiptCount, teamSize, isTrialing, daysLe
       )}
 
       {showTrialWarning && (
-        <div className="flex items-center gap-3 rounded-[2rem] bg-champagne/10 border border-champagne/20 px-4 py-3 text-sm text-champagne">
+        <div className="flex items-center gap-3 rounded-2xl bg-champagne/10 border border-champagne/20 px-4 py-3 text-sm text-champagne">
           <Crown className="h-5 w-5 flex-shrink-0" />
           <div className="flex-1">
             <p className="font-semibold">Trial ending soon</p>
@@ -86,7 +101,7 @@ export function UpgradePrompt({ plan, receiptCount, teamSize, isTrialing, daysLe
           </div>
           <Link
             href="/settings/billing"
-            className="flex-shrink-0 rounded-[2rem] bg-champagne px-3 py-1.5 text-xs font-bold text-black transition hover:bg-champagne/90"
+            className="flex-shrink-0 rounded-2xl bg-champagne px-3 py-1.5 text-xs font-bold text-black transition hover:bg-champagne-dim"
           >
             Upgrade
           </Link>

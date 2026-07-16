@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { setUserRole } from '@/lib/services/roles';
 import {
@@ -17,6 +18,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface TeamMember {
   userId: string;
@@ -49,6 +51,10 @@ async function fetchTeam(): Promise<{ members: TeamMember[]; callerRole: string 
   return res.json();
 }
 
+/**
+ * Team settings page — displays organization members and allows Owner to manage roles.
+ * Handles loading, error, and empty states for the team members list.
+ */
 export default function TeamSettings() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -112,7 +118,13 @@ export default function TeamSettings() {
   }
 
   return (
-    <div className="space-y-6">
+    <ErrorBoundary componentName="TeamSettings">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-6"
+    >
       <div>
         <h1 className="text-xl font-bold tracking-tight text-text-primary flex items-center gap-2">
           <Users className="h-5 w-5 text-champagne" />
@@ -136,7 +148,7 @@ export default function TeamSettings() {
         </div>
       )}
 
-      <div className="space-y-2">
+      <div className="space-y-2" role="list" aria-label="Team members">
         {members.map((member) => (
           <div
             key={member.userId}
@@ -185,6 +197,8 @@ export default function TeamSettings() {
                         const next = member.role === 'Employee' ? 'Accountant' : 'Employee';
                         handleRoleChange(member.userId, next);
                       }}
+                      aria-label={`Change ${member.displayName || member.email}'s role from ${member.role} to ${member.role === 'Employee' ? 'Accountant' : 'Employee'}`}
+                      title={`Switch to ${member.role === 'Employee' ? 'Accountant' : 'Employee'} role`}
                     >
                       {roleMutation.isPending ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -223,6 +237,7 @@ export default function TeamSettings() {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
+    </ErrorBoundary>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, Loader2, Globe } from 'lucide-react';
@@ -57,7 +58,12 @@ export default function MultiCurrency() {
   }, [receipts]);
 
   return (
-    <div className="space-y-5 fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="space-y-5"
+    >
       <PageHeader
         title="Multi-Currency"
         subtitle="Track and manage non-CAD receipts"
@@ -154,6 +160,6 @@ export default function MultiCurrency() {
           </table>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

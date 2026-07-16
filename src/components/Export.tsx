@@ -28,6 +28,11 @@ interface ExportProps {
   receipts: ReceiptRow[];
 }
 
+/**
+ * Export — CRA-ready export center with CSV, IDEA CSV, CRA PDF, and ZIP audit package downloads.
+ * Includes date-range filtering, totals summary, and chain-of-custody LOGBOOK for audit support.
+ * Gated by plan feature `hasExports`.
+ */
 export default function Export({ receipts }: ExportProps) {
   const { plan } = usePlan();
   const [fromDate, setFromDate] = useState('');

@@ -16,6 +16,7 @@ import { ScheduleManager } from './ScheduleManager';
 import type { ReportConfig, ReportResult, ReportTemplate } from '@/lib/services/reports';
 
 interface Props {
+  /** Organization ID for scoping report data and schedules */
   orgId: string;
 }
 

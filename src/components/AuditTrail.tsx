@@ -13,13 +13,15 @@ import {
   RefreshCw,
   ShieldCheck,
   Trash2,
+  CheckCircle2,
 } from 'lucide-react';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { formatDate } from '@/lib/ui-utils';
 import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/layout/PageHeader';
 import type { AuditLogRow } from '@/lib/types';
+import { getAuditVerificationSummary } from '@/lib/services/audit-verification';
 
 const PAGE_SIZE = 50;
 
@@ -89,14 +91,19 @@ interface PageResult {
   nextOffset: number | undefined;
 }
 
-async function fetchAuditLogsPage({ pageParam = 0 }): Promise<PageResult> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user?.id) return { logs: [], nextOffset: undefined };
+async function getOrgId(): Promise<string | null> {
+  const { data } = await supabase.rpc('get_user_org');
+  return data as string | null;
+}
+
+async function fetchAuditLogsPage({ pageParam = 0 }: { pageParam?: number }): Promise<PageResult> {
+  const orgId = await getOrgId();
+  if (!orgId) return { logs: [], nextOffset: undefined };
 
   const { data, error } = await supabase
     .from('audit_logs')
     .select('*')
-    .eq('user_id', session.user.id)
+    .eq('org_id', orgId)
     .order('created_at', { ascending: false })
     .range(pageParam, pageParam + PAGE_SIZE - 1);
 
@@ -106,6 +113,11 @@ async function fetchAuditLogsPage({ pageParam = 0 }): Promise<PageResult> {
   return { logs, nextOffset };
 }
 
+/**
+ * AuditTrail — Paginated compliance event log with action-type badges,
+ * "load more" pagination, and integrity verification status.
+ * All user actions (create, edit, delete, export, view) are shown with timestamps and details.
+ */
 export default function AuditTrail() {
   const {
     data: pages,
@@ -124,7 +136,24 @@ export default function AuditTrail() {
     staleTime: 30_000,
   });
 
+  // Fetch integrity verification status
+  const { data: verification } = useQuery({
+    queryKey: ['audit_verification'],
+    queryFn: async () => {
+      const orgId = await getOrgId();
+      if (!orgId) return null;
+      return getAuditVerificationSummary(orgId);
+    },
+    enabled: !isLoading,
+    staleTime: 60_000,
+  });
+
   const logs = pages?.pages.flatMap((p) => p.logs) ?? [];
+
+  const integrityStatus = verification?.chainIntegrity ?? 'unknown';
+  const integrityColor =
+    integrityStatus === 'verified' ? 'text-emerald-light' :
+    integrityStatus === 'broken' ? 'text-danger' : 'text-text-muted';
 
   return (
     <div className="space-y-4 fade-in" role="region" aria-label="Audit trail">
@@ -132,15 +161,23 @@ export default function AuditTrail() {
         title="Audit Trail"
         subtitle="View key record events, exports, and integrity-related actions."
         action={
-          <button
-            type="button"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="inline-flex items-center gap-2 rounded-[2rem] border border-glass-border bg-surface px-3 py-2 text-sm font-medium text-text-secondary shadow-sm transition hover:border-glass-border-hover hover:text-champagne disabled:opacity-50"
-          >
-            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {verification && (
+              <div className={`flex items-center gap-1.5 text-xs ${integrityColor}`}>
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                <span className="font-medium capitalize">{integrityStatus.replace(/-/g, ' ')}</span>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="inline-flex items-center gap-2 rounded-[2rem] border border-glass-border bg-surface px-3 py-2 text-sm font-medium text-text-secondary shadow-sm transition hover:border-glass-border-hover hover:text-champagne disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+          </div>
         }
       />
 
@@ -151,6 +188,7 @@ export default function AuditTrail() {
             <p className="text-sm font-semibold text-text-primary">Compliance record view</p>
             <p className="mt-1 text-sm leading-6 text-text-secondary">
               This screen helps show who did what and when, including export activity and saved receipt events.
+              Chain integrity: <span className={`font-medium capitalize ${integrityColor}`}>{integrityStatus}</span> ({verification?.totalEntries ?? 0} entries).
             </p>
           </div>
         </div>

@@ -10,6 +10,7 @@ import {
   Camera,
   ReceiptText,
   Route,
+  Clock,
   FileDown,
   Landmark,
   ScrollText,
@@ -52,23 +53,82 @@ import {
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import type { UserRole } from '@/lib/types';
+import { useFeatures } from '@/lib/features/hooks';
+import type { FeatureKey } from '@/lib/features/registry';
 
-type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more'
+type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'time' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more'
   | 'smart-search' | 'receipt-calendar' | 'receipt-timeline' | 'vendor-analytics'
   | 'budgets' | 'tax-dashboard' | 'cashflow-forecast' | 'multi-currency'
   | 'receipt-tags' | 'batch-operations' | 'receipt-comparison' | 'recurring-detector' | 'kanban-workflow'
   | 'qbo-export' | 'xero-export' | 'export-dashboard' | 'email-forward'
   | 'readiness-score' | 'spending-insights' | 'share-receipt' | 'payables-dashboard' | 'slack-alerts' | 'dark-sync';
 
+/**
+ * Props for the Sidebar component.
+ */
 interface SidebarProps {
+  /** Currently active navigation tab */
   activeTab: Tab;
+  /** Callback when user navigates to a different tab */
   onTabChange: (tab: Tab) => void;
+  /** Current user's role for permission-based nav items */
   role: UserRole;
+  /** Human-readable plan label (e.g., "Pro", "Free") */
   planLabel: string;
+  /** Plan identifier for feature gating */
   plan: string;
+  /** Sign-out handler */
   handleSignOut: () => void;
 }
 
+/**
+ * Map navigation tabs to feature keys for gating.
+ * Items without a mapping (null) are always shown.
+ * Core features are always on and don't need gating.
+ */
+const TAB_TO_FEATURE: Partial<Record<Tab, FeatureKey | null>> = {
+  dashboard: 'dashboard',
+  scan: 'scanning',
+  receipts: 'receipts',
+  mileage: 'mileage',
+  time: 'time_tracking',
+  export: 'export',
+  reconcile: 'banking',
+  approvals: 'approvals',
+  payables: 'payables',
+  projects: 'projects',
+  audit: 'audit',
+  alerts: 'alerts',
+  reports: 'reports',
+  'smart-search': 'search',
+  'receipt-calendar': 'calendar',
+  'receipt-timeline': 'timeline',
+  'vendor-analytics': 'vendors',
+  budgets: 'budgets',
+  'tax-dashboard': 'tax',
+  'cashflow-forecast': 'cashflow',
+  'multi-currency': 'multi_currency',
+  'receipt-tags': 'tags',
+  'batch-operations': 'batch_ops',
+  'kanban-workflow': 'kanban',
+  'readiness-score': 'readiness',
+  'spending-insights': 'insights',
+  'share-receipt': 'sharing',
+  'slack-alerts': 'notifications',
+  'qbo-export': 'integrations',
+  'xero-export': 'integrations',
+  'export-dashboard': 'integrations',
+  'email-forward': 'integrations',
+  'receipt-comparison': null, // always shown
+  'recurring-detector': null, // always shown
+  'dark-sync': null, // UI-only
+  more: null, // overflow
+};
+
+/**
+ * Individual navigation link with active state indicator, icon, and label.
+ * Shows a champagne accent bar on the left when active.
+ */
 function NavLink({
   icon,
   label,
@@ -76,10 +136,15 @@ function NavLink({
   collapsed,
   onClick,
 }: {
+  /** Icon component to display */
   icon: React.ReactNode;
+  /** Display label text */
   label: string;
+  /** Whether this nav item is currently active */
   active: boolean;
+  /** Whether the sidebar is in collapsed state */
   collapsed: boolean;
+  /** Click handler */
   onClick: () => void;
 }) {
   return (
@@ -134,6 +199,19 @@ export default function Sidebar({
 
   const isPrivileged = role !== 'Employee';
   const unreadCount = useNotificationStore((s) => s.unreadCount());
+  const { features } = useFeatures();
+
+  /**
+   * Check if a tab should be visible based on feature flags.
+   * Items without a feature mapping, core features, or features that are enabled pass through.
+   */
+  const isTabVisible = (tab: Tab): boolean => {
+    const featureKey = TAB_TO_FEATURE[tab];
+    // No mapping = always visible (UI-only items like more, dark-sync)
+    if (featureKey === undefined || featureKey === null) return true;
+    // If the feature key maps but user doesn't have it, hide
+    return features[featureKey] ?? true;
+  };
 
   const navGroups: Array<{
     id: string;
@@ -154,6 +232,7 @@ export default function Sidebar({
       items: [
         { id: 'receipts' as Tab, label: 'Receipts', icon: <ReceiptText className="h-4 w-4" /> },
         ...(isPrivileged ? [{ id: 'mileage' as Tab, label: 'Mileage', icon: <Route className="h-4 w-4" /> }] : []),
+        ...(isPrivileged ? [{ id: 'time' as Tab, label: 'Time', icon: <Clock className="h-4 w-4" /> }] : []),
         ...(isPrivileged ? [{ id: 'projects' as Tab, label: 'Projects', icon: <Building2 className="h-4 w-4" /> }] : []),
         { id: 'smart-search' as Tab, label: 'Smart Search', icon: <Search className="h-4 w-4" /> },
         { id: 'receipt-calendar' as Tab, label: 'Calendar', icon: <CalendarDays className="h-4 w-4" /> },
@@ -269,8 +348,8 @@ export default function Sidebar({
                   {group.label}
                 </p>
               )}
-              <div className="space-y-0.5">
-                {group.items.map((item) => (
+                  <div className="space-y-0.5">
+                {group.items.filter((item) => isTabVisible(item.id)).map((item) => (
                   <NavLink
                     key={item.id}
                     icon={item.icon}
@@ -283,10 +362,10 @@ export default function Sidebar({
                     }}
                   />
                 ))}
-              </div>
-            </div>
-          );
-        })}
+                      </div>
+                    </div>
+                  );
+                })}
       </nav>
 
         {/* Bottom section */}
@@ -309,6 +388,17 @@ export default function Sidebar({
               </span>
             </>
           )}
+        </Link>
+
+        {/* Admin */}
+        <Link
+          href="/settings/admin"
+          aria-label="Admin"
+          className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition mb-0.5 ${collapsed ? 'justify-center px-2' : ''}`}
+          title={collapsed ? 'Admin' : undefined}
+        >
+          <LayoutDashboard className="h-3.5 w-3.5 flex-shrink-0" />
+          {!collapsed && <span>Admin</span>}
         </Link>
 
         {/* Organization */}
@@ -434,7 +524,7 @@ export default function Sidebar({
             <div key={group.id} className="mb-4">
                         <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-text-muted">{group.label}</p>
                         <div className="space-y-0.5">
-                          {group.items.map((item) => (
+                          {group.items.filter((item) => isTabVisible(item.id)).map((item) => (
                             <NavLink
                               key={item.id}
                               icon={item.icon}

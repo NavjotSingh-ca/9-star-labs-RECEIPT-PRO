@@ -4,29 +4,97 @@ import { escapeHtml } from '@/lib/html-escape';
 import { logError, logWarn } from '@/lib/logger';
 
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
-
 const FROM_EMAIL = env.RESEND_FROM_EMAIL;
 
-interface SendEmailParams {
+const MAX_RECIPIENT_LENGTH = 320;
+const EMAIL_LOCAL_PART_MAX = 64;
+
+export interface SendEmailResult {
+  id: string | null;
+  error: Error | null;
+}
+
+export interface SendEmailParams {
   to: string;
   subject: string;
   html: string;
   text?: string;
 }
 
-export async function sendEmail(params: SendEmailParams) {
+export interface ApprovalReceiptDetails {
+  vendor: string;
+  amount: string;
+  date: string;
+  employee: string;
+}
+
+export interface ReimbursementReceiptDetails {
+  vendor: string;
+  amount: string;
+  date: string;
+  method: string;
+  reference: string;
+}
+
+export interface MonthlySummaryDetails {
+  month: string;
+  total: string;
+  receiptCount: number;
+  topCategory: string;
+  topAmount: string;
+}
+
+/**
+ * Basic email format validation — checks structure, not deliverability.
+ * Accepts standard RFC 5322-ish emails like "user@domain.tld".
+ */
+function isValidEmail(email: string): boolean {
+  if (!email || email.length > MAX_RECIPIENT_LENGTH) return false;
+  const atIdx = email.lastIndexOf('@');
+  if (atIdx < 1 || atIdx >= email.length - 4) return false;
+  const local = email.slice(0, atIdx);
+  const domain = email.slice(atIdx + 1);
+  if (local.length > EMAIL_LOCAL_PART_MAX) return false;
+  if (!domain.includes('.')) return false;
+  return true;
+}
+
+/**
+ * Strips HTML tags for plain-text fallback.
+ */
+function htmlToPlainText(html: string): string {
+  return html.replace(/<[^>]*>/g, '');
+}
+
+/**
+ * Send an email via Resend.
+ * Gracefully degrades if Resend API key or FROM_EMAIL is not configured.
+ *
+ * @param params - Email parameters (to, subject, html, optional text).
+ * @param params.to - Recipient email address.
+ * @param params.subject - Email subject line.
+ * @param params.html - HTML body content.
+ * @param params.text - Optional plain text fallback. Auto-generated from HTML if omitted.
+ * @returns Object with `id` (message ID or 'skipped') and `error` (null on success).
+ */
+export async function sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
+  if (!params.to || !isValidEmail(params.to)) {
+    logWarn('[Email] Invalid or missing recipient email. Skipping: ' + params.subject);
+    return { id: 'skipped', error: null };
+  }
+
   if (!resend || !FROM_EMAIL) {
-    if (!FROM_EMAIL) logWarn('[Email] RESEND_FROM_EMAIL not configured. Skipping email: ' + params.subject);
+    if (!FROM_EMAIL) logWarn('[Email] RESEND_FROM_EMAIL not configured. Skipping: ' + params.subject);
     return { id: 'skipped', error: null };
   }
 
   try {
     const { data, error } = await resend.emails.send({
-      from: FROM_EMAIL!,
+      from: FROM_EMAIL,
       to: params.to,
       subject: params.subject,
       html: params.html,
-      text: params.text || params.html.replace(/<[^>]*>/g, ''),
+      text: params.text || htmlToPlainText(params.html),
     });
 
     if (error) {
@@ -41,8 +109,14 @@ export async function sendEmail(params: SendEmailParams) {
   }
 }
 
-// HIGH-5: All user-supplied data is escaped via escapeHtml() to prevent XSS in email clients
-export async function sendApprovalRequestEmail(to: string, receiptDetails: { vendor: string; amount: string; date: string; employee: string }) {
+/**
+ * Send an approval request email to an approver for a pending receipt.
+ *
+ * @param to - Approver's email address.
+ * @param receiptDetails - Receipt details for the email body.
+ * @returns Result of the email send operation.
+ */
+export async function sendApprovalRequestEmail(to: string, receiptDetails: ApprovalReceiptDetails) {
   return sendEmail({
     to,
     subject: `Approval Request: ${escapeHtml(receiptDetails.vendor)} — ${escapeHtml(receiptDetails.amount)}`,
@@ -68,7 +142,14 @@ export async function sendApprovalRequestEmail(to: string, receiptDetails: { ven
   });
 }
 
-export async function sendReimbursementConfirmation(to: string, receiptDetails: { vendor: string; amount: string; date: string; method: string; reference: string }) {
+/**
+ * Send a reimbursement confirmation email to the employee.
+ *
+ * @param to - Employee's email address.
+ * @param receiptDetails - Receipt and reimbursement details.
+ * @returns Result of the email send operation.
+ */
+export async function sendReimbursementConfirmation(to: string, receiptDetails: ReimbursementReceiptDetails) {
   return sendEmail({
     to,
     subject: `Reimbursed: ${escapeHtml(receiptDetails.vendor)} — ${escapeHtml(receiptDetails.amount)}`,
@@ -92,7 +173,14 @@ export async function sendReimbursementConfirmation(to: string, receiptDetails: 
   });
 }
 
-export async function sendMonthlySummary(to: string, summary: { month: string; total: string; receiptCount: number; topCategory: string; topAmount: string }) {
+/**
+ * Send a monthly spending summary email.
+ *
+ * @param to - Recipient email address.
+ * @param summary - Monthly summary data for the email body.
+ * @returns Result of the email send operation.
+ */
+export async function sendMonthlySummary(to: string, summary: MonthlySummaryDetails) {
   return sendEmail({
     to,
     subject: `Monthly Summary — ${escapeHtml(summary.month)}`,

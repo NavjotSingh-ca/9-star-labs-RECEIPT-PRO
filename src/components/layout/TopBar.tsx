@@ -5,13 +5,25 @@ import { APP_NAME } from '@/lib/constants';
 import Link from 'next/link';
 import NotificationBell from '@/components/notifications/NotificationBell';
 
+/**
+ * Props for the TopBar component.
+ */
 interface TopBarProps {
+  /** Human-readable plan label (e.g., "Pro", "Free") */
   planLabel: string;
+  /** Plan identifier for styling */
   plan: string;
+  /** Whether the plan data is still loading */
   planLoading: boolean;
+  /** Optional action elements to render on the right side */
   children?: React.ReactNode;
 }
 
+/**
+ * Top navigation bar for mobile/tablet viewports (<1024px).
+ * Shows app logo, plan badge, notification bell, and optional action elements.
+ * Has a 2px champagne accent line at the top.
+ */
 export default function TopBar({ planLabel, plan, planLoading, children }: TopBarProps) {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-sidebar-border bg-sidebar-bg lg:hidden relative" role="banner">

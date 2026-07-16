@@ -3,6 +3,11 @@
 import { useEffect } from 'react';
 import Lenis from 'lenis';
 
+/**
+ * SmoothScroll — Wraps children with Lenis smooth-scroll engine.
+ * Automatically disabled on mobile (<1024px) or when user prefers reduced motion.
+ * Uses cubic-bezier-like easing for natural scroll feel. Cleans up on unmount.
+ */
 export default function SmoothScroll({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

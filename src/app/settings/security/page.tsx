@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { Loader2, KeyRound, AlertCircle, CheckCircle2, ShieldOff } from 'lucide-react';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +24,11 @@ interface MFAFactor {
   factor_type: 'totp';
 }
 
+/**
+ * Security settings page — manages multi-factor authentication (TOTP).
+ * Supports enrollment with QR code display, verification, and unenrollment
+ * with challenge verification. Handles loading, error, and success states.
+ */
 export default function SecuritySettings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -144,6 +151,7 @@ export default function SecuritySettings() {
   }
 
   return (
+    <ErrorBoundary componentName="SecuritySettings">
     <>
       <div className="mb-6">
         <h1 className="text-xl font-bold tracking-tight text-text-primary">Security Settings</h1>
@@ -167,10 +175,15 @@ export default function SecuritySettings() {
           {loading && !isEnrolling ? (
             <div className="flex justify-center py-8" role="status" aria-live="polite" aria-atomic="true" aria-label="Loading security settings"><Loader2 className="h-8 w-8 animate-spin text-champagne" /></div>
           ) : (
-            <div className="space-y-8">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-8"
+            >
               
-              <div className="rounded-[3rem] border border-glass-border bg-surface-raised p-6">
-                <h2 className="text-lg font-semibold text-text-primary mb-4">Authenticator App (TOTP)</h2>
+              <div className="rounded-2xl border border-glass-border bg-surface-raised p-6">
+                <h2 className="text-lg font-semibold tracking-tight text-text-primary mb-4">Authenticator App (TOTP)</h2>
                 
                 {factors.length > 0 ? (
                   <div className="space-y-4">
@@ -188,7 +201,7 @@ export default function SecuritySettings() {
                         </div>
                         <button
                           onClick={() => setUnenrollTarget(f.id)}
-                          className="rounded-[2rem] bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger transition hover:bg-danger/20"
+                          className="rounded-[2rem] bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger transition hover:bg-danger/20 focus-visible:outline-2 focus-visible:outline-champagne focus-visible:outline-offset-2"
                         >
                           Remove
                         </button>
@@ -202,7 +215,7 @@ export default function SecuritySettings() {
                         <p className="text-sm text-text-secondary mb-4">Add an additional layer of security to your account by requiring a code from an authenticator app (like Google Authenticator or 1Password).</p>
                         <button
                           onClick={startEnrollment}
-                          className="rounded-[2rem] bg-champagne px-4 py-2 text-sm font-bold text-black transition hover:bg-champagne/90"
+                          className="rounded-[2rem] bg-champagne px-4 py-2 text-sm font-bold text-black transition hover:bg-champagne/90 focus-visible:outline-2 focus-visible:outline-champagne focus-visible:outline-offset-2"
                         >
                           Enable Authenticator
                         </button>
@@ -211,19 +224,22 @@ export default function SecuritySettings() {
                       <div className="space-y-6">
                         <p className="text-sm text-text-secondary">Scan this QR code with your authenticator app.</p>
                         
-                        <div className="flex justify-center rounded-[2rem] bg-white p-4 max-w-[200px] mx-auto">
-                          <Image src={qrCode} alt="QR Code" width={200} height={200} className="w-full h-auto" />
+                        <div className="flex justify-center rounded-[2rem] bg-card p-4 max-w-[200px] mx-auto border border-glass-border">
+                          <Image src={qrCode} alt="Scan this QR code with your authenticator app" width={200} height={200} className="w-full h-auto" />
                         </div>
 
                         <div>
-                          <label className="block text-xs font-semibold uppercase text-text-muted mb-2">Verification Code</label>
+                          <label htmlFor="verify-totp-code" className="block text-xs font-semibold uppercase text-text-muted mb-2">Verification Code</label>
                           <input
+                            id="verify-totp-code"
                             type="text"
+                            inputMode="numeric"
                             value={verifyCode}
                             onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                             className="w-full rounded-[2rem] border border-glass-border bg-surface-hover px-4 py-3 text-center text-lg tracking-[0.5em] text-text-primary outline-none focus:border-champagne/40"
                             placeholder="000000"
                             maxLength={6}
+                            autoComplete="one-time-code"
                           />
                         </div>
 
@@ -231,14 +247,14 @@ export default function SecuritySettings() {
                           <button
                             onClick={verifyEnrollment}
                             disabled={loading || verifyCode.length !== 6}
-                            className="flex-1 flex justify-center items-center gap-2 rounded-[2rem] bg-emerald-success px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-success/80 disabled:opacity-50"
+                            className="flex-1 flex justify-center items-center gap-2 rounded-[2rem] bg-emerald-success px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-success/80 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-champagne focus-visible:outline-offset-2"
                           >
                             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                             Verify and Enable
                           </button>
                           <button
                             onClick={() => { setIsEnrolling(false); setQrCode(''); }}
-                            className="rounded-[2rem] border border-glass-border px-4 py-3 text-sm font-medium text-text-secondary hover:bg-surface-raised"
+                            className="rounded-[2rem] border border-glass-border px-4 py-3 text-sm font-medium text-text-secondary hover:bg-surface-raised transition focus-visible:outline-2 focus-visible:outline-champagne focus-visible:outline-offset-2"
                           >
                             Cancel
                           </button>
@@ -249,7 +265,7 @@ export default function SecuritySettings() {
                 )}
               </div>
 
-            </div>
+            </motion.div>
           )}
       <AlertDialog open={!!unenrollTarget} onOpenChange={(open) => { if (!open) cancelUnenroll(); }}>
         <AlertDialogContent>
@@ -278,13 +294,17 @@ export default function SecuritySettings() {
             </AlertDialogFooter>
           ) : (
             <div className="space-y-4 px-1">
+              <label htmlFor="unenroll-totp-code" className="sr-only">Enter authenticator code to confirm disable</label>
               <input
+                id="unenroll-totp-code"
                 type="text"
+                inputMode="numeric"
                 value={unenrollCode}
                 onChange={(e) => setUnenrollCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 className="w-full rounded-[2rem] border border-glass-border bg-surface-hover px-4 py-3 text-center text-lg tracking-[0.5em] text-text-primary outline-none focus:border-champagne/40"
                 placeholder="000000"
                 maxLength={6}
+                autoComplete="one-time-code"
                 autoFocus
               />
               <AlertDialogFooter>
@@ -305,5 +325,6 @@ export default function SecuritySettings() {
         </AlertDialogContent>
       </AlertDialog>
     </>
+    </ErrorBoundary>
   );
 }

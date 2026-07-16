@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase, getOrgIdString } from '@/lib/supabase';
@@ -57,7 +58,12 @@ export default function QBOExport() {
   };
 
   return (
-    <div className="space-y-5 fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="space-y-5"
+    >
       <PageHeader
         title="QBO Export"
         subtitle="Export receipts in QuickBooks Online CSV format"
@@ -89,7 +95,7 @@ export default function QBOExport() {
           type="button"
           onClick={downloadCSV}
           disabled={receipts.length === 0}
-          className="ml-auto inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-bold text-obsidian hover:bg-accent-dim transition disabled:opacity-50"
+          className="ml-auto inline-flex items-center gap-2 rounded-xl bg-champagne px-4 py-2 text-sm font-bold text-obsidian hover:bg-champagne-dim transition disabled:opacity-50"
         >
           <Download className="h-4 w-4" />
           Download CSV
@@ -151,6 +157,6 @@ export default function QBOExport() {
           <li>Review and confirm the import</li>
         </ol>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -199,7 +199,12 @@ export default function BatchOperations() {
   });
 
   return (
-    <div className="space-y-5 fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="space-y-5"
+    >
       <PageHeader
         title="Batch Operations"
         subtitle="Edit, tag, export, or delete multiple receipts at once"
@@ -240,7 +245,7 @@ export default function BatchOperations() {
                 className={cn(
                   'flex h-5 w-5 items-center justify-center rounded-md border text-[10px] transition-colors',
                   allSelected
-                    ? 'bg-champagne border-champagne text-white'
+                    ? 'bg-champagne border-champagne text-black'
                     : 'border-glass-border hover:border-champagne/50'
                 )}
               >
@@ -279,20 +284,23 @@ export default function BatchOperations() {
                     <tr
                       key={r.id}
                       onClick={() => toggleOne(r.id)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleOne(r.id); } }}
+                      tabIndex={0}
+                      role="button"
                       className={cn(
                         'border-b border-glass-border transition-colors cursor-pointer',
                         i % 2 === 0 ? 'bg-surface' : 'bg-surface-raised/50',
                         checked ? 'bg-champagne/5 hover:bg-champagne/10' : 'hover:bg-champagne/5'
                       )}
                     >
-                      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-3 py-3" role="presentation">
                         <button
                           type="button"
-                          onClick={() => toggleOne(r.id)}
+                          onClick={(e) => { e.stopPropagation(); toggleOne(r.id); }}
                           className={cn(
                             'flex h-5 w-5 items-center justify-center rounded-md border text-[10px] transition-colors',
                             checked
-                              ? 'bg-champagne border-champagne text-white'
+                              ? 'bg-champagne border-champagne text-black'
                               : 'border-glass-border hover:border-champagne/50'
                           )}
                         >
@@ -442,6 +450,6 @@ export default function BatchOperations() {
           </AnimatePresence>
         </>
       )}
-    </div>
+    </motion.div>
   );
 }

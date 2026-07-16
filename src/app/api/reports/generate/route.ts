@@ -4,6 +4,15 @@ import { generateReport, ReportConfigSchema, ReportError } from '@/lib/services/
 import { getOrgIdString } from '@/lib/supabase';
 import { logError } from '@/lib/logger';
 
+/**
+ * POST /api/reports/generate
+ *
+ * Generates a financial report based on the provided configuration.
+ * Body: ReportConfig (validated by ReportConfigSchema)
+ *
+ * Returns the report result object.
+ * Rate limited: 30 requests per 60s.
+ */
 async function POST(request: Request) {
   try {
     // Auth gate — `generateReport` is org-scoped via get_user_org(). Without

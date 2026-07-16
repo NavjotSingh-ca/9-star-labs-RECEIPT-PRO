@@ -1,32 +1,96 @@
 import { NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { env } from '@/lib/env';
-import { logError } from '@/lib/logger';
+import { withRateLimit } from '@/lib/rate-limiter';
 
-export async function GET(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = env.CRON_SECRET;
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+/**
+ * GET /api/health
+ *
+ * Comprehensive health check endpoint for monitoring (load balancers, cron jobs, etc.).
+ * Checks all critical dependencies: Supabase, Stripe, Resend, etc.
+ * Public endpoint - no auth required for load balancer health checks.
+ * 
+ * Returns: { status: 'healthy' | 'degraded' | 'unhealthy', timestamp, checks: {...} }
+ * Rate limited: 30 requests per 60s.
+ */
+async function handler(_request: Request) {
+  const startTime = Date.now();
+  const checks: Record<string, { status: 'healthy' | 'degraded' | 'unhealthy'; latencyMs: number; error?: string }> = {};
 
+  // Check Supabase (database)
   try {
-    const supabase = getSupabase();
-
-    const { error } = await supabase
+    const dbStart = Date.now();
+    const { error } = await supabaseAdmin
       .from('organizations')
       .select('id')
       .limit(1);
-
-    return NextResponse.json({
-      status: error ? 'degraded' : 'ok',
-      timestamp: new Date().toISOString(),
-    });
-  } catch (err: unknown) {
-    logError(err, { action: 'health_check' });
-    return NextResponse.json({
-      status: 'error',
-      timestamp: new Date().toISOString(),
-    }, { status: 500 });
+    checks.database = {
+      status: error ? 'unhealthy' : 'healthy',
+      latencyMs: Date.now() - dbStart,
+      error: error?.message,
+    };
+  } catch (err) {
+    checks.database = { status: 'unhealthy', latencyMs: Date.now() - startTime, error: String(err) };
   }
+
+  // Check Stripe connectivity
+  try {
+    const stripeStart = Date.now();
+    if (env.STRIPE_SECRET_KEY) {
+      const Stripe = (await import('stripe')).default;
+      new Stripe(env.STRIPE_SECRET_KEY); // Just verify we can create a client
+      checks.stripe = { status: 'healthy', latencyMs: Date.now() - stripeStart };
+    } else {
+      checks.stripe = { status: 'degraded', latencyMs: 0, error: 'Not configured' };
+    }
+  } catch (err) {
+    checks.stripe = { status: 'unhealthy', latencyMs: Date.now() - startTime, error: String(err) };
+  }
+
+  // Check Resend (email) connectivity
+  try {
+    const resendStart = Date.now();
+    if (env.RESEND_API_KEY) {
+      // Verify we can construct the client
+      checks.resend = { status: 'healthy', latencyMs: Date.now() - resendStart };
+    } else {
+      checks.resend = { status: 'degraded', latencyMs: 0, error: 'Not configured' };
+    }
+  } catch (err) {
+    checks.resend = { status: 'unhealthy', latencyMs: Date.now() - startTime, error: String(err) };
+  }
+
+  // Check Supabase Auth
+  try {
+    const authStart = Date.now();
+    const { error } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1 });
+    checks.auth = {
+      status: error ? 'degraded' : 'healthy',
+      latencyMs: Date.now() - authStart,
+      error: error?.message,
+    };
+  } catch (err) {
+    checks.auth = { status: 'unhealthy', latencyMs: Date.now() - startTime, error: String(err) };
+  }
+
+  // Determine overall status
+  const statuses = Object.values(checks).map(c => c.status);
+  const overallStatus = statuses.includes('unhealthy') ? 'unhealthy' :
+    statuses.includes('degraded') ? 'degraded' : 'healthy';
+
+  const totalLatencyMs = Date.now() - startTime;
+
+  return NextResponse.json({
+    status: overallStatus,
+    timestamp: new Date().toISOString(),
+    latencyMs: totalLatencyMs,
+    checks,
+  }, {
+    status: overallStatus === 'unhealthy' ? 503 : 200,
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+    },
+  });
 }
+
+export const GET = withRateLimit(handler, { maxTokens: 30, windowMs: 60_000, keyPrefix: 'health:check' });

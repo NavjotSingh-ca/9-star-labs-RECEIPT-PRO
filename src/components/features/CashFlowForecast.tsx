@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, Loader2, TrendingUp } from 'lucide-react';
@@ -142,7 +143,12 @@ export default function CashFlowForecast() {
   }, [chartData]);
 
   return (
-    <div className="space-y-5 fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="space-y-5"
+    >
       <PageHeader
         title="Cash Flow Forecast"
         subtitle="90-day projected spend based on moving average"
@@ -175,12 +181,12 @@ export default function CashFlowForecast() {
               <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#bea98e" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#bea98e" stopOpacity={0} />
+                    <stop offset="5%" stopColor="var(--champagne-light)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="var(--champagne-light)" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="forecastGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b7355" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#8b7355" stopOpacity={0} />
+                    <stop offset="5%" stopColor="var(--champagne-dim)" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="var(--champagne-dim)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" vertical={false} />
@@ -203,16 +209,16 @@ export default function CashFlowForecast() {
                 <Area
                   type="monotone"
                   dataKey="actual"
-                  stroke="#bea98e"
+                  stroke="var(--champagne-light)"
                   strokeWidth={2}
                   fill="url(#actualGradient)"
                   dot={false}
-                  activeDot={{ r: 4, fill: '#bea98e' }}
+                  activeDot={{ r: 4, fill: 'var(--champagne-light)' }}
                 />
                 <Area
                   type="monotone"
                   dataKey="forecast"
-                  stroke="#8b7355"
+                  stroke="var(--champagne-dim)"
                   strokeWidth={2}
                   strokeDasharray="6 3"
                   fill="url(#forecastGradient)"
@@ -234,6 +240,6 @@ export default function CashFlowForecast() {
           </div>
         </>
       )}
-    </div>
+    </motion.div>
   );
 }

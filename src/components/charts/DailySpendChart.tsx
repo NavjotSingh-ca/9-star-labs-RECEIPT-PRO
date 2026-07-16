@@ -9,10 +9,13 @@ import {
   YAxis,
   CartesianGrid,
 } from 'recharts';
+import type { BarShapeProps } from 'recharts';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Receipt } from 'lucide-react';
 
 interface DailySpendChartProps {
+  /** Array of daily spend entries sorted by date */
   data: { date: string; amount: number }[];
 }
 
@@ -44,7 +47,12 @@ export function DailySpendChart({ data }: DailySpendChartProps) {
   const maxAmount = Math.max(...data.map(d => d.amount), 1);
 
   return (
-    <Card className="rounded-[3rem] border border-glass-border bg-surface/50 backdrop-blur-xl shadow-2xl overflow-hidden group relative before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-champagne/40">
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+    >
+    <Card className="rounded-2xl border border-glass-border bg-surface/50 backdrop-blur-xl shadow-2xl overflow-hidden group relative before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-champagne/40">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div>
@@ -94,16 +102,15 @@ export function DailySpendChart({ data }: DailySpendChartProps) {
               fill="var(--champagne)"
               radius={[4, 4, 0, 0]}
               animationDuration={320}
-              shape={(props) => {
-                const p = props as unknown as Record<string, unknown>;
-                const payload = p.payload as Record<string, unknown>;
-                const isToday = String(payload.date ?? '') === todayStr;
+              shape={(props: BarShapeProps) => {
+                const payload = props.payload as { date?: string } | undefined;
+                const isToday = String(payload?.date ?? '') === todayStr;
                 return (
                   <rect
-                    x={Number(p.x ?? 0)}
-                    y={Number(p.y ?? 0)}
-                    width={Number(p.width ?? 0)}
-                    height={Number(p.height ?? 0)}
+                    x={Number(props.x ?? 0)}
+                    y={Number(props.y ?? 0)}
+                    width={Number(props.width ?? 0)}
+                    height={Number(props.height ?? 0)}
                     fill={isToday ? 'var(--emerald-light)' : 'var(--champagne)'}
                     rx={4}
                     ry={4}
@@ -116,5 +123,6 @@ export function DailySpendChart({ data }: DailySpendChartProps) {
         </ResponsiveContainer>
       </CardContent>
     </Card>
+    </motion.div>
   );
 }

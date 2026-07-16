@@ -1,7 +1,15 @@
 import type { ReceiptRow } from '@/lib/types';
 import { APP_NAME } from '@/lib/constants';
 
-export async function exportReceiptPdf(receipt: ReceiptRow) {
+/**
+ * Generates and downloads an A5 PDF summary of a single receipt.
+ *
+ * Dynamically imports `jspdf` to keep the main bundle lean (pattern matches JSZip lazy loading).
+ *
+ * @param receipt - The receipt row to render.
+ * @throws {Error} If `jspdf` fails to load or the PDF cannot be generated.
+ */
+export async function exportReceiptPdf(receipt: ReceiptRow): Promise<void> {
   const { jsPDF } = await import('jspdf');
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a5' });

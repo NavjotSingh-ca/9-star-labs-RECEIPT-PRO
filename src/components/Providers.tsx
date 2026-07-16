@@ -8,6 +8,11 @@ import { MotionConfig } from 'framer-motion';
 import { ThemeProvider } from './ThemeProvider';
 import { logWarn, logError } from '@/lib/logger';
 
+/**
+ * Providers — Root provider composition: React Query (2min stale, 10min gc),
+ * nuqs URL state adapter, next-themes ThemeProvider, and Framer Motion reduced-motion config.
+ * Registers global unhandled promise rejection handler and Service Worker on load.
+ */
 export default function Providers({ children }: { children: React.ReactNode }) {
   // Global unhandled promise rejection handler
   useEffect(() => {
@@ -20,12 +25,17 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   // Register Service Worker
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch((err) => {
-          logWarn('SW registration skipped — offline queuing unavailable: ' + (err?.message || err));
-        });
+    if (!('serviceWorker' in navigator)) return;
+    const register = () => {
+      navigator.serviceWorker.register('/sw.js').catch((err) => {
+        logWarn('SW registration skipped — offline queuing unavailable: ' + (err?.message || err));
       });
+    };
+    if (document.readyState === 'complete') {
+      register();
+    } else {
+      window.addEventListener('load', register);
+      return () => window.removeEventListener('load', register);
     }
   }, []);
 

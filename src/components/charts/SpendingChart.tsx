@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import {
   Area,
   AreaChart,
@@ -12,11 +13,33 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface SpendingChartProps {
+  /** Array of monthly spend entries sorted chronologically */
   data: { month: string; amount: number }[];
 }
 
 export function SpendingChart({ data }: SpendingChartProps) {
+  if (data.length < 2) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: 'easeOut', delay: 0.1 }}
+      >
+      <Card className="rounded-[3rem] border border-dashed border-glass-border bg-surface/30 p-6 shadow-sm min-h-[300px] flex flex-col items-center justify-center text-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted/30 mb-3"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+        <p className="text-sm font-semibold text-text-muted">Monthly Spend Trend</p>
+        <p className="text-xs text-text-muted mt-1">Not enough data yet — need at least 2 months of data.</p>
+      </Card>
+      </motion.div>
+    );
+  }
+
   return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: 'easeOut', delay: 0.1 }}
+    >
     <Card className="rounded-[3rem] border border-glass-border bg-surface/50 backdrop-blur-xl shadow-2xl overflow-hidden group">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
@@ -29,7 +52,7 @@ export function SpendingChart({ data }: SpendingChartProps) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="h-[300px] w-full pt-4" role="img" aria-label="Monthly spending trend">
+      <CardContent className="h-[300px] w-full pt-4" role="img" aria-label={`Monthly spending trend: ${data.length} months shown`}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
@@ -75,5 +98,6 @@ export function SpendingChart({ data }: SpendingChartProps) {
         </ResponsiveContainer>
       </CardContent>
     </Card>
+    </motion.div>
   );
 }

@@ -129,7 +129,7 @@ export default function ShareReceipt() {
               className={cn(
                 'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors',
                 selected.size > 0
-                  ? 'bg-champagne text-white hover:bg-champagne-dim'
+                  ? 'bg-champagne text-black hover:bg-champagne-dim'
                   : 'bg-surface text-text-muted border border-glass-border cursor-not-allowed'
               )}
             >
@@ -186,7 +186,7 @@ export default function ShareReceipt() {
                 className={cn(
                   'flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors',
                   selected.has(receipt.id)
-                    ? 'border-champagne bg-champagne text-white'
+                    ? 'border-champagne bg-champagne text-black'
                     : 'border-glass-border bg-surface'
                 )}
               >

@@ -165,7 +165,7 @@ export default function ReceiptComparison() {
               className={cn(
                 'flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all',
                 canCompare
-                  ? 'bg-champagne text-white hover:bg-champagne-dim shadow-sm'
+                  ? 'bg-champagne text-black hover:bg-champagne-dim shadow-sm'
                   : 'bg-surface text-text-muted border border-glass-border cursor-not-allowed opacity-50'
               )}
             >
@@ -196,7 +196,7 @@ export default function ReceiptComparison() {
                       className={cn(
                         'flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-[10px] transition-colors',
                         checked
-                          ? 'bg-champagne border-champagne text-white'
+                          ? 'bg-champagne border-champagne text-black'
                           : 'border-glass-border'
                       )}
                     >
@@ -254,6 +254,7 @@ export default function ReceiptComparison() {
 
                     {imgUrl && (
                       <div className="mb-4 overflow-hidden rounded-xl border border-glass-border bg-surface">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- dynamic blob URL, Image doesn't support blob: protocol */}
                         <img
                           src={imgUrl}
                           alt={`Receipt from ${receipt.vendor_name}`}

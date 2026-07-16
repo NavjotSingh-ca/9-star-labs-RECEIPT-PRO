@@ -6,8 +6,17 @@ import { logError, logWarn } from '@/lib/logger';
 import type { AppNotification, NotificationType } from '@/lib/types';
 
 /**
- * Create a notification locally (store) and in Supabase (persisted).
+ * Create a notification locally (Zustand store) and persist to Supabase.
  * Returns the notification object on success, null on failure.
+ *
+ * @param params - Notification parameters.
+ * @param params.type - Notification type from the NotificationType union.
+ * @param params.title - Notification title (displayed in bold).
+ * @param params.message - Notification body text.
+ * @param params.link - Optional deep-link path for click-through.
+ * @param params.userId - Recipient user UUID.
+ * @param params.orgId - Optional org UUID. Auto-resolved from session if omitted.
+ * @returns The created AppNotification, or null if creation failed.
  */
 export async function notifyUser(params: {
   type: NotificationType;
@@ -18,6 +27,12 @@ export async function notifyUser(params: {
   orgId?: string;
 }): Promise<AppNotification | null> {
   const { type, title, message, link, userId } = params;
+
+  if (!userId) {
+    logWarn('notifyUser: userId is required, skipping notification', { type });
+    return null;
+  }
+
   const orgId = params.orgId || (await getOrgIdString());
   if (!orgId) {
     logWarn('notifyUser: no orgId found, skipping notification', { type, userId });
@@ -33,11 +48,11 @@ export async function notifyUser(params: {
     link: link ?? null,
   });
 
-  // Add to local store immediately
+  // Add to local store immediately (optimistic UI)
   try {
     useNotificationStore.getState().addNotification(notification);
-  } catch {
-    // Store may not be initialized on server
+  } catch (err) {
+    logError(err, { action: 'notifyUser_store_add', userId, type });
   }
 
   // Persist to DB
@@ -68,7 +83,15 @@ export async function notifyUser(params: {
 
 /**
  * Notify all Owners and Accountants in an org about a receipt event.
- * Used when a new receipt is submitted.
+ * Used when a new receipt is submitted or requires admin attention.
+ *
+ * @param params - Notification parameters for org-wide broadcast.
+ * @param params.type - Notification type.
+ * @param params.title - Notification title.
+ * @param params.message - Notification body text.
+ * @param params.link - Optional deep-link path.
+ * @param params.orgId - Organization UUID for member lookup.
+ * @param params.excludeUserId - Optional UUID to exclude (e.g., the submitting user).
  */
 export async function notifyOrgAdmins(params: {
   type: NotificationType;
@@ -80,8 +103,12 @@ export async function notifyOrgAdmins(params: {
 }): Promise<void> {
   const { type, title, message, link, orgId, excludeUserId } = params;
 
+  if (!orgId) {
+    logWarn('notifyOrgAdmins: orgId is required, skipping');
+    return;
+  }
+
   try {
-    // Fetch all Owners and Accountants in the org
     const { data: admins, error } = await supabase
       .from('user_roles')
       .select('user_id')
@@ -97,7 +124,9 @@ export async function notifyOrgAdmins(params: {
       .map((r) => r.user_id)
       .filter((id) => id !== excludeUserId);
 
-    // Create notifications in parallel
+    if (userIds.length === 0) return;
+
+    // Create notifications in parallel, don't let one failure block others
     await Promise.allSettled(
       userIds.map((userId) =>
         notifyUser({ type, title, message, link, userId, orgId })

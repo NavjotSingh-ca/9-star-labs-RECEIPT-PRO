@@ -62,6 +62,11 @@ interface NotificationsPageProps {
   onBack?: () => void;
 }
 
+/**
+ * Full notifications page with filter chips by notification type,
+ * date-grouped list, mark-as-read, mark-all-read, and delete actions.
+ * Action buttons are keyboard-accessible via focus-within styling.
+ */
 export default function NotificationsPage({ onBack }: NotificationsPageProps) {
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<NotificationType | 'all'>('all');
@@ -208,16 +213,24 @@ export default function NotificationsPage({ onBack }: NotificationsPageProps) {
           </p>
         </motion.div>
       ) : (
-        <div className="space-y-6">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
+          className="space-y-6"
+        >
           {grouped.map((group) => (
-            <div key={group.date}>
+            <motion.div key={group.date} variants={{ visible: { transition: { staggerChildren: 0.03 } } }}>
               <h3 className="mb-2 px-1 text-[11px] font-bold uppercase tracking-[0.12em] text-text-muted">
                 {group.label}
               </h3>
               <div className="divide-y divide-glass-border overflow-hidden rounded-xl border border-glass-border bg-card shadow-sm">
                 {group.notifications.map((notification) => (
-                  <div
+                  <motion.div
                     key={notification.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.2 }}
                     className={`group flex items-start gap-3 px-4 py-3.5 transition ${
                       !notification.is_read ? 'bg-champagne/5' : ''
                     } hover:bg-surface-hover`}
@@ -247,7 +260,7 @@ export default function NotificationsPage({ onBack }: NotificationsPageProps) {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex flex-shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100 transition">
+                    <div className="flex flex-shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto transition">
                       {!notification.is_read && (
                         <button
                           type="button"
@@ -269,12 +282,12 @@ export default function NotificationsPage({ onBack }: NotificationsPageProps) {
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
     </div>
   );

@@ -20,6 +20,8 @@ import {
   ReceiptTableSkeleton, 
   ScannerSkeleton, 
 } from '@/components/ui/PremiumSkeletons';
+import { OnboardingTour } from '@/components/OnboardingTour';
+import FeatureWizard from '@/components/onboarding/FeatureWizard';
 
 const Dashboard = dynamic(() => import('@/components/Dashboard'), { 
   ssr: false, 
@@ -70,6 +72,16 @@ const ReportsPage = dynamic(() => import('@/components/reports/ReportsPage').the
   loading: () => <ReceiptTableSkeleton /> 
 });
 
+// Time Tracking
+const TimeClock = dynamic(() => import('@/components/time/TimeClock'), {
+  ssr: false,
+  loading: () => <ReceiptTableSkeleton />
+});
+const TimeHistory = dynamic(() => import('@/components/time/TimeHistory'), {
+  ssr: false,
+  loading: () => <ReceiptTableSkeleton />
+});
+
 // === NEW FEATURES (23) ===
 const SmartSearch = dynamic(() => import('@/components/features/SmartSearch'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
 const ReceiptCalendar = dynamic(() => import('@/components/features/ReceiptCalendar'), { ssr: false, loading: () => <ReceiptTableSkeleton /> });
@@ -112,12 +124,21 @@ import { getReceipts, getDashboardSummary, getDailySpend } from '@/lib/services/
 import { getUserRole } from '@/lib/services/roles';
 import { getPlan, formatPlanLabel } from '@/lib/services/subscription';
 
-type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more'
+type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'time' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more'
   | 'smart-search' | 'receipt-calendar' | 'receipt-timeline' | 'vendor-analytics'
   | 'budgets' | 'tax-dashboard' | 'cashflow-forecast' | 'multi-currency'
   | 'receipt-tags' | 'batch-operations' | 'receipt-comparison' | 'recurring-detector' | 'kanban-workflow'
   | 'qbo-export' | 'xero-export' | 'export-dashboard' | 'email-forward'
   | 'readiness-score' | 'spending-insights' | 'share-receipt' | 'payables-dashboard' | 'slack-alerts' | 'dark-sync';
+
+const FULL_TAB_ORDER: Tab[] = ['dashboard', 'receipts', 'scan', 'mileage', 'time', 'export', 'reconcile', 'approvals', 'payables', 'projects', 'audit', 'alerts', 'reports',
+  'smart-search', 'receipt-calendar', 'receipt-timeline', 'vendor-analytics',
+  'budgets', 'tax-dashboard', 'cashflow-forecast', 'multi-currency',
+  'receipt-tags', 'batch-operations', 'receipt-comparison', 'recurring-detector', 'kanban-workflow',
+  'qbo-export', 'xero-export', 'export-dashboard', 'email-forward',
+  'readiness-score', 'spending-insights', 'share-receipt', 'payables-dashboard', 'slack-alerts', 'dark-sync', 'more'];
+
+const EMPLOYEE_TAB_ORDER: Tab[] = ['receipts', 'scan', 'mileage', 'time', 'smart-search', 'receipt-calendar', 'receipt-timeline', 'vendor-analytics', 'receipt-tags', 'share-receipt', 'more'];
 
 const cad = new Intl.NumberFormat('en-CA', {
   style: 'currency',
@@ -126,29 +147,31 @@ const cad = new Intl.NumberFormat('en-CA', {
 });
 
 const tabTransition = {
-  duration: 0.2,
-  ease: 'easeOut' as const,
+  type: 'spring' as const,
+  stiffness: 300,
+  damping: 28,
+  mass: 0.8,
 };
 
 const tabVariants = {
-  initial: { opacity: 0, y: 16 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
+  initial: { opacity: 0, y: 16, scale: 0.98 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 0, y: -8, scale: 0.98 },
 };
 
 function FullPageLoader() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-obsidian" role="status" aria-live="polite" aria-label="Loading application">
       <div className="flex flex-col items-center gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-accent/15 accent-glow">
-          <ReceiptText className="h-8 w-8 text-accent" />
+        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-champagne/15 accent-glow">
+          <ReceiptText className="h-8 w-8 text-champagne" />
         </div>
-        <Loader2 className="h-6 w-6 animate-spin text-accent" />
+        <Loader2 className="h-6 w-6 animate-spin text-champagne" />
         <p className="text-sm font-medium text-text-secondary">Loading {APP_NAME}…</p>
         <div className="mt-8 animate-in fade-in duration-1000" style={{ animationDelay: '5s' }}>
           <button
             onClick={() => window.location.reload()}
-            className="text-xs text-text-muted hover:text-accent underline underline-offset-4"
+            className="text-xs text-text-muted hover:text-champagne underline underline-offset-4"
           >
             Taking too long? Click to retry
           </button>
@@ -179,7 +202,7 @@ function AuditHUD({ receipts }: { receipts: ReceiptRow[] }) {
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
               {monthLabel} · Tax Recoverable
             </p>
-            <p className="text-lg font-bold tracking-tight text-accent tabular-nums">
+            <p className="text-lg font-bold tracking-tight text-champagne tabular-nums">
               {cad.format(gstRecoverable)}
             </p>
           </div>
@@ -192,11 +215,16 @@ function AuditHUD({ receipts }: { receipts: ReceiptRow[] }) {
   );
 }
 
+/**
+ * Main authenticated application shell — manages auth state, tab routing,
+ * keyboard shortcuts, touch gestures, realtime sync, and renders all tab panels.
+ * Wrapped in Suspense in the default export for nuqs query state hydration.
+ */
 function AppContent() {
   const [hasMounted, setHasMounted] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useQueryState('tab', parseAsStringEnum<Tab>(['dashboard', 'receipts', 'scan', 'export', 'audit', 'reconcile', 'mileage', 'approvals', 'payables', 'projects', 'alerts', 'reports', 'more',
+  const [activeTab, setActiveTab] = useQueryState('tab', parseAsStringEnum<Tab>(['dashboard', 'receipts', 'scan', 'export', 'audit', 'reconcile', 'mileage', 'time', 'approvals', 'payables', 'projects', 'alerts', 'reports', 'more',
   'smart-search', 'receipt-calendar', 'receipt-timeline', 'vendor-analytics',
   'budgets', 'tax-dashboard', 'cashflow-forecast', 'multi-currency',
   'receipt-tags', 'batch-operations', 'receipt-comparison', 'recurring-detector', 'kanban-workflow',
@@ -217,6 +245,11 @@ function AppContent() {
   const [showAuth, setShowAuth] = useState(false);
   const [role, setRole] = useState<UserRole>('Owner');
   const [orgId, setOrgId] = useState<string | null>(null);
+  const [showFeatureWizard, setShowFeatureWizard] = useState(false);
+  const [featureWizardShown, setFeatureWizardShown] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('featureWizardDone') === 'true';
+  });
 
   const closeMoreMenu = useCallback(() => {
     const fallback: Tab = role === 'Employee' ? 'scan' : 'dashboard';
@@ -225,8 +258,7 @@ function AppContent() {
 
   useEffect(() => {
     if (role === 'Employee') {
-      const allowedEmployeeTabs: Tab[] = ['scan', 'receipts', 'mileage', 'smart-search', 'receipt-calendar', 'receipt-timeline', 'vendor-analytics', 'receipt-tags', 'share-receipt', 'more'];
-      if (!(allowedEmployeeTabs as readonly Tab[]).includes(activeTab)) {
+      if (!(EMPLOYEE_TAB_ORDER as readonly Tab[]).includes(activeTab)) {
         setTabWithUrl('scan');
       }
     }
@@ -253,6 +285,7 @@ function AppContent() {
 
         if (!active) return;
         let finalRole = role;
+        let wasBootstrapped = false;
         if (!orgId) {
           const result = await bootstrapOrgAction(currentUser.id);
           if (!result.ok) {
@@ -260,6 +293,7 @@ function AppContent() {
             toast.error('Organization setup failed. Some features may be limited.');
           } else {
             finalRole = await getUserRole(currentUser.id);
+            wasBootstrapped = true;
           }
         }
         if (active) {
@@ -269,7 +303,13 @@ function AppContent() {
           } else {
             // After bootstrap org was created, re-fetch org id
             const { data: newOrgId } = await supabase.rpc('get_user_org');
-            if (newOrgId) setOrgId(newOrgId);
+            if (newOrgId) {
+              setOrgId(newOrgId);
+              // Show FeatureWizard for newly bootstrapped orgs
+              if (wasBootstrapped) {
+                setShowFeatureWizard(true);
+              }
+            }
           }
           setAuthLoading(false);
         }
@@ -370,18 +410,13 @@ function AppContent() {
 
   useReceiptRealtimeSync(role, userId);
 
-  const handleFilterClick = useCallback((filter: string) => {
-    setActiveFilter(filter);
-    setTabWithUrl('receipts');
-  }, [setTabWithUrl]);
-
   const handleSignOut = useCallback(async () => {
     await supabase.auth.signOut();
     setTabWithUrl('dashboard');
     setActiveFilter('all');
   }, [setTabWithUrl]);
 
-  // Global keyboard shortcuts
+  // Global keyboard shortcuts — `aria-keyshortcuts` values documented below
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       const target = e.target as HTMLElement;
@@ -448,14 +483,7 @@ function AppContent() {
     const deltaX = e.changedTouches[0].clientX - touchStartX.current;
     const deltaY = e.changedTouches[0].clientY - touchStartY.current;
     if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
-    const tabOrder: Tab[] = role === 'Employee'
-      ? ['receipts', 'scan', 'mileage', 'smart-search', 'receipt-calendar', 'receipt-timeline', 'vendor-analytics', 'receipt-tags', 'share-receipt', 'more']
-      : ['dashboard', 'receipts', 'scan', 'mileage', 'export', 'reconcile', 'approvals', 'payables', 'projects', 'audit', 'alerts', 'reports',
-        'smart-search', 'receipt-calendar', 'receipt-timeline', 'vendor-analytics',
-        'budgets', 'tax-dashboard', 'cashflow-forecast', 'multi-currency',
-        'receipt-tags', 'batch-operations', 'receipt-comparison', 'recurring-detector', 'kanban-workflow',
-        'qbo-export', 'xero-export', 'export-dashboard', 'email-forward',
-        'readiness-score', 'spending-insights', 'share-receipt', 'payables-dashboard', 'slack-alerts', 'dark-sync', 'more'];
+    const tabOrder: Tab[] = role === 'Employee' ? EMPLOYEE_TAB_ORDER : FULL_TAB_ORDER;
     const currentIndex = tabOrder.indexOf(activeTab);
     if (currentIndex === -1) return;
     if (deltaX < 0 && currentIndex < tabOrder.length - 1) setTabWithUrl(tabOrder[currentIndex + 1]);
@@ -482,7 +510,7 @@ function AppContent() {
           role="status"
           aria-live="polite"
         >
-          <Loader2 className="h-9 w-9 animate-spin text-accent" />
+          <Loader2 className="h-9 w-9 animate-spin text-champagne" />
           <p className="text-sm font-medium text-text-secondary">Loading your workspace…</p>
         </motion.div>
       );
@@ -501,7 +529,7 @@ function AppContent() {
           <p className="text-xs text-text-muted mb-4">Check your connection and try again.</p>
           <button
             onClick={() => fetchReceipts()}
-            className="rounded-lg bg-accent px-5 py-2 text-xs font-bold text-obsidian hover:bg-accent-dim transition"
+            className="rounded-lg bg-champagne px-5 py-2 text-xs font-bold text-black hover:bg-champagne-dim transition"
           >
             Retry
           </button>
@@ -515,7 +543,7 @@ function AppContent() {
           return (
             <ErrorBoundary componentName="Dashboard">
               <div id="dashboard-kpis">
-                <Dashboard onFilterClick={handleFilterClick} onScan={() => setTabWithUrl('scan')} role={role} userId={userId} />
+                <Dashboard onScan={() => setTabWithUrl('scan')} role={role} userId={userId} />
               </div>
             </ErrorBoundary>
           );
@@ -548,6 +576,15 @@ function AppContent() {
           return (
             <ErrorBoundary componentName="MileageTracker">
               <MileageTracker />
+            </ErrorBoundary>
+          );
+        case 'time':
+          return (
+            <ErrorBoundary componentName="TimeClock">
+              <div className="space-y-6">
+                <TimeClock orgId={orgId ?? ''} />
+                <TimeHistory orgId={orgId ?? ''} />
+              </div>
             </ErrorBoundary>
           );
         case 'export':
@@ -650,7 +687,7 @@ function AppContent() {
         default:
           return (
             <ErrorBoundary componentName="Dashboard">
-              <Dashboard onFilterClick={handleFilterClick} onScan={() => setTabWithUrl('scan')} role={role} userId={userId} />
+              <Dashboard onScan={() => setTabWithUrl('scan')} role={role} userId={userId} />
             </ErrorBoundary>
           );
       }
@@ -668,7 +705,9 @@ function AppContent() {
         transition={tabTransition}
         aria-live="polite"
         aria-atomic="true"
-        aria-label={`${activeTab} panel`}
+        role="tabpanel"
+        aria-label={`${activeTab.replace(/-/g, ' ')} panel`}
+        tabIndex={-1}
       >
         {inner}
       </motion.div>
@@ -701,11 +740,13 @@ function AppContent() {
           className="flex-1 overflow-y-auto px-4 pb-28 pt-16 sm:px-6 lg:pb-8 lg:pt-6 xl:px-8 relative"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
+          aria-label="Main workspace"
+          role="region"
         >
           {/* Premium ambient gradient at top */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-[600px] bg-gradient-to-b from-accent/10 via-accent/5 to-transparent" aria-hidden="true" />
-          <div className="pointer-events-none absolute -left-32 -top-32 h-64 w-64 rounded-full bg-accent/8 blur-3xl" aria-hidden="true" />
-          <div className="pointer-events-none absolute -right-32 top-64 h-48 w-48 rounded-full bg-accent/5 blur-3xl" aria-hidden="true" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[600px] bg-gradient-to-b from-champagne/10 via-champagne/5 to-transparent" aria-hidden="true" />
+          <div className="pointer-events-none absolute -left-32 -top-32 h-64 w-64 rounded-full bg-champagne/8 blur-3xl" aria-hidden="true" />
+          <div className="pointer-events-none absolute -right-32 top-64 h-48 w-48 rounded-full bg-champagne/5 blur-3xl" aria-hidden="true" />
           <div className="mx-auto max-w-6xl relative">
             {/* Audit HUD */}
             {!receiptsLoading && receipts.length > 0 && role !== 'Employee' && (
@@ -733,20 +774,49 @@ function AppContent() {
 
         {/* More slide-out panel */}
         <ErrorBoundary componentName="MoreSheet">
-          <MoreSheet
-            activeTab={activeTab}
-            onTabChange={setTabWithUrl}
-            onClose={closeMoreMenu}
-            planLabel={planLabel}
-            plan={plan}
-            onSignOut={handleSignOut}
-          />
+          <Suspense fallback={null}>
+            <MoreSheet
+              activeTab={activeTab}
+              onTabChange={setTabWithUrl}
+              onClose={closeMoreMenu}
+              planLabel={planLabel}
+              plan={plan}
+              onSignOut={handleSignOut}
+            />
+          </Suspense>
         </ErrorBoundary>
       </div>
+
+      {/* Feature configuration wizard for new orgs */}
+      {showFeatureWizard && orgId && !featureWizardShown && (
+        <FeatureWizard
+          orgId={orgId}
+          onComplete={() => {
+            setShowFeatureWizard(false);
+            setFeatureWizardShown(true);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('featureWizardDone', 'true');
+            }
+          }}
+          onSkip={() => {
+            setShowFeatureWizard(false);
+            setFeatureWizardShown(true);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('featureWizardDone', 'true');
+            }
+          }}
+        />
+      )}
+
+      <OnboardingTour />
     </div>
   );
 }
 
+/**
+ * Root page — wraps AppContent in Suspense with a full-page loader
+ * for nuqs query state hydration and initial data fetching.
+ */
 export default function Page() {
   return (
     <Suspense fallback={<FullPageLoader />}>

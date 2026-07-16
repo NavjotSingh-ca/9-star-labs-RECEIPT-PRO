@@ -2,7 +2,9 @@
 
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
+import { springSnap } from '@/lib/animations';
 
+/** Full dashboard loading state with skeleton cards and chart placeholders */
 export function DashboardSkeleton() {
   return (
     <div className="space-y-8 p-4">
@@ -20,7 +22,7 @@ export function DashboardSkeleton() {
             key={i}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
+            transition={{ delay: i * 0.1, ...springSnap }}
           >
             <Skeleton className="h-40 w-full rounded-[3rem]" />
           </motion.div>
@@ -35,6 +37,7 @@ export function DashboardSkeleton() {
   );
 }
 
+/** Loading state for the receipt table (search bar + 6 rows) */
 export function ReceiptTableSkeleton() {
   return (
     <div className="space-y-4 p-4">
@@ -51,7 +54,7 @@ export function ReceiptTableSkeleton() {
             key={i}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.05 }}
+            transition={{ delay: i * 0.05, ...springSnap }}
           >
             <Skeleton className="h-20 w-full rounded-[2rem]" />
           </motion.div>
@@ -61,6 +64,7 @@ export function ReceiptTableSkeleton() {
   );
 }
 
+/** Single card skeleton for grid layouts */
 export function CardSkeleton() {
   return (
     <div className="rounded-[2.5rem] border bg-card p-6 space-y-4">
@@ -71,6 +75,7 @@ export function CardSkeleton() {
   );
 }
 
+/** Scanner page loading state with camera and form placeholders */
 export function ScannerSkeleton() {
   return (
     <div className="space-y-6">

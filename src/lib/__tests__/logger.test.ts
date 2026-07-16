@@ -1,8 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { logInfo, logWarn, logError, logDebug, logApiCall, logDatabaseQuery } from '@/lib/logger';
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+  vi.stubEnv('NODE_ENV', 'development');
+});
+
+afterEach(() => {
   vi.unstubAllEnvs();
 });
 
@@ -55,6 +60,7 @@ describe('logError', () => {
   it('logs an error entry with null', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     logError(null);
+    expect(spy).toHaveBeenCalledOnce();
     const call = JSON.parse(spy.mock.calls[0][0]);
     expect(call.message).toBe('Unknown error');
   });
@@ -62,7 +68,6 @@ describe('logError', () => {
 
 describe('logDebug', () => {
   it('logs in development', () => {
-    vi.stubEnv('NODE_ENV', 'development');
     const spy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     logDebug('debug msg');
     expect(spy).toHaveBeenCalledOnce();
@@ -90,7 +95,6 @@ describe('logApiCall', () => {
 
 describe('logDatabaseQuery', () => {
   it('logs operation and table in development', () => {
-    vi.stubEnv('NODE_ENV', 'development');
     const spy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     logDatabaseQuery('INSERT', 'receipts');
     expect(spy).toHaveBeenCalledOnce();

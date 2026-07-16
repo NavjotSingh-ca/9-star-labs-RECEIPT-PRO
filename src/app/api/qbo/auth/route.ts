@@ -2,23 +2,33 @@ import { NextResponse } from 'next/server';
 import { env } from '@/lib/env';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { logError } from '@/lib/logger';
+import { withRateLimit } from '@/lib/rate-limiter';
 import crypto from 'crypto';
 
 const QBO_CLIENT_ID = env.QBO_CLIENT_ID || '';
 const QBO_REDIRECT_URI = `${env.NEXT_PUBLIC_SITE_URL}/api/qbo/callback`;
 
-export async function GET(request: Request) {
+/**
+ * GET /api/qbo/auth
+ *
+ * Initiates the QuickBooks Online OAuth 2.0 authorization flow.
+ * Requires a valid Bearer token for authentication.
+ * Stores CSRF state + nonce in organization_settings (10-min expiry).
+ *
+ * Returns: { url: string } — Intuit OAuth URL to redirect the user to.
+ * Rate limited: 5 requests per 60s.
+ */
+async function handler(request: Request) {
   try {
     if (!QBO_CLIENT_ID) {
       return NextResponse.json({ error: 'QBO not configured. Set QBO_CLIENT_ID in env.' }, { status: 503 });
     }
 
     const authHeader = request.headers.get('authorization') || '';
-    const token = authHeader.replace('Bearer ', '');
-
-    if (!token) {
+    if (!authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const token = authHeader.slice(7);
 
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) {
@@ -36,11 +46,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'No organization found' }, { status: 400 });
     }
 
-    // Generate state and nonce for security
     const state = crypto.randomUUID();
     const nonce = crypto.randomUUID();
 
-    // Store state/nonce in org settings temporarily (valid for 10 minutes)
     await supabaseAdmin
       .from('organization_settings')
       .upsert({
@@ -51,7 +59,6 @@ export async function GET(request: Request) {
         updated_at: new Date().toISOString(),
       }, { onConflict: 'org_id' });
 
-    // Build QBO OAuth URL
     const scopes = [
       'com.intuit.quickbooks.accounting',
       'com.intuit.quickbooks.payment',
@@ -71,3 +78,5 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'QBO authentication failed' }, { status: 500 });
   }
 }
+
+export const GET = withRateLimit(handler, { maxTokens: 5, windowMs: 60_000, keyPrefix: 'qbo:auth' });

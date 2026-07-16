@@ -48,8 +48,16 @@ async function fetchAnomalies(): Promise<AnomaliesResult> {
   return { fraudReceipts, mathErrors, missingBN, duplicates, spendAnomalies };
 }
 
+/**
+ * AnomalyDashboard — Security & compliance panel showing AI-detected anomalies.
+ * Categories: fraud suspicion, spend anomalies (>2x vendor avg), math errors,
+ * missing business numbers (over $100), and duplicate warnings.
+ *
+ * Accessibility: Each section has proper heading hierarchy, ARIA live regions
+ * for error states, and keyboard-focusable cards for interactive elements.
+ */
 export default function AnomalyDashboard() {
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['anomalies'],
     queryFn: fetchAnomalies,
     staleTime: 2 * 60 * 1000,
@@ -57,8 +65,38 @@ export default function AnomalyDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center" role="status" aria-live="polite" aria-label="Loading anomaly data">
-        <Loader2 className="h-8 w-8 animate-spin text-champagne" />
+      <div
+        className="flex h-64 items-center justify-center"
+        role="status"
+        aria-live="polite"
+        aria-label="Loading anomaly detection data"
+      >
+        <Loader2 className="h-8 w-8 animate-spin text-champagne" aria-hidden="true" />
+        <span className="sr-only">Analyzing receipt data for anomalies...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        className="rounded-[2rem] bg-danger/10 p-6 text-sm text-danger border border-danger/20"
+        role="alert"
+        aria-live="assertive"
+      >
+        <div className="flex items-start gap-3">
+          <FileWarning className="h-5 w-5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <div>
+            <p className="font-semibold mb-1">Unable to load anomaly data</p>
+            <p>{error.message}</p>
+            <button
+              onClick={() => refetch()}
+              className="mt-3 px-3 py-1.5 rounded-lg text-xs font-medium bg-danger/15 text-danger hover:bg-danger/25 transition focus:outline-none focus:ring-2 focus:ring-danger/40"
+            >
+              Retry Analysis
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -71,22 +109,16 @@ export default function AnomalyDashboard() {
   const totalAnomalies = fraudReceipts.length + mathErrors.length + missingBN.length + duplicates.length + spendAnomalies.length;
 
   return (
-    <div className="space-y-6 fade-in">
-      <div>
+    <div className="space-y-6 fade-in" role="region" aria-label="Anomaly detection dashboard">
+      <header>
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-danger">Security & Compliance</p>
         <h2 className="mt-1 text-2xl font-bold tracking-tight text-text-primary">AI Anomaly Detection</h2>
-        <p className="mt-2 text-sm text-text-secondary">
-          {totalAnomalies > 0 
-            ? `Found ${totalAnomalies} potential issues requiring attention.` 
+        <p className="mt-2 text-sm text-text-secondary" aria-live="polite">
+          {totalAnomalies > 0
+            ? `Found ${totalAnomalies} potential issues requiring attention.`
             : 'No anomalies detected. Your ledgers are clean.'}
         </p>
-      </div>
-
-      {error && (
-        <div className="rounded-[2rem] bg-danger/10 p-4 text-sm text-danger border border-danger/20" role="alert">
-          {error?.message ?? 'An error occurred loading anomalies.'}
-        </div>
-      )}
+      </header>
 
       <div className="grid gap-6 md:grid-cols-2">
         

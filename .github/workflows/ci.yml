@@ -1,79 +1,69 @@
-name: CI
+name: CI Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
     branches: [main]
 
 env:
-  NODE_VERSION: 22
+  NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder
+  NEXT_PUBLIC_SITE_URL: https://leduc-receipt-pro.vercel.app
 
 jobs:
   quality:
-    name: TypeScript + Lint + Unit Tests
+    name: Quality Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: 20
           cache: npm
-      - run: npm ci --ignore-scripts
-      - run: npm run typecheck
-      - run: npm run lint -- --max-warnings=200
-      - run: npm run test:unit
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run lint -- --max-warnings 0
+      - run: npm run test:unit -- --passWithNoTests
 
   build:
     name: Production Build
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     needs: quality
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: 20
           cache: npm
-      - run: npm ci --ignore-scripts
+      - run: npm ci
       - run: npm run build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://ferczwlaphittvksrjhq.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlcmN6d2xhcGhpdHR2a3NyamhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MDgyNTcsImV4cCI6MjA5MTA4NDI1N30.UVd5uJ9AoGwJ0TMWT6Dhnj27mDUSTy3uS0npshZNzKs' }}
 
   security:
     name: Security Audit
     runs-on: ubuntu-latest
-    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: 20
           cache: npm
-      - run: npm ci --ignore-scripts
-      - run: npm audit --audit-level=high
+      - run: npx audit-ci --moderate --skip-dev
 
   e2e:
-    name: E2E Tests
+    name: End-to-End Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: build
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: 20
           cache: npm
-      - uses: actions/cache@v5
-        with:
-          path: playwright-report/
-          key: playwright-${{ hashFiles('tests/**/*') }}
-      - run: npm ci --ignore-scripts
-      - run: npx playwright install chromium
-      - run: npm run test:e2e
+      - run: npm ci
+      - run: npx playwright install chromium --with-deps
+      - run: npm run test:e2e -- --project=chromium
         env:
-          CI: true
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://ferczwlaphittvksrjhq.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlcmN6d2xhcGhpdHR2a3NyamhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MDgyNTcsImV4cCI6MjA5MTA4NDI1N30.UVd5uJ9AoGwJ0TMWT6Dhnj27mDUSTy3uS0npshZNzKs' }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}

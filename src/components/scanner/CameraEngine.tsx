@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import { RefreshCcw } from 'lucide-react';
 
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { logWarn } from '@/lib/logger';
 import type { CameraEngineProps } from './types';
 
 export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) {
@@ -94,8 +96,8 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
         advanced: [{ torch: nextFlashState } as ExtendedMediaTrackConstraintSet]
       });
       setIsFlashOn(nextFlashState);
-    } catch {
-      // Flash toggle failed — non-critical, just keep current state
+    } catch (err) {
+      logWarn('Camera flash toggle failed', { error: err instanceof Error ? err.message : 'unknown' });
     }
   };
 
@@ -162,18 +164,22 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
   };
 
   return (
-    <div
-      ref={trapRef}
+    <motion.div
+      ref={trapRef as React.RefObject<HTMLDivElement>}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, transition: { duration: 0.2 } }}
+      transition={{ duration: 0.2 }}
       className="fixed inset-0 bg-black z-[300] flex flex-col"
       onKeyDown={(e) => { if (e.key === 'Escape') onClose?.(); }}
     >
       {/* Header with close button */}
       <div className="bg-black text-white p-4 flex justify-between items-center border-b border-white/10">
-        <h2 className="text-lg font-semibold">Take Photo</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Take Photo</h2>
         <button
           type="button"
           onClick={onClose}
-          className="text-2xl leading-none text-text-muted hover:text-text-primary transition"
+          className="text-2xl leading-none text-text-muted hover:text-text-primary transition focus-visible:outline-2 focus-visible:outline-champagne focus-visible:outline-offset-2"
           aria-label="Close camera"
         >
           ✕
@@ -196,7 +202,8 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
               type="button"
               aria-label="Go back"
               onClick={onClose}
-              className="px-6 py-2 rounded-[2rem] bg-white/10 hover:bg-white/20 transition"
+              className="px-6 py-2 rounded-[2rem] bg-white/10 hover:bg-white/20 transition focus-visible:outline-2 focus-visible:outline-champagne focus-visible:outline-offset-2"
+              title="Go back"
             >
               Go Back
             </button>
@@ -219,9 +226,11 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
             <button
               type="button"
               onClick={toggleFlash}
-              className={`px-6 py-3 rounded-full text-sm font-bold uppercase tracking-widest transition-all ${
+              className={`px-6 py-3 rounded-full text-sm font-bold uppercase tracking-widest transition-all focus-visible:outline-2 focus-visible:outline-champagne focus-visible:outline-offset-2 ${
                 isFlashOn ? 'bg-warning text-obsidian' : 'bg-surface-raised text-text-secondary hover:bg-surface-hover hover:text-text-primary'
               }`}
+              title={isFlashOn ? 'Disable flash' : 'Enable flash'}
+              aria-pressed={isFlashOn}
             >
               {isFlashOn ? 'Flash On' : 'Flash Off'}
             </button>
@@ -230,20 +239,22 @@ export default function CameraEngine({ onCapture, onClose }: CameraEngineProps) 
             type="button"
             onClick={takePhoto}
             disabled={isStarting || !!error}
-            className="bg-champagne hover:bg-champagne-dim text-obsidian px-8 py-3 rounded-full flex-1 text-sm font-bold uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50"
+            className="bg-champagne hover:bg-champagne-dim text-black px-8 py-3 rounded-full flex-1 text-sm font-bold uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-champagne focus-visible:outline-offset-2"
+            title="Take a photo"
           >
             Capture
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="bg-surface-raised hover:bg-surface-hover text-text-secondary px-8 py-3 rounded-full flex-1 text-sm font-bold uppercase tracking-widest transition-all"
+            className="bg-surface-raised hover:bg-surface-hover text-text-secondary px-8 py-3 rounded-full flex-1 text-sm font-bold uppercase tracking-widest transition-all focus-visible:outline-2 focus-visible:outline-champagne focus-visible:outline-offset-2"
+            title="Cancel and close camera"
           >
             Cancel
           </button>
         </div>
       </div>
       <canvas ref={canvasRef} className="hidden" />
-    </div>
+    </motion.div>
   );
 }

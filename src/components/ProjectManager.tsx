@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, Loader2, Plus, Trash2, Briefcase, X, Columns3, List } from 'lucide-react';
+import { AlertCircle, Loader2, Plus, Trash2, Briefcase, X, Columns3, List, RefreshCw } from 'lucide-react';
 
 import PageHeader from '@/components/layout/PageHeader';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
@@ -14,6 +14,11 @@ import { formatCurrency } from '@/lib/ui-utils';
 import { cn } from '@/lib/utils';
 import KanbanBoard from '@/components/KanbanBoard';
 
+/**
+ * ProjectManager — Portfolio of projects with list/kanban view toggle.
+ * Create projects with name, code, and budget. Track actual spend vs budget with
+ * utilization bars. Delete with confirmation dialog. View-level toggle between list and kanban board.
+ */
 export default function ProjectManager() {
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
@@ -24,13 +29,13 @@ export default function ProjectManager() {
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const trapRef = useFocusTrap(!!deleteConfirm);
 
-  const { data: projects = [], isLoading } = useQuery({
+  const { data: projects = [], isLoading, error: projectsError, refetch: refetchProjects } = useQuery({
     queryKey: ['projects'],
     queryFn: getProjects,
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: actuals = [], isLoading: isLoadingActuals } = useQuery({
+  const { data: actuals = [], isLoading: isLoadingActuals, error: actualsError } = useQuery({
     queryKey: ['project_actuals'],
     queryFn: async () => {
       const orgId = await getOrgIdString();
@@ -178,7 +183,20 @@ export default function ProjectManager() {
       {/* List view */}
       {viewMode === 'list' && (
         <div className="grid gap-4" aria-live="polite">
-          {isLoading || isLoadingActuals ? (
+          {(projectsError || actualsError) ? (
+            <div className="flex items-center gap-3 rounded-[3rem] border border-danger/20 bg-danger/[0.06] px-4 py-3" role="alert">
+              <AlertCircle className="h-5 w-5 flex-shrink-0 text-danger" />
+              <p className="flex-1 text-sm text-danger">Failed to load project data. Please try again.</p>
+                <button
+                type="button"
+                onClick={() => refetchProjects()}
+                className="flex items-center gap-1.5 rounded-[2rem] border border-danger/20 px-3 py-1.5 text-xs font-semibold text-danger transition hover:bg-danger/10"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Retry
+              </button>
+            </div>
+          ) : isLoading || isLoadingActuals ? (
             <div className="flex justify-center py-12" role="status" aria-label="Loading projects">
               <Loader2 className="h-8 w-8 animate-spin text-champagne" />
             </div>
@@ -311,7 +329,7 @@ export default function ProjectManager() {
                   type="button"
                   aria-label="Close dialog"
                   onClick={() => setDeleteConfirm(null)}
-                  className="text-text-muted hover:text-text-primary"
+                  className="text-text-muted hover:text-text-primary cursor-pointer"
                 >
                   <X className="h-5 w-5" />
                 </button>

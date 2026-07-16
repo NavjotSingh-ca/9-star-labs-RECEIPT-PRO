@@ -18,6 +18,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import type { ScannerProps } from '@/components/scanner/types';
 import { useScannerState } from '@/components/scanner/hooks/useScannerState';
 
+/**
+ * Scanner component — camera capture, gallery upload, manual crop, AI extraction, duplicate detection.
+ * All state managed by `useScannerState` hook for clean separation of concerns.
+ */
 export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
@@ -26,7 +30,7 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
   const s = useScannerState(user, onSaveSuccess, { cameraInputRef, galleryInputRef, screenshotInputRef, formContainerRef });
 
   return (
-    <div className="space-y-4 fade-in">
+    <div className="space-y-4 fade-in" role="region" aria-label="Receipt scanner">
       <input
         ref={cameraInputRef}
         type="file"
@@ -153,13 +157,15 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
         />
       )}
 
-      {s.duplicateCandidate && (
-        <DuplicateModal
-          candidate={s.duplicateCandidate}
-          onCancel={s.cancelDuplicate}
-          onContinue={s.onContinueDuplicateSave}
-        />
-      )}
+      <AnimatePresence>
+        {s.duplicateCandidate && (
+          <DuplicateModal
+            candidate={s.duplicateCandidate}
+            onCancel={s.cancelDuplicate}
+            onContinue={s.onContinueDuplicateSave}
+          />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {s.sqlError && (
@@ -167,15 +173,17 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
         )}
       </AnimatePresence>
 
-      {s.showCameraEngine && (
-        <CameraEngine
-          onCapture={async (file) => {
-            await s.onCapture(file);
-            s.setShowCameraEngine(false);
-          }}
-          onClose={() => s.setShowCameraEngine(false)}
-        />
-      )}
+      <AnimatePresence>
+        {s.showCameraEngine && (
+          <CameraEngine
+            onCapture={async (file) => {
+              await s.onCapture(file);
+              s.setShowCameraEngine(false);
+            }}
+            onClose={() => s.setShowCameraEngine(false)}
+          />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         <SuccessOverlay visible={s.showSuccessOverlay} />

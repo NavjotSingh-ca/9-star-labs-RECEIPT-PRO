@@ -2,7 +2,14 @@
 
 import { useQuery } from '@tanstack/react-query';
 import type { Plan, PlanGates, Subscription } from '@/lib/services/subscription';
-import { getSubscription, getPlanGates, getUsageCount, getTeamSize, checkLimit, formatPlanLabel } from '@/lib/services/subscription';
+import {
+  getSubscription,
+  getPlanGates,
+  getUsageCount,
+  getTeamSize,
+  checkLimit,
+  formatPlanLabel,
+} from '@/lib/services/subscription';
 
 export interface PlanInfo {
   plan: Plan;
@@ -17,6 +24,10 @@ export interface PlanInfo {
   label: string;
 }
 
+/**
+ * Aggregates subscription, usage, and team data into a single PlanInfo object
+ * used by UI guards (scan limits, invite gates, plan badges).
+ */
 export function usePlan(): PlanInfo {
   const { data: sub, isLoading: subLoading } = useQuery({
     queryKey: ['subscription'],
@@ -24,7 +35,11 @@ export function usePlan(): PlanInfo {
     staleTime: 5 * 60 * 1000,
   });
 
-  const plan: Plan = !sub ? 'free' : sub.status === 'trialing' ? 'pro' : (sub.plan as Plan);
+  const plan: Plan = !sub
+    ? 'free'
+    : sub.status === 'trialing'
+      ? 'pro'
+      : ((sub.plan ?? 'free') as Plan);
 
   const now = new Date();
   const fromDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();

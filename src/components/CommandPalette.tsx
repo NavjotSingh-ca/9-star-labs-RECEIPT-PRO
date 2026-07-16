@@ -17,6 +17,11 @@ interface CommandPaletteProps {
   onAction: (action: string) => void;
 }
 
+/**
+ * CommandPalette — Cmd+K / Ctrl+K command palette overlay.
+ * Provides quick access to scanner, bulk upload, missing BN queue, exports, and role toggle.
+ * Filters items by label/description text match. Escape or click-outside to close.
+ */
 export default function CommandPalette({ onAction }: CommandPaletteProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -62,6 +67,9 @@ export default function CommandPalette({ onAction }: CommandPaletteProps) {
             transition={{ duration: 0.2 }}
             className="fixed inset-0 z-[110] flex items-start justify-center pt-[15vh] bg-black/60 backdrop-blur-2xl"
             onClick={() => setOpen(false)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); }}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 10 }}

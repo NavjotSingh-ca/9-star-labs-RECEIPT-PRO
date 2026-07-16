@@ -19,7 +19,6 @@ type Story = StoryObj<typeof Dashboard>;
 
 export const Loading: Story = {
   args: {
-    onFilterClick: () => {},
     onScan: () => {},
     role: 'Owner',
     userId: undefined,
@@ -28,7 +27,6 @@ export const Loading: Story = {
 
 export const EmployeeView: Story = {
   args: {
-    onFilterClick: () => {},
     role: 'Employee',
     userId: 'user-demo',
   },

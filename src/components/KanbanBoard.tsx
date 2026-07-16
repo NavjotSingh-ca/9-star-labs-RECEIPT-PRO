@@ -243,6 +243,12 @@ function KanbanColumn({ column, projects, actualsMap }: KanbanColumnProps) {
 
 // ─── Main Component ───
 
+/**
+ * KanbanBoard — Drag-and-drop project status board using @dnd-kit.
+ * Four columns: Active, On Hold, Completed, Cancelled.
+ * Cards show spend vs budget with utilization bars. Drag between columns updates project status.
+ * Cancelled projects are locked from further moves.
+ */
 export default function KanbanBoard() {
   const queryClient = useQueryClient();
   const [activeDragId, setActiveDragId] = useState<string | null>(null);

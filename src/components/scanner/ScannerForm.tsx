@@ -181,6 +181,20 @@ export default function ScannerForm({
 
   const canSave = hasAnalyzed && isConfirmed && !saving;
 
+  // Handle keyboard shortcuts
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Ctrl+Enter to submit when form is ready
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && canSave) {
+      e.preventDefault();
+      handleSubmit(performSave)();
+    }
+    // Space to toggle confirmation when focus is on confirm button
+    if (e.key === ' ' && (e.target as HTMLElement)?.getAttribute('role') === 'checkbox') {
+      e.preventDefault();
+      setIsConfirmed(v => !v);
+    }
+  };
+
   // Auto-dismiss fraud anomaly when user edits relevant fields
   useEffect(() => {
     if (fraudSuspicion && hasAnalyzed) {
@@ -203,7 +217,11 @@ export default function ScannerForm({
 
   return (
     <div className="w-full">
-      <form onSubmit={handleSubmit(performSave)}>
+      <form onSubmit={handleSubmit(performSave)} onKeyDown={handleKeyDown} className="relative focus:outline-none">
+        {/* Keyboard hint for power users */}
+        <div className="sr-only" aria-live="polite">
+          Press Ctrl+Enter to save when form is ready
+        </div>
         {/* Header */}
         <div className="p-4 border-b border-glass-border bg-surface-raised">
           <h3 className="text-lg font-bold text-text-primary">Review Data</h3>
@@ -669,10 +687,19 @@ export default function ScannerForm({
           )}
 
           <div className="flex flex-col gap-3">
-            <button 
-              type="button" 
-              onClick={() => setIsConfirmed((v) => !v)} 
-              className={`flex items-center gap-3 rounded-lg border p-3.5 text-left transition ${
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={isConfirmed}
+              aria-labelledby="confirm-label"
+              onClick={() => setIsConfirmed((v) => !v)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setIsConfirmed(v => !v);
+                }
+              }}
+              className={`flex items-center gap-3 rounded-lg border p-3.5 text-left transition focus:outline-none focus:ring-2 focus:ring-champagne/40 ${
                 isConfirmed
                   ? 'border-emerald-light/40 bg-emerald-success/20'
                   : 'border-glass-border bg-surface-raised hover:bg-surface-hover'
@@ -682,11 +709,11 @@ export default function ScannerForm({
                 isConfirmed
                   ? 'border-emerald-light bg-emerald-light text-obsidian'
                   : 'border-glass-border bg-surface'
-              }`}>
+              }`} aria-hidden="true">
                 {isConfirmed && <CheckCircle2 className="h-3.5 w-3.5 text-obsidian" />}
               </div>
               <div>
-                <p className="text-sm font-semibold text-text-primary">I confirm the data above is accurate</p>
+                <p id="confirm-label" className="text-sm font-semibold text-text-primary">I confirm the data above is accurate</p>
               </div>
             </button>
 

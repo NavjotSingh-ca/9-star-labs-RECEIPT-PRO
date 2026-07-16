@@ -2,14 +2,32 @@
 
 import { useMemo } from 'react';
 
-export const passwordRequirements = [
+export interface PasswordRequirement {
+  label: string;
+  test: (p: string) => boolean;
+}
+
+export interface PasswordStrength {
+  score: number;
+  label: string;
+  color: string;
+  width: string;
+}
+
+export const passwordRequirements: PasswordRequirement[] = [
   { label: '8+ characters', test: (p: string) => p.length >= 8 },
   { label: 'Uppercase letter', test: (p: string) => /[A-Z]/.test(p) },
   { label: 'Number', test: (p: string) => /[0-9]/.test(p) },
   { label: 'Special character', test: (p: string) => /[^A-Za-z0-9]/.test(p) },
 ];
 
-export function usePasswordStrength(password: string) {
+/**
+ * Evaluates password strength based on a checklist of requirements.
+ * Returns a score 0–4, a human-readable label, a Tailwind color class, and a width string.
+ *
+ * @param password - The password string to evaluate.
+ */
+export function usePasswordStrength(password: string): PasswordStrength {
   return useMemo(() => {
     if (!password) return { score: 0, label: '', color: '', width: '0%' };
     const passed = passwordRequirements.filter((r) => r.test(password)).length;

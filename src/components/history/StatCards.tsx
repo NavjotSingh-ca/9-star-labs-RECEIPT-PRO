@@ -7,6 +7,7 @@ import { toNumber, formatCurrency } from '@/lib/ui-utils';
 import type { ReceiptRow } from '@/lib/types';
 
 interface StatCardsProps {
+  /** Full list of receipts to compute statistics from */
   receipts: ReceiptRow[];
 }
 

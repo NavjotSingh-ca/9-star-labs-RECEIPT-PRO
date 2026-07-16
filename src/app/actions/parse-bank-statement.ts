@@ -22,6 +22,7 @@ export type ParseBankStatementResult =
   | { success: true; transactions: BankTransactionData[]; duplicatesSkipped?: number }
   | { success: false; error: string };
 
+/** Attempts to parse JSON from AI response text, stripping markdown fences. */
 function parseSafely(raw: string): unknown[] {
   const cleanFences = raw.replace(/^```[a-z]*\s*/i, '').replace(/\s*```$/i, '').trim();
   try { return JSON.parse(cleanFences); } catch { /* continue */ }
@@ -191,6 +192,19 @@ async function saveTransactions(
   return { saved, duplicatesSkipped };
 }
 
+/**
+ * Parses a bank statement (OFX, CSV, or PDF) and saves extracted transactions.
+ *
+ * - OFX/QFX files: parsed locally (SGML/XML format used by Canadian banks).
+ * - CSV files: parsed locally with column auto-detection.
+ * - PDF files: sent to Gemini AI for extraction.
+ *
+ * Handles duplicate detection via upsert on (org_id, transaction_date, amount, description).
+ *
+ * @param base64Data - Base64-encoded file content (max ~15MB).
+ * @param fileName - Original file name for format detection.
+ * @returns Structured result with transactions array or error message.
+ */
 export async function parseBankStatement(base64Data: string, fileName: string): Promise<ParseBankStatementResult> {
   // File size guard
   if (base64Data.length > 15_000_000) {

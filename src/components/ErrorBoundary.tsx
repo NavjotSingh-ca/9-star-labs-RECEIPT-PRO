@@ -1,14 +1,18 @@
 'use client';
 
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { logError } from '@/lib/logger';
 
 interface Props {
+  /** Child components to render within the error boundary */
   children: ReactNode;
+  /** Optional custom fallback UI instead of the default error display */
   fallback?: ReactNode;
+  /** Component name for error logging context */
   componentName?: string;
+  /** Callback invoked when an error is caught */
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
@@ -17,6 +21,17 @@ interface State {
   error: Error | null;
 }
 
+/**
+ * Error boundary component that catches JavaScript errors in its child component tree,
+ * logs them, and displays a fallback UI instead of crashing the page.
+ *
+ * @example
+ * ```tsx
+ * <ErrorBoundary componentName="Scanner">
+ *   <Scanner />
+ * </ErrorBoundary>
+ * ```
+ */
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -60,20 +75,26 @@ function DefaultFallback({ error, componentName, onRetry }: { error: Error | nul
           <p className="text-sm font-bold text-danger">
             {componentName ? `${componentName} error` : 'Something went wrong'}
           </p>
-          <p className="mt-1 text-xs leading-relaxed text-text-muted">
+          {error?.message && (
+            <p className="mt-2 text-xs leading-relaxed text-text-secondary rounded-xl bg-danger/[0.04] border border-danger/10 px-3 py-2 font-mono">
+              {error.message}
+            </p>
+          )}
+          <p className="mt-3 text-xs leading-relaxed text-text-muted">
             We encountered an unexpected error. Your data is safe.
           </p>
         </div>
-        {error && (
-          <details className="w-full rounded-xl border border-glass-border bg-black/20 p-3">
-            <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-              Technical details
-            </summary>
-            <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words text-[11px] text-danger">
-              {error.message}
-            </pre>
-          </details>
-        )}
+{error?.stack && process.env.NODE_ENV === 'development' && (
+        <details className="w-full rounded-xl border border-glass-border bg-surface p-3">
+          <summary className="flex items-center justify-center gap-1 cursor-pointer text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+            <ChevronDown className="h-3 w-3" />
+            Stack trace
+          </summary>
+          <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words text-[11px] text-danger/70">
+            {error.stack}
+          </pre>
+        </details>
+      )}
         <button
           type="button"
           onClick={onRetry}

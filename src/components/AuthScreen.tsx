@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -44,6 +44,11 @@ const orbs = [
   { size: 30, x: 45, y: 40, duration: 28, color: 'rgba(139,115,85,0.04)' },
 ];
 
+/**
+ * AuthScreen — Split-screen authentication with sign-in/sign-up modes,
+ * Google OAuth, forgot-password flow, password strength meter, and invite code support.
+ * Features split layout with BrandPanel + AuthForm, animated ambient orbs, and grid texture.
+ */
 export default function AuthScreen({ onBackToLanding }: { onBackToLanding?: () => void }) {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [showPassword, setShowPassword] = useState(false);

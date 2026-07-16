@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { APP_NAME } from '@/lib/constants';
-import { Button } from '@/components/ui/button';
 import { passwordRequirements } from '@/hooks/usePasswordStrength';
 import type { UseFormReturn } from 'react-hook-form';
 
@@ -74,7 +73,7 @@ export default function AuthForm({
         className="w-full max-w-md"
       >
         {/* ── Mobile logo (visible only below lg) ── */}
-        <div style={{ animation: 'fadeSlideIn 0.4s ease-out 0.1s forwards' }} className="lg:hidden mb-8 text-center opacity-0">
+        <div style={{ animation: 'fadeSlideIn 0.4s ease-out 0.1s both' }} className="lg:hidden mb-8 text-center pointer-events-none opacity-0">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-champagne/[0.12] mb-4 shadow-[0_0_25px_-6px_rgba(190,169,142,0.25)] ring-1 ring-champagne/20 ring-inset">
             <ReceiptText className="h-7 w-7 text-champagne" />
           </div>
@@ -93,7 +92,7 @@ export default function AuthForm({
             <GlassCard>
               <div className="p-6 sm:p-8">
                 {/* ── Header ── */}
-                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.05s forwards' }} className="mb-6 opacity-0">
+                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.05s both' }} className="mb-6 pointer-events-none opacity-0">
                   <h2 className="text-[22px] font-bold tracking-tight text-white">
                     {mode === 'signin' ? 'Welcome back' : 'Create account'}
                   </h2>
@@ -105,7 +104,7 @@ export default function AuthForm({
                 </div>
 
                 {/* ── Google OAuth ── */}
-                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.1s forwards' }} className="opacity-0">
+                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.1s both' }} className="pointer-events-none opacity-0">
                   <button
                     type="button"
                     onClick={onGoogleSignIn}
@@ -133,12 +132,12 @@ export default function AuthForm({
                 </div>
 
                 {/* ── Divider ── */}
-                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.15s forwards' }} className="relative my-5 opacity-0">
+                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.15s both' }} className="relative my-5 pointer-events-none opacity-0">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-white/[0.06]" />
                   </div>
                   <div className="relative flex justify-center text-xs">
-                    <span className="bg-[#0c0c0c] px-3 text-zinc-500">or continue with email</span>
+                    <span className="bg-[var(--obsidian)] px-3 text-white/50">or continue with email</span>
                   </div>
                 </div>
 
@@ -161,10 +160,10 @@ export default function AuthForm({
                     </AnimatePresence>
 
                     {/* Email field */}
-                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.2s forwards' }} className="space-y-1.5 opacity-0">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.2s both' }} className="space-y-1.5 pointer-events-none opacity-0">
                       <label htmlFor="signin-email" className={labelBase}>Email</label>
                       <div className="relative">
-                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
                         <input
                           id="signin-email"
                           {...signinForm.register('email')}
@@ -183,10 +182,10 @@ export default function AuthForm({
                     </div>
 
                     {/* Password field */}
-                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.25s forwards' }} className="space-y-1.5 opacity-0">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.25s both' }} className="space-y-1.5 pointer-events-none opacity-0">
                       <label htmlFor="signin-password" className={labelBase}>Password</label>
                       <div className="relative">
-                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
                         <input
                           id="signin-password"
                           {...signinForm.register('password')}
@@ -202,7 +201,7 @@ export default function AuthForm({
                           type="button"
                           aria-label="Toggle password visibility"
                           onClick={onTogglePassword}
-                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-text-secondary transition-colors duration-200"
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/50 hover:text-text-secondary transition-colors duration-200 cursor-pointer"
                         >
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -213,14 +212,14 @@ export default function AuthForm({
                     </div>
 
                     {/* Remember me + Forgot password */}
-                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.3s forwards' }} className="flex items-center justify-between opacity-0">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.3s both' }} className="flex items-center justify-between pointer-events-none opacity-0">
                       <label className="flex items-center gap-2 cursor-pointer group">
                         <input
                           {...signinForm.register('rememberMe')}
                           type="checkbox"
                           className="h-4 w-4 rounded border-white/20 bg-white/[0.03] text-champagne focus:ring-champagne/20 focus:ring-offset-0 accent-champagne"
                         />
-                        <span className="text-xs text-zinc-500 group-hover:text-text-secondary transition-colors duration-200">Remember me</span>
+                        <span className="text-xs text-white/50 group-hover:text-text-secondary transition-colors duration-200">Remember me</span>
                       </label>
                       <button
                         type="button"
@@ -233,7 +232,7 @@ export default function AuthForm({
                     </div>
 
                     {/* Submit button */}
-                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.35s forwards' }} className="opacity-0">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.35s both' }} className="pointer-events-none opacity-0">
                       <button
                         type="submit"
                         disabled={loading}
@@ -274,10 +273,10 @@ export default function AuthForm({
                     </AnimatePresence>
 
                     {/* Email field */}
-                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.2s forwards' }} className="space-y-1.5 opacity-0">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.2s both' }} className="space-y-1.5 pointer-events-none opacity-0">
                       <label htmlFor="signup-email" className={labelBase}>Email</label>
                       <div className="relative">
-                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
                         <input
                           id="signup-email"
                           {...signupForm.register('email')}
@@ -296,10 +295,10 @@ export default function AuthForm({
                     </div>
 
                     {/* Password field */}
-                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.25s forwards' }} className="space-y-1.5 opacity-0">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.25s both' }} className="space-y-1.5 pointer-events-none opacity-0">
                       <label htmlFor="signup-password" className={labelBase}>Create password</label>
                       <div className="relative">
-                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
                         <input
                           id="signup-password"
                           {...signupForm.register('password')}
@@ -315,7 +314,7 @@ export default function AuthForm({
                           type="button"
                           aria-label="Toggle password visibility"
                           onClick={onTogglePassword}
-                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-text-secondary transition-colors duration-200"
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/50 hover:text-text-secondary transition-colors duration-200 cursor-pointer"
                         >
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -351,7 +350,7 @@ export default function AuthForm({
                                   ) : (
                                     <div className="h-3 w-3 rounded-full border border-white/20 shrink-0" />
                                   )}
-                                  <span className={cn('text-[11px]', met ? 'text-text-secondary' : 'text-zinc-500')}>
+                                  <span className={cn('text-[11px]', met ? 'text-text-secondary' : 'text-white/50')}>
                                     {req.label}
                                   </span>
                                 </div>
@@ -363,7 +362,7 @@ export default function AuthForm({
                     </div>
 
                     {/* Invite code */}
-                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.3s forwards' }} className="space-y-1.5 opacity-0">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.3s both' }} className="space-y-1.5 pointer-events-none opacity-0">
                       <label htmlFor="signup-invite" className={labelBase}>
                         Invite code <span className="text-white/20 normal-case font-normal">(optional)</span>
                       </label>
@@ -376,16 +375,16 @@ export default function AuthForm({
                         maxLength={6}
                         className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2.5 text-sm text-white outline-none transition-all duration-200 placeholder:text-white/20 focus:border-champagne/50 focus:ring-2 focus:ring-champagne/20 font-mono tracking-[0.3em] text-center"
                       />
-                      <p className="text-[11px] text-zinc-500">Enter the 6-digit code if you were invited by a workspace owner</p>
+                      <p className="text-[11px] text-white/50">Enter the 6-digit code if you were invited by a workspace owner</p>
                     </div>
 
                     {/* Terms acceptance */}
-                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.35s forwards' }} className="opacity-0">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.35s both' }} className="pointer-events-none opacity-0">
                       <button
                         type="button"
                         onClick={() => signupForm.setValue('accepted', !signupForm.getValues('accepted'), { shouldValidate: true })}
                         className={cn(
-                          'flex w-full items-start gap-3 rounded-xl border p-3.5 text-left transition-all duration-200',
+                          'flex w-full items-start gap-3 rounded-xl border p-3.5 text-left transition-all duration-200 cursor-pointer',
                           signupForm.getValues('accepted')
                             ? 'border-champagne/30 bg-champagne/[0.05]'
                             : 'border-white/[0.06] bg-white/[0.02] hover:border-white/10',
@@ -411,7 +410,7 @@ export default function AuthForm({
                     </div>
 
                     {/* Submit button */}
-                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.4s forwards' }} className="opacity-0">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.4s both' }} className="pointer-events-none opacity-0">
                       <button
                         type="submit"
                         disabled={loading}
@@ -436,11 +435,11 @@ export default function AuthForm({
                 )}
 
                 {/* ── Mode switch ── */}
-                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.45s forwards' }} className="mt-6 text-center opacity-0">
+                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.45s both' }} className="mt-6 text-center pointer-events-none opacity-0">
                   <button
                     type="button"
                     onClick={() => onModeChange(mode === 'signin' ? 'signup' : 'signin')}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-champagne transition-colors duration-200"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-white/50 hover:text-champagne transition-colors duration-200 cursor-pointer"
                   >
                     {mode === 'signin' ? (
                       <>Don&apos;t have an account? <span className="text-champagne hover:text-champagne/80 underline underline-offset-2 transition-colors">Sign up</span></>

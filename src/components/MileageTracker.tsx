@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Car, Trash2, MapPin, Calendar, Gauge, Loader2 } from 'lucide-react';
+import { AlertCircle, Plus, Car, Trash2, MapPin, Calendar, Gauge, Loader2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -38,6 +38,11 @@ const tripSchema = z.object({
 type VehicleForm = z.infer<typeof vehicleSchema>;
 type TripForm = z.infer<typeof tripSchema>;
 
+/**
+ * MileageTracker — CRA-compliant mileage log with vehicle management, trip logging,
+ * per-km rate calculation, and YTD deduction previews. Supports add/delete for both
+ * vehicles and trips with live deduction preview.
+ */
 export default function MileageTracker() {
   const queryClient = useQueryClient();
   const [error, setError] = useState('');
@@ -60,19 +65,19 @@ export default function MileageTracker() {
 
   const watchedKm = tripForm.watch('distanceKm');
 
-  const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery({
+  const { data: vehicles = [], isLoading: vehiclesLoading, error: vehiclesError } = useQuery({
     queryKey: ['vehicles'],
     queryFn: getVehicles,
     staleTime: 60_000,
   });
 
-  const { data: logs = [], isLoading: logsLoading } = useQuery({
+  const { data: logs = [], isLoading: logsLoading, error: logsError } = useQuery({
     queryKey: ['mileage_logs'],
     queryFn: getMileageLogs,
     staleTime: 30_000,
   });
 
-  const { data: userId } = useQuery({
+  const { data: userId, error: userIdError } = useQuery({
     queryKey: ['userId'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -81,7 +86,7 @@ export default function MileageTracker() {
     staleTime: Infinity,
   });
 
-  const { data: ytdKm = 0 } = useQuery({
+  const { data: ytdKm = 0, error: ytdError } = useQuery({
     queryKey: ['ytd_km', userId],
     queryFn: () => getYearToDateKm(userId!, new Date().getFullYear()),
     enabled: !!userId,
@@ -89,6 +94,13 @@ export default function MileageTracker() {
   });
 
   const loading = vehiclesLoading || logsLoading;
+  const queryError = vehiclesError || logsError || userIdError || ytdError;
+  const refetchAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    queryClient.invalidateQueries({ queryKey: ['mileage_logs'] });
+    queryClient.invalidateQueries({ queryKey: ['ytd_km'] });
+    queryClient.invalidateQueries({ queryKey: ['userId'] });
+  };
 
   const previewAmount = useMemo(() => {
     const km = parseFloat(watchedKm);
@@ -181,6 +193,25 @@ export default function MileageTracker() {
           ))}
         </div>
         <Skeleton className="h-64 rounded-[3rem]" />
+      </div>
+    );
+  }
+
+  if (queryError) {
+    return (
+      <div className="space-y-4 pb-10 fade-in" role="alert">
+        <div className="flex items-center gap-3 rounded-[3rem] border border-danger/20 bg-danger/[0.06] px-4 py-3">
+          <AlertCircle className="h-5 w-5 flex-shrink-0 text-danger" />
+          <p className="flex-1 text-sm text-danger">Failed to load mileage data. Please try again.</p>
+          <button
+            type="button"
+            onClick={refetchAll}
+            className="flex items-center gap-1.5 rounded-[2rem] border border-danger/20 px-3 py-1.5 text-xs font-semibold text-danger transition hover:bg-danger/10"
+          >
+            <Loader2 className="h-3 w-3" />
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
@@ -377,7 +408,7 @@ export default function MileageTracker() {
                     type="button"
                     onClick={() => handleDeleteLog(log.id)}
                     disabled={deleteLogMutation.isPending}
-                    className="opacity-0 group-hover:opacity-100 transition p-1.5 rounded-full text-text-muted hover:text-danger hover:bg-danger/10 disabled:opacity-30"
+                    className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition p-1.5 rounded-full text-text-muted hover:text-danger hover:bg-danger/10 disabled:opacity-30"
                     aria-label="Delete trip"
                   >
                     {deleteLogMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
@@ -406,7 +437,7 @@ export default function MileageTracker() {
                 <button
                   onClick={() => deleteVehicleMutation.mutate(v.id)}
                   disabled={deleteVehicleMutation.isPending}
-                  className="opacity-0 group-hover:opacity-100 transition p-1.5 rounded-full text-text-muted hover:text-danger hover:bg-danger/10 disabled:opacity-30"
+                  className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition p-1.5 rounded-full text-text-muted hover:text-danger hover:bg-danger/10 disabled:opacity-30"
                   aria-label="Delete vehicle"
                 >
                   {deleteVehicleMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}

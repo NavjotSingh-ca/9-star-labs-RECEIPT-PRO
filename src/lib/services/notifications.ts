@@ -2,17 +2,51 @@ import { supabase, getOrgIdString } from '@/lib/supabase';
 import { logError } from '@/lib/logger';
 import type { AppNotification, NotificationType } from '@/lib/types';
 
-// ─── In-App Notification Service ───
-// Uses the `notifications` table for persistence.
-// Falls back gracefully if the table doesn't exist yet (returns empty).
+const DEFAULT_NOTIFICATION_LIMIT = 50;
+const PGRST116 = 'PGRST116';
+
+/**
+ * Check whether a Supabase error is a PGRST116 (relation not found).
+ * This typically means the notifications table does not exist yet.
+ */
+function isTableNotFound(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: string }).code === PGRST116
+  );
+}
+
+/**
+ * Map a raw database row to an AppNotification.
+ */
+function rowToNotification(row: Record<string, unknown>): AppNotification {
+  return {
+    id: String(row.id),
+    org_id: String(row.org_id),
+    user_id: String(row.user_id),
+    type: String(row.type) as NotificationType,
+    title: String(row.title),
+    message: String(row.message),
+    link: row.link ? String(row.link) : null,
+    is_read: Boolean(row.is_read),
+    created_at: String(row.created_at),
+    metadata: row.metadata ? (row.metadata as Record<string, unknown>) : null,
+  };
+}
 
 /**
  * Fetch notifications for the current user in the current org.
  * Falls back to empty array on any error.
+ *
+ * @param limit - Maximum number of notifications to fetch (default 50).
+ * @param onlyUnread - If true, only return unread notifications.
+ * @returns Array of AppNotification, newest first.
  */
 export async function getNotifications(
-  limit = 50,
-  onlyUnread = false
+  limit: number = DEFAULT_NOTIFICATION_LIMIT,
+  onlyUnread: boolean = false
 ): Promise<AppNotification[]> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -35,24 +69,12 @@ export async function getNotifications(
 
     const { data, error } = await query;
     if (error) {
-      // PGRST116 = table doesn't exist
-      if ((error as { code?: string }).code === 'PGRST116') return [];
+      if (isTableNotFound(error)) return [];
       logError(error, { action: 'fetch_notifications' });
       return [];
     }
 
-    return (data || []).map((row: Record<string, unknown>) => ({
-      id: String(row.id),
-      org_id: String(row.org_id),
-      user_id: String(row.user_id),
-      type: String(row.type) as NotificationType,
-      title: String(row.title),
-      message: String(row.message),
-      link: row.link ? String(row.link) : null,
-      is_read: Boolean(row.is_read),
-      created_at: String(row.created_at),
-      metadata: row.metadata ? (row.metadata as Record<string, unknown>) : null,
-    }));
+    return (data || []).map(rowToNotification);
   } catch (err) {
     logError(err, { action: 'getNotifications' });
     return [];
@@ -61,16 +83,26 @@ export async function getNotifications(
 
 /**
  * Mark a single notification as read.
+ * Scoped by user_id for security (user can only mark their own notifications).
+ *
+ * @param notificationId - UUID of the notification to mark as read.
+ * @returns True if the operation succeeded, false otherwise.
  */
 export async function markNotificationRead(notificationId: string): Promise<boolean> {
+  if (!notificationId) return false;
+
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
     const { error } = await supabase
       .from('notifications')
       .update({ is_read: true })
-      .eq('id', notificationId);
+      .eq('id', notificationId)
+      .eq('user_id', user.id);
 
     if (error) {
-      if ((error as { code?: string }).code === 'PGRST116') return false;
+      if (isTableNotFound(error)) return false;
       logError(error, { action: 'mark_notification_read' });
       return false;
     }
@@ -83,6 +115,8 @@ export async function markNotificationRead(notificationId: string): Promise<bool
 
 /**
  * Mark all notifications as read for the current user in the current org.
+ *
+ * @returns True if the operation succeeded, false otherwise.
  */
 export async function markAllNotificationsRead(): Promise<boolean> {
   try {
@@ -100,7 +134,7 @@ export async function markAllNotificationsRead(): Promise<boolean> {
       .eq('is_read', false);
 
     if (error) {
-      if ((error as { code?: string }).code === 'PGRST116') return false;
+      if (isTableNotFound(error)) return false;
       logError(error, { action: 'mark_all_notifications_read' });
       return false;
     }
@@ -114,6 +148,9 @@ export async function markAllNotificationsRead(): Promise<boolean> {
 /**
  * Create a notification in the database and return it.
  * Does NOT update the local store — caller is responsible for that.
+ *
+ * @param notification - Notification data (without id, created_at, is_read).
+ * @returns The created AppNotification, or null on failure.
  */
 export async function createDBNotification(
   notification: Omit<AppNotification, 'id' | 'created_at' | 'is_read'>
@@ -134,25 +171,14 @@ export async function createDBNotification(
       .single();
 
     if (error) {
-      if ((error as { code?: string }).code === 'PGRST116') return null;
+      if (isTableNotFound(error)) return null;
       logError(error, { action: 'create_notification' });
       return null;
     }
 
     if (!data) return null;
 
-    return {
-      id: String(data.id),
-      org_id: String(data.org_id),
-      user_id: String(data.user_id),
-      type: String(data.type) as NotificationType,
-      title: String(data.title),
-      message: String(data.message),
-      link: data.link ? String(data.link) : null,
-      is_read: Boolean(data.is_read),
-      created_at: String(data.created_at),
-      metadata: data.metadata ? (data.metadata as Record<string, unknown>) : null,
-    };
+    return rowToNotification(data as Record<string, unknown>);
   } catch (err) {
     logError(err, { action: 'createDBNotification' });
     return null;
@@ -161,16 +187,26 @@ export async function createDBNotification(
 
 /**
  * Delete a notification by ID.
+ * Scoped by user_id for security.
+ *
+ * @param notificationId - UUID of the notification to delete.
+ * @returns True if the operation succeeded, false otherwise.
  */
 export async function deleteNotification(notificationId: string): Promise<boolean> {
+  if (!notificationId) return false;
+
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
     const { error } = await supabase
       .from('notifications')
       .delete()
-      .eq('id', notificationId);
+      .eq('id', notificationId)
+      .eq('user_id', user.id);
 
     if (error) {
-      if ((error as { code?: string }).code === 'PGRST116') return false;
+      if (isTableNotFound(error)) return false;
       logError(error, { action: 'delete_notification' });
       return false;
     }
@@ -182,7 +218,9 @@ export async function deleteNotification(notificationId: string): Promise<boolea
 }
 
 /**
- * Get unread notification count.
+ * Get unread notification count for the current user in the current org.
+ *
+ * @returns The count of unread notifications, or 0 on error.
  */
 export async function getUnreadCount(): Promise<number> {
   try {
@@ -200,7 +238,7 @@ export async function getUnreadCount(): Promise<number> {
       .eq('is_read', false);
 
     if (error) {
-      if ((error as { code?: string }).code === 'PGRST116') return 0;
+      if (isTableNotFound(error)) return 0;
       logError(error, { action: 'get_unread_count' });
       return 0;
     }

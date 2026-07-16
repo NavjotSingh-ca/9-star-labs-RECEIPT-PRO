@@ -1,10 +1,24 @@
 /* ─── UI Utilities — Telos Labs v8.0 ─── */
 
+/**
+ * Safely converts a value to a finite number.
+ * Null, undefined, NaN, and Infinity all return 0.
+ *
+ * @param v - The value to convert.
+ * @returns A finite number.
+ */
 export function toNumber(v: unknown): number {
   const n = Number(v ?? 0);
   return Number.isFinite(n) ? n : 0;
 }
 
+/**
+ * Formats a number as a localized currency string (en-CA).
+ *
+ * @param value - The numeric value to format.
+ * @param currency - ISO 4217 currency code (default 'CAD').
+ * @returns The formatted currency string (e.g. "$1,234.56").
+ */
 export function formatCurrency(value: number, currency = 'CAD'): string {
   return new Intl.NumberFormat('en-CA', {
     style: 'currency',
@@ -12,6 +26,12 @@ export function formatCurrency(value: number, currency = 'CAD'): string {
   }).format(Number.isFinite(value) ? value : 0);
 }
 
+/**
+ * Parses a `YYYY-MM-DD` date string into a localized human-readable format.
+ *
+ * @param value - The date string to format.
+ * @returns A formatted date like "Jan 15, 2025", or "No date" / the raw string on failure.
+ */
 export function formatDate(value?: string | null): string {
   if (!value) return 'No date';
   const parts = value.split('-').map(Number);
@@ -35,7 +55,6 @@ const CATEGORY_CLASSES: Record<string, string> = {
   'Vehicle Maintenance': 'bg-chart-6/15 text-chart-6 border-chart-6/20',
   'Travel/Lodging': 'bg-chart-7/15 text-chart-7 border-chart-7/20',
   'Office/Admin': 'bg-chart-8/15 text-chart-8 border-chart-8/20',
-  // Legacy fallbacks
   'Office Supplies': 'bg-emerald-success/15 text-emerald-success border-emerald-success/20',
   'Meals & Entertainment': 'bg-chart-4/15 text-chart-4 border-chart-4/20',
   Travel: 'bg-chart-7/15 text-chart-7 border-chart-7/20',
@@ -48,12 +67,24 @@ const CATEGORY_CLASSES: Record<string, string> = {
 
 const FALLBACK_CLASS = 'bg-chart-1/15 text-chart-1 border-chart-1/20';
 
+/**
+ * Returns Tailwind classes for a category badge with a consistent color.
+ *
+ * @param category - The expense category name.
+ * @returns Tailwind utility classes for background, text, and border.
+ */
 export function categoryColor(category?: string | null): string {
   return CATEGORY_CLASSES[category ?? ''] ?? FALLBACK_CLASS;
 }
 
 /* ─── AI Confidence Tone ─── */
 
+/**
+ * Returns pill and panel Tailwind classes based on an AI confidence score.
+ *
+ * @param score - The confidence score (0–100).
+ * @returns Classes for pill, panel, and a human-readable label.
+ */
 export function confidenceTone(score: number): { pill: string; panel: string; label: string } {
   if (score >= 85) {
     return {
@@ -78,6 +109,12 @@ export function confidenceTone(score: number): { pill: string; panel: string; la
 
 /* ─── Approval Status Badge ─── */
 
+/**
+ * Returns Tailwind classes and a human label for an approval status.
+ *
+ * @param status - The approval status string.
+ * @returns Classes and label for the badge.
+ */
 export function approvalBadge(status?: string | null): { cls: string; label: string } {
   const s = (status ?? '').toLowerCase();
   if (s === 'approved') {
@@ -91,6 +128,12 @@ export function approvalBadge(status?: string | null): { cls: string; label: str
 
 /* ─── Reimbursement Badge ─── */
 
+/**
+ * Returns Tailwind classes and a human label for a reimbursement status.
+ *
+ * @param status - The reimbursement status string.
+ * @returns Classes and label for the badge.
+ */
 export function reimbursementBadge(status?: string | null): { cls: string; label: string } {
   const s = (status ?? '').toLowerCase();
   if (s === 'approved') {
@@ -104,14 +147,22 @@ export function reimbursementBadge(status?: string | null): { cls: string; label
 
 /* ─── Self-Healing Glow ─── */
 
+/**
+ * Determines whether a confidence score is in the "glow" range (0 < score < 80).
+ * Used to show a subtle visual hint on fields that need review.
+ *
+ * @param confidenceScore - The AI confidence score (0–100).
+ * @returns True if the score is between 1 and 79 inclusive.
+ */
 export function shouldGlow(confidenceScore: number): boolean {
   return confidenceScore > 0 && confidenceScore < 80;
 }
 
-/* ─── Real-Time CRA Readiness Computation ─── */
-/* Accepts partial form shapes to be compatible with both ReceiptForm and ReceiptFormValues */
-
-export function computeLiveCRAScore(form: {
+/**
+ * Shape accepted by {@link computeLiveCRAScore}.
+ * Accepts partial form data from both ReceiptForm and ReceiptFormValues.
+ */
+interface CRAScoreInput {
   vendor_name?: string;
   vendor_address?: string;
   business_number?: string;
@@ -123,7 +174,16 @@ export function computeLiveCRAScore(form: {
   payment_method?: string;
   notes?: string;
   line_items?: unknown[];
-}): number {
+}
+
+/**
+ * Computes a real-time CRA readiness score (0–100) based on form completeness.
+ * Deductions for math mismatches between subtotal + taxes and total.
+ *
+ * @param form - The form data (partial or complete).
+ * @returns A score from 0 to 100.
+ */
+export function computeLiveCRAScore(form: CRAScoreInput): number {
   let score = 0;
 
   if ((form.vendor_name ?? '').trim()) score += 15;

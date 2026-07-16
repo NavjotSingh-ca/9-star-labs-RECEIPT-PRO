@@ -3,24 +3,32 @@ import Stripe from 'stripe';
 import { env } from '@/lib/env';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { logError } from '@/lib/logger';
+import { withRateLimit } from '@/lib/rate-limiter';
 
 const stripe = env.STRIPE_SECRET_KEY
   ? new Stripe(env.STRIPE_SECRET_KEY)
   : null;
 
-export async function POST(request: Request) {
+/**
+ * POST /api/stripe/portal
+ *
+ * Creates a Stripe Billing Portal session for subscription management.
+ * Requires a valid Bearer token. Returns the portal URL for redirect.
+ *
+ * Returns: { url: string } — Stripe Billing Portal session URL.
+ * Rate limited: 10 requests per 60s.
+ */
+async function handler(request: Request) {
   try {
     if (!stripe) {
       return NextResponse.json({ error: 'Stripe is not configured. Set STRIPE_SECRET_KEY in env.' }, { status: 503 });
     }
 
-    // MED-9: Require authenticated session (matches checkout route pattern)
     const authHeader = request.headers.get('authorization') || '';
-    const token = authHeader.replace('Bearer ', '');
-
-    if (!token) {
+    if (!authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const token = authHeader.slice(7);
 
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) {
@@ -60,3 +68,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Portal session failed' }, { status: 500 });
   }
 }
+
+export const POST = withRateLimit(handler, { maxTokens: 10, windowMs: 60_000, keyPrefix: 'stripe:portal' });

@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -148,7 +149,12 @@ export default function BudgetManager() {
   };
 
   return (
-    <div className="space-y-5 fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="space-y-5"
+    >
       <PageHeader
         title="Budget Manager"
         subtitle="Set and track spending limits per category"
@@ -156,7 +162,7 @@ export default function BudgetManager() {
           <button
             type="button"
             onClick={openAddForm}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-champagne px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-champagne-dim"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-champagne px-3.5 py-2 text-xs font-semibold text-black transition-colors hover:bg-champagne-dim"
           >
             <Plus className="h-3.5 w-3.5" />
             Add Budget
@@ -183,7 +189,7 @@ export default function BudgetManager() {
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="text-text-muted hover:text-text-primary"
+              className="text-text-muted hover:text-text-primary cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>
@@ -242,7 +248,7 @@ export default function BudgetManager() {
             <button
               type="submit"
               disabled={!formCategory || !formBudget}
-              className="rounded-xl bg-champagne px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-champagne-dim disabled:opacity-40"
+              className="rounded-xl bg-champagne px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-champagne-dim disabled:opacity-40"
             >
               {editIndex !== null ? 'Save' : 'Add'}
             </button>
@@ -273,7 +279,7 @@ export default function BudgetManager() {
             const overBudget = spent > entry.budget;
             const remaining = entry.budget - spent;
 
-            const ringData = [{ name: entry.category, value: Math.round(pct), fill: overBudget ? '#ef4444' : '#bea98e' }];
+            const ringData = [{ name: entry.category, value: Math.round(pct), fill: overBudget ? 'var(--danger)' : 'var(--champagne)' }];
 
             return (
               <div
@@ -364,6 +370,6 @@ export default function BudgetManager() {
           })}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

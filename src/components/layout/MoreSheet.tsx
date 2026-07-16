@@ -39,25 +39,40 @@ import {
   Share2,
   MessageSquare,
   Moon,
+  LayoutDashboard,
 } from 'lucide-react';
 import Link from 'next/link';
 
-type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more'
+type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'time' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more'
   | 'smart-search' | 'receipt-calendar' | 'receipt-timeline' | 'vendor-analytics'
   | 'budgets' | 'tax-dashboard' | 'cashflow-forecast' | 'multi-currency'
   | 'receipt-tags' | 'batch-operations' | 'receipt-comparison' | 'recurring-detector' | 'kanban-workflow'
   | 'qbo-export' | 'xero-export' | 'export-dashboard' | 'email-forward'
   | 'readiness-score' | 'spending-insights' | 'share-receipt' | 'payables-dashboard' | 'slack-alerts' | 'dark-sync';
 
+/**
+ * Props for the MoreSheet component.
+ */
 interface MoreSheetProps {
+  /** Currently active navigation tab */
   activeTab: Tab;
+  /** Callback when user navigates to a different tab */
   onTabChange: (tab: Tab) => void;
+  /** Callback to close the sheet */
   onClose: () => void;
+  /** Human-readable plan label */
   planLabel: string;
+  /** Plan identifier for styling */
   plan: string;
+  /** Sign-out handler */
   onSignOut: () => void;
 }
 
+/**
+ * Slide-out "More" panel for mobile navigation (accessible via the More tab).
+ * Contains all navigation groups (Records, Finance, Productivity, Oversight, Integrations),
+ * settings links, legal links, and sign-out.
+ */
 export default function MoreSheet({
   activeTab,
   onTabChange,
@@ -109,6 +124,11 @@ export default function MoreSheet({
                     href="/settings/billing"
                     badge={planLabel}
                     badgeActive={plan === 'pro' || plan === 'enterprise'}
+                  />
+                  <MoreSettingLink
+                    icon={<LayoutDashboard className="h-4 w-4 text-text-muted" />}
+                    label="Admin"
+                    href="/settings/admin"
                   />
                   <MoreSettingLink
                     icon={<Settings className="h-4 w-4 text-text-muted" />}
@@ -210,9 +230,9 @@ function MoreNavLink({ icon, label, tab, onTabChange, onClose }: {
     <button
       type="button"
       onClick={() => { onTabChange(tab); onClose(); }}
-      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-hover transition"
+      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-hover transition focus:outline-none focus:ring-2 focus:ring-champagne/40"
     >
-      {icon}
+      <span aria-hidden="true">{icon}</span>
       <span>{label}</span>
     </button>
   );
@@ -234,9 +254,9 @@ function MoreSettingLink({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-surface-hover"
+      className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-champagne/40"
     >
-      {icon}
+      <span aria-hidden="true">{icon}</span>
       <span className="text-sm font-semibold text-text-secondary flex-1">{label}</span>
       {badge && (
         <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${

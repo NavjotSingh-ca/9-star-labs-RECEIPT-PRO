@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useQueryState } from 'nuqs';
@@ -62,6 +63,11 @@ async function fetchSearchResults(filters: {
   return (data || []) as ReceiptRow[];
 }
 
+/**
+ * Smart search panel with semantic and filter-based receipt search.
+ * Supports keyword search, date range, amount range, and category filters.
+ * Shows results sorted by relevance with receipt detail actions.
+ */
 export default function SmartSearch() {
   const [searchText, setSearchText] = useQueryState('q', { defaultValue: '', history: 'push' });
   const [fromDate, setFromDate] = useQueryState('from', { defaultValue: '', history: 'push' });
@@ -109,7 +115,12 @@ export default function SmartSearch() {
   const filterCount = [searchText, fromDate, toDate, minAmount, maxAmount, category].filter(Boolean).length;
 
   return (
-    <div className="space-y-5 fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="space-y-5"
+    >
       <PageHeader title="Smart Search" subtitle="Find receipts by text, date, amount, or category" />
 
       <div className="rounded-2xl border border-glass-border bg-card p-4 space-y-4 shadow-sm">
@@ -136,8 +147,9 @@ export default function SmartSearch() {
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <div>
-            <label className="mb-1 block text-xs font-semibold text-text-muted">From Date</label>
+            <label htmlFor="smart-search-from" className="mb-1 block text-xs font-semibold text-text-muted">From Date</label>
             <input
+              id="smart-search-from"
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
@@ -146,8 +158,9 @@ export default function SmartSearch() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-text-muted">To Date</label>
+            <label htmlFor="smart-search-to" className="mb-1 block text-xs font-semibold text-text-muted">To Date</label>
             <input
+              id="smart-search-to"
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
@@ -157,8 +170,9 @@ export default function SmartSearch() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-text-muted">Min Amount ($)</label>
+            <label htmlFor="smart-search-min" className="mb-1 block text-xs font-semibold text-text-muted">Min Amount ($)</label>
             <input
+              id="smart-search-min"
               type="number"
               min="0"
               step="0.01"
@@ -169,8 +183,9 @@ export default function SmartSearch() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-text-muted">Max Amount ($)</label>
+            <label htmlFor="smart-search-max" className="mb-1 block text-xs font-semibold text-text-muted">Max Amount ($)</label>
             <input
+              id="smart-search-max"
               type="number"
               min="0"
               step="0.01"
@@ -181,8 +196,9 @@ export default function SmartSearch() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-text-muted">Category</label>
+            <label htmlFor="smart-search-category" className="mb-1 block text-xs font-semibold text-text-muted">Category</label>
             <select
+              id="smart-search-category"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="w-full rounded-xl border border-glass-border bg-surface px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-champagne"
@@ -240,7 +256,7 @@ export default function SmartSearch() {
 
       {!isLoading && !error && results.length > 0 && (
         <div className="space-y-2">
-          {results.map((receipt, i) => {
+          {results.map((receipt) => {
             const badge = approvalBadge(receipt.approval_status);
             return (
               <div
@@ -273,6 +289,6 @@ export default function SmartSearch() {
           })}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

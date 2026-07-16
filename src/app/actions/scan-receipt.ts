@@ -10,6 +10,20 @@ import { logError, logInfo, logWarn } from '@/lib/logger';
 const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+// Duplicate hash computation (Node.js crypto for server actions)
+async function computeDuplicateHash(vendorName: string, transactionDate: string, totalAmount: number, taxAmount: number): Promise<string> {
+  const normalizedVendor = vendorName.toLowerCase().trim();
+  const normalizedDate = transactionDate.split('T')[0];
+  const amountStr = totalAmount.toFixed(2);
+  const taxStr = taxAmount.toFixed(2);
+  const input = `${normalizedVendor}|${normalizedDate}|${amountStr}|${taxStr}`;
+  const encoder = new TextEncoder();
+  const data = encoder.encode(input);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // CRIT-5: Input validation schema — now enforced at function entry
 const scanReceiptInputSchema = z.object({
   base64Image: z.string().max(6_000_000, 'Image too large. Maximum 4MB after encoding.'),
@@ -78,19 +92,6 @@ const VALID_CATEGORIES = [
   'Travel/Lodging',
   'Office/Admin',
 ] as const;
-
-type ValidCategory = (typeof VALID_CATEGORIES)[number];
-
-const SMART_PURPOSE: Record<ValidCategory, string> = {
-  'Job Materials': 'Materials purchased for a specific job or project',
-  'Subcontractors': 'Payment to subcontractor for contracted work on a project',
-  'Site Fuel': 'Fuel purchased for equipment or vehicles',
-  'Equipment Rental': 'Equipment rental for project operations',
-  'Small Tools': 'Small tools and consumables purchased for field operations',
-  'Vehicle Maintenance': 'Vehicle maintenance and repair for company fleet',
-  'Travel/Lodging': 'Business travel and lodging expense',
-  'Office/Admin': 'Office and administrative expense supporting business operations',
-};
 
 const PROVINCE_TAX: Record<string, { gst: number; pst: number }> = {
   AB: { gst: 0.05, pst: 0.0 },
@@ -373,6 +374,17 @@ Return the corrected JSON only. Keep the same schema.`;
 
 
 
+/**
+ * Scans a receipt image using Gemini AI, extracts structured data,
+ * validates against CRAs, detects anomalies, and self-corrects low-confidence results.
+ *
+ * Implements rate limiting (3/min, 10/hr via scan_attempts table), vendor context
+ * for smart categorization, and province-level tax validation.
+ *
+ * @param base64Image - Base64-encoded image data (max 6M chars after encoding, ~4MB).
+ * @param captureSource - How the image was captured: 'camera' | 'upload' | 'screenshot' | 'email_screenshot'.
+ * @returns Structured scan result with extracted data or error message.
+ */
 export async function scanReceipt(base64Image: string, captureSource: string = 'camera'): Promise<ScanReceiptResult> {
   // CRIT-5: Validate inputs using the schema before anything else
   const parsed = scanReceiptInputSchema.safeParse({ base64Image, captureSource });
@@ -536,6 +548,15 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
     const tax_amount = toNum(finalParsed.tax_amount);
     const pst_amount = toNum(finalParsed.pst_amount);
     const total_amount = toNum(finalParsed.total_amount);
+    const transaction_date = normalizeDate(toStr(finalParsed.transaction_date));
+
+    // Compute duplicate hash
+    const duplicate_hash = await computeDuplicateHash(
+      vendor_name,
+      transaction_date,
+      total_amount,
+      tax_amount
+    );
 
     // Province tax validation
     const vendorAddr = toStr(finalParsed.vendor_address);
@@ -557,7 +578,7 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
         subtotal,
         tax_amount,
         pst_amount,
-        transaction_date: normalizeDate(toStr(finalParsed.transaction_date)),
+        transaction_date,
         transaction_time: toStr(finalParsed.transaction_time),
         payment_method: toStr(finalParsed.payment_method),
         payment_reference: toStr(finalParsed.payment_reference),
@@ -573,7 +594,7 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
         cra_readiness_score: computeCRAScoreForSave({
           vendor_name,
           vendor_tax_number: toStr(finalParsed.vendor_tax_number),
-          transaction_date: normalizeDate(toStr(finalParsed.transaction_date)),
+          transaction_date,
           total_amount,
           tax_amount,
           category: toStr(finalParsed.category),
@@ -581,7 +602,7 @@ export async function scanReceipt(base64Image: string, captureSource: string = '
         thermal_warning: Boolean(finalParsed.thermal_warning),
         document_type: (toStr(finalParsed.document_type).toLowerCase() || 'receipt') as 'receipt' | 'invoice' | 'statement' | 'unknown',
         duplicate_warning: false,
-        duplicate_hash: '',
+        duplicate_hash,
         math_mismatch_warning: Math.abs((subtotal + tax_amount + pst_amount) - total_amount) > 0.05,
         missing_bn_warning: !toStr(finalParsed.vendor_tax_number) && tax_amount > 0,
         fraud_suspicion: Boolean(finalParsed.fraud_suspicion),

@@ -161,6 +161,10 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
+/**
+ * LandingPage — Marketing homepage with hero, features grid, pricing cards, FAQ accordion, and footer.
+ * Parallax header scroll effect, mobile hamburger menu, animated scroll-triggered sections.
+ */
 export default function LandingPage({ onGetStarted }: LandingPageProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { scrollY } = useScroll();
@@ -197,6 +201,14 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
     { icon: <Lightbulb className="h-5 w-5" />, title: 'Spending Insights', description: 'AI-generated observations about your spending patterns and trends.' },
     { icon: <Star className="h-5 w-5" />, title: 'Custom Reports', description: 'Build custom reports with date ranges, categories, and metrics. Schedule email delivery.' },
   ];
+
+  function handlePricingClick(planName: string) {
+    if (planName === 'Enterprise') {
+      window.open('mailto:sales@9starlabs.ca?subject=Enterprise%20Plan%20Inquiry', '_blank');
+    } else {
+      onGetStarted();
+    }
+  }
 
   const pricingPlans = [
     {
@@ -279,7 +291,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-champagne/15">
-              <ReceiptText className="h-4.5 w-4.5 text-champagne" />
+              <ReceiptText className="h-5 w-5 text-champagne" />
             </div>
             <span className="text-sm font-bold tracking-tight">{APP_NAME}</span>
           </div>
@@ -398,15 +410,16 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             <button
               type="button"
               onClick={onGetStarted}
-              className="inline-flex items-center gap-2 rounded-xl bg-champagne px-6 py-3 text-sm font-bold text-obsidian hover:bg-champagne-dim transition shadow-lg shadow-champagne/20"
+              className="inline-flex items-center gap-2 rounded-xl bg-champagne px-6 py-3 text-sm font-bold text-obsidian hover:bg-champagne-dim transition shadow-lg shadow-champagne/20 focus:outline-none focus:ring-2 focus:ring-champagne/40"
+              aria-label="Start free trial - no credit card required"
             >
-              Start Free Trial <ArrowRight className="h-4 w-4" />
+              Start Free Trial <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </button>
             <a
               href="#features"
-              className="inline-flex items-center gap-2 rounded-xl border border-glass-border bg-surface px-6 py-3 text-sm font-medium text-text-primary hover:bg-surface-hover transition"
+              className="inline-flex items-center gap-2 rounded-xl border border-glass-border bg-surface px-6 py-3 text-sm font-medium text-text-primary hover:bg-surface-hover transition focus:outline-none focus:ring-2 focus:ring-champagne/40"
             >
-              View Features
+              View Features <ChevronDown className="h-4 w-4" aria-hidden="true" />
             </a>
           </motion.div>
 
@@ -470,7 +483,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
           >
             {pricingPlans.map((plan) => (
               <motion.div key={plan.name} variants={stagger}>
-                <PricingCard {...plan} onGetStarted={onGetStarted} />
+                <PricingCard {...plan} onGetStarted={() => handlePricingClick(plan.name)} />
               </motion.div>
             ))}
           </motion.div>

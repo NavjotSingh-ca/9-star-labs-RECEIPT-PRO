@@ -3,54 +3,60 @@ import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { z } from 'zod';
 import { env } from '@/lib/env';
-import { supabaseAdmin } from '@/lib/supabase-admin';
 import { logError } from '@/lib/logger';
+import { withRateLimit } from '@/lib/rate-limiter';
 
 const stripe = env.STRIPE_SECRET_KEY
   ? new Stripe(env.STRIPE_SECRET_KEY)
   : null;
 
-function getSupabaseClient(token?: string) {
-  if (!token) {
-    return createClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-  }
+function getUserClient(token?: string) {
   return createClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
+    global: token ? { headers: { Authorization: `Bearer ${token}` } } : {},
+    auth: { persistSession: false, autoRefreshToken: false },
   });
 }
 
-export async function POST(request: Request) {
+const checkoutSchema = z.object({
+  priceId: z.string().min(1),
+  plan: z.enum(['free', 'starter', 'pro', 'business', 'enterprise']).optional(),
+});
+
+/**
+ * POST /api/stripe/checkout
+ * Creates a Stripe Checkout session for subscription purchases.
+ * Requires a valid Bearer token. Auto-creates a Stripe customer if one doesn't exist.
+ * Pro plans get a 14-day trial period.
+ * 
+ * Body: { priceId: string, plan?: 'free' | 'starter' | 'pro' | 'business' | 'enterprise' }
+ * Returns: { url: string } — Stripe Checkout session URL.
+ * Rate limited: 10 requests per 60s.
+ */
+async function handler(request: Request) {
   try {
     if (!stripe) {
       return NextResponse.json({ error: 'Stripe is not configured. Set STRIPE_SECRET_KEY in env.' }, { status: 503 });
     }
 
-    const parsed = z.object({
-      priceId: z.string().min(1),
-      plan: z.enum(['free', 'starter', 'pro', 'business', 'enterprise']).optional(),
-    }).safeParse(await request.json().catch(() => ({})));
-
+    const parsed = checkoutSchema.safeParse(await request.json().catch(() => ({})));
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
     const { priceId, plan } = parsed.data;
 
-    // Get auth user from request headers (Supabase SSR token)
     const authHeader = request.headers.get('authorization') || '';
-    const token = authHeader.replace('Bearer ', '');
-
-    if (!token) {
+    if (!authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const token = authHeader.slice(7);
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const userClient = getUserClient(token);
+    const { data: { user }, error: authError } = await userClient.auth.getUser(token);
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's org and current subscription
-    const supabaseClient = getSupabaseClient(token);
-    const { data: roleData } = await supabaseClient
+    const { data: roleData } = await userClient
       .from('user_roles')
       .select('org_id')
       .eq('user_id', user.id)
@@ -61,7 +67,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No organization found' }, { status: 400 });
     }
 
-    const { data: subRow } = await supabaseClient
+    const { data: subRow } = await userClient
       .from('subscriptions')
       .select('stripe_customer_id')
       .eq('org_id', orgId)
@@ -76,7 +82,7 @@ export async function POST(request: Request) {
       });
       customerId = customer.id;
 
-      await supabaseClient
+      await userClient
         .from('subscriptions')
         .upsert({
           org_id: orgId,
@@ -104,3 +110,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Checkout failed' }, { status: 500 });
   }
 }
+
+export const POST = withRateLimit(handler, { maxTokens: 10, windowMs: 60_000, keyPrefix: 'stripe:checkout' });

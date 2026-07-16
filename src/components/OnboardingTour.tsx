@@ -25,6 +25,12 @@ const steps = [
   },
 ];
 
+/**
+ * OnboardingTour — First-time user tour using react-joyride.
+ * Shows 3 steps: scan button, dashboard KPIs, and review flow.
+ * Auto-triggers after 2s if localStorage `9sl-onboarding-seen` is not set.
+ * Supports skip, back/next, and auto-dismiss on completion.
+ */
 export function OnboardingTour() {
   const [run, setRun] = useState(false);
 

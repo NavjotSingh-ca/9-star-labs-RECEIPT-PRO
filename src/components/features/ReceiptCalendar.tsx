@@ -6,6 +6,7 @@ import { AlertCircle, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import PageHeader from '@/components/layout/PageHeader';
 import { supabase, getOrgIdString } from '@/lib/supabase';
 import { formatCurrency, formatDate } from '@/lib/ui-utils';
+import { cn } from '@/lib/utils';
 import type { ReceiptRow } from '@/lib/types';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -160,11 +161,12 @@ export default function ReceiptCalendar() {
                     key={key}
                     type="button"
                     onClick={() => setSelectedDate(isSelected ? null : key)}
-                    className={`
-                      relative flex flex-col items-center justify-center rounded-xl py-2.5 text-sm transition-colors
-                      ${!isCurrentMonth ? 'text-text-muted/30' : 'text-text-primary'}
-                      ${isSelected ? 'bg-champagne/15 ring-1 ring-champagne' : isToday ? 'bg-surface' : 'hover:bg-surface'}
-                    `}
+                    className={cn(
+                      'relative flex flex-col items-center justify-center rounded-xl py-2.5 text-sm transition-colors',
+                      !isCurrentMonth && 'text-text-muted/30',
+                      isCurrentMonth && 'text-text-primary',
+                      isSelected ? 'bg-champagne/15 ring-1 ring-champagne' : isToday ? 'bg-surface' : 'hover:bg-surface',
+                    )}
                   >
                     <span className={isToday ? 'font-bold' : ''}>{d.getDate()}</span>
                     {hasReceipts && (

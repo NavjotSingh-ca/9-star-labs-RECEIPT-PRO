@@ -4,6 +4,7 @@ import { env } from '@/lib/env';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { logError } from '@/lib/logger';
 import { encryptToken } from '@/lib/encryption';
+import { withRateLimit } from '@/lib/rate-limiter';
 
 const callbackQuerySchema = z.object({
   code: z.string().min(1),
@@ -16,7 +17,18 @@ const QBO_CLIENT_ID = env.QBO_CLIENT_ID || '';
 const QBO_CLIENT_SECRET = env.QBO_CLIENT_SECRET || '';
 const QBO_REDIRECT_URI = `${env.NEXT_PUBLIC_SITE_URL}/api/qbo/callback`;
 
-export async function GET(request: Request) {
+/**
+ * GET /api/qbo/callback
+ *
+ * Handles the QBO OAuth 2.0 redirect callback.
+ * Validates state, nonce, and 10-min expiry before exchanging code for tokens.
+ * Encrypts tokens (AES-256-GCM) before storing.
+ *
+ * On success: redirects to /settings/org?qbo_success=1
+ * On failure: redirects to /settings/org?qbo_error=<reason>
+ * Rate limited: 5 requests per 60s.
+ */
+async function handler(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const raw = {
@@ -42,7 +54,6 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${env.NEXT_PUBLIC_SITE_URL}/settings/org?qbo_error=not_configured`);
     }
 
-    // Find org by state
     const { data: settingsData } = await supabaseAdmin
       .from('organization_settings')
       .select('org_id, qbo_auth_state, qbo_auth_nonce, qbo_auth_started_at')
@@ -53,7 +64,6 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${env.NEXT_PUBLIC_SITE_URL}/settings/org?qbo_error=invalid_state`);
     }
 
-    // MED-5 / CRIT-6: Validate OAuth state expiry (10 minute window)
     if (settingsData.qbo_auth_started_at) {
       const startedAt = new Date(settingsData.qbo_auth_started_at).getTime();
       const tenMinutesMs = 10 * 60 * 1000;
@@ -61,13 +71,17 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${env.NEXT_PUBLIC_SITE_URL}/settings/org?qbo_error=state_expired`);
       }
     } else {
-      // If no started_at timestamp, reject as potentially replayed
       return NextResponse.redirect(`${env.NEXT_PUBLIC_SITE_URL}/settings/org?qbo_error=state_expired`);
+    }
+
+    // Validate nonce to prevent replay attacks
+    const nonce = searchParams.get('nonce');
+    if (!nonce || nonce !== settingsData.qbo_auth_nonce) {
+      return NextResponse.redirect(`${env.NEXT_PUBLIC_SITE_URL}/settings/org?qbo_error=invalid_nonce`);
     }
 
     const orgId = settingsData.org_id;
 
-    // Exchange code for tokens
     const tokenUrl = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer';
     const tokenResponse = await fetch(tokenUrl, {
       method: 'POST',
@@ -91,7 +105,6 @@ export async function GET(request: Request) {
     const tokenData = await tokenResponse.json();
     const { access_token, refresh_token, expires_in } = tokenData;
 
-    // CRIT-6: Encrypt tokens before storing
     await supabaseAdmin
       .from('organization_settings')
       .update({
@@ -112,3 +125,5 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${env.NEXT_PUBLIC_SITE_URL}/settings/org?qbo_error=server`);
   }
 }
+
+export const GET = withRateLimit(handler, { maxTokens: 5, windowMs: 60_000, keyPrefix: 'qbo:callback' });

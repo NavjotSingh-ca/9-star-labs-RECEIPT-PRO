@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server';
 import spec from './openapi.json';
 import { logError } from '@/lib/logger';
+import { withRateLimit } from '@/lib/rate-limiter';
 
-export async function GET(request: Request) {
+/**
+ * GET /api/docs
+ *
+ * Serves OpenAPI documentation via content negotiation:
+ *   - Accept: text/html → Swagger UI HTML page
+ *   - Otherwise → raw openapi.json
+ *
+ * Public endpoint (no auth required). Rate limited: 30 requests per 60s.
+ */
+async function handler(request: Request) {
   try {
     const accept = request.headers.get('Accept') ?? '';
 
@@ -49,3 +59,5 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to load API documentation' }, { status: 500 });
   }
 }
+
+export const GET = withRateLimit(handler, { maxTokens: 30, windowMs: 60_000, keyPrefix: 'api:docs' });

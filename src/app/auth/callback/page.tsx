@@ -8,6 +8,11 @@ import { Loader2, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePasswordStrength, passwordRequirements } from '@/hooks/usePasswordStrength';
 
+/**
+ * Auth callback page — handles OAuth redirects and password recovery flows.
+ * Exchanges auth code for session on sign-in, or presents password reset form
+ * for recovery flows with real-time strength validation.
+ */
 export default function AuthCallback() {
   const router = useRouter();
   const [newPassword, setNewPassword] = useState('');
@@ -62,12 +67,12 @@ export default function AuthCallback() {
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) {
-        setError(error.message);
+        setError(process.env.NODE_ENV === 'development' ? error.message : 'Failed to update password.');
       } else {
         router.replace('/');
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to update password.');
+      setError(process.env.NODE_ENV === 'development' && e instanceof Error ? e.message : 'Failed to update password.');
     } finally {
       setLoading(false);
     }
@@ -118,7 +123,7 @@ export default function AuthCallback() {
                     {met ? (
                       <CheckCircle2 className="h-3 w-3 text-emerald-light shrink-0" />
                     ) : (
-                      <div className="h-3 w-3 rounded-full border border-white/20 shrink-0" />
+                      <div className="h-3 w-3 rounded-full border border-text-muted/30 shrink-0" />
                     )}
                     <span className={cn('text-[11px]', met ? 'text-text-secondary' : 'text-text-muted')}>
                       {req.label}

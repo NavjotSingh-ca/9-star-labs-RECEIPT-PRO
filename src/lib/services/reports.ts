@@ -56,11 +56,21 @@ export interface ReportTemplate {
 }
 
 export class ReportError extends Error {
-  constructor(message: string) { super(message); this.name = 'ReportError'; }
+  constructor(message: string) {
+    super(message);
+    this.name = 'ReportError';
+  }
 }
 
 // ─── Date resolution ───
 
+/**
+ * Resolve a date preset to concrete start/end date strings.
+ *
+ * @param preset - The date preset enum value.
+ * @param customRange - Custom range required when preset is 'custom'.
+ * @returns Start and end date strings in YYYY-MM-DD format.
+ */
 function resolveDateRange(preset: DatePreset, customRange?: { start: string; end: string }): { start: string; end: string } {
   if (preset === 'custom' && customRange) return customRange;
   const now = new Date();
@@ -97,9 +107,18 @@ function resolveDateRange(preset: DatePreset, customRange?: { start: string; end
 
 // ─── Engine ───
 
+/**
+ * Generate a report using the configured metrics, dimensions, date range, and filters.
+ *
+ * @param config - The report configuration (validated via Zod).
+ * @returns The generated report with rows, totals, and metadata.
+ * @throws {ReportError} If the DB RPC call fails or config is invalid.
+ */
 export async function generateReport(config: ReportConfig): Promise<ReportResult> {
   const parsed = ReportConfigSchema.parse(config);
   const orgId = await getOrgIdString();
+  if (!orgId) throw new ReportError('Organization not found');
+
   const dateRange = resolveDateRange(parsed.datePreset, parsed.customDateRange);
 
   try {
@@ -131,7 +150,7 @@ export async function generateReport(config: ReportConfig): Promise<ReportResult
   } catch (err) {
     logError(err, { action: 'generate_report' });
     if (err instanceof ReportError) throw err;
-    throw new ReportError('Failed to generate report');
+    throw new ReportError('Failed to generate report. Please try again.');
   }
 }
 
@@ -190,35 +209,118 @@ const BUILT_IN_TEMPLATES: ReportTemplate[] = [
   },
 ];
 
+/**
+ * Get all pre-built (builtin) report templates.
+ *
+ * @returns Array of built-in template definitions.
+ */
 export function getPrebuiltTemplates(): ReportTemplate[] {
   return BUILT_IN_TEMPLATES;
 }
 
+/**
+ * Get custom report templates saved by the organization.
+ *
+ * @param orgId - Organization UUID for tenant isolation.
+ * @returns Array of custom templates (empty array on error).
+ */
 export async function getCustomTemplates(orgId: string): Promise<ReportTemplate[]> {
-  const { data, error } = await supabase
-    .from('report_templates')
-    .select('id, name, config, created_at')
-    .eq('org_id', orgId)
-    .order('created_at', { ascending: false });
+  if (!orgId) return [];
 
-  if (error) { logError(error, { action: 'get_custom_templates' }); return []; }
+  try {
+    const { data, error } = await supabase
+      .from('report_templates')
+      .select('id, name, config, created_at')
+      .eq('org_id', orgId)
+      .order('created_at', { ascending: false });
 
-  return (data || []).map((t) => ({
-    id: t.id, name: t.name, description: 'Custom report', icon: 'FileSpreadsheet',
-    type: 'custom' as const, defaultExport: 'csv' as const, config: t.config as ReportConfig,
-  }));
+    if (error) {
+      logError(error, { action: 'get_custom_templates' });
+      return [];
+    }
+
+    return (data || []).map((t) => ({
+      id: t.id,
+      name: t.name,
+      description: 'Custom report',
+      icon: 'FileSpreadsheet',
+      type: 'custom' as const,
+      defaultExport: 'csv' as const,
+      config: t.config as ReportConfig,
+    }));
+  } catch (err) {
+    logError(err, { action: 'get_custom_templates' });
+    return [];
+  }
 }
 
+/**
+ * Save a custom report template for the organization.
+ *
+ * @param orgId - Organization UUID.
+ * @param userId - UUID of the user creating the template.
+ * @param name - Human-readable template name.
+ * @param config - The report configuration to save.
+ * @throws {ReportError} If the template name is empty or DB write fails.
+ */
 export async function saveCustomTemplate(orgId: string, userId: string, name: string, config: ReportConfig): Promise<void> {
-  const { error } = await supabase.from('report_templates').insert({
-    org_id: orgId, name, config, created_by: userId,
-  });
-  if (error) { logError(error, { action: 'save_custom_template' }); throw new ReportError('Failed to save template'); }
+  if (!name || name.trim().length === 0) {
+    throw new ReportError('Template name is required');
+  }
+  if (name.length > 200) {
+    throw new ReportError('Template name must be 200 characters or fewer');
+  }
+  if (!orgId) throw new ReportError('Organization not found');
+  if (!userId) throw new ReportError('User not authenticated');
+
+  try {
+    const { error } = await supabase.from('report_templates').insert({
+      org_id: orgId,
+      name: name.trim(),
+      config,
+      created_by: userId,
+    });
+
+    if (error) {
+      logError(error, { action: 'save_custom_template' });
+      throw new ReportError('Failed to save template');
+    }
+  } catch (err) {
+    if (err instanceof ReportError) throw err;
+    logError(err, { action: 'save_custom_template' });
+    throw new ReportError('Failed to save template. Please try again.');
+  }
 }
 
+/**
+ * Delete a custom report template.
+ * Scoped by org_id for tenant isolation.
+ *
+ * @param templateId - UUID of the template to delete.
+ * @throws {ReportError} If the template ID is missing or DB operation fails.
+ */
 export async function deleteCustomTemplate(templateId: string): Promise<void> {
-  const { error } = await supabase.from('report_templates').delete().eq('id', templateId);
-  if (error) { logError(error, { action: 'delete_custom_template' }); throw new ReportError('Failed to delete template'); }
+  if (!templateId) throw new ReportError('Template ID is required');
+
+  try {
+    const orgId = await getOrgIdString();
+    if (!orgId) throw new ReportError('Organization not found');
+
+    const { error } = await supabase
+      .from('report_templates')
+      .delete()
+      .eq('id', templateId)
+      .eq('org_id', orgId);
+
+    if (error) {
+      logError(error, { action: 'delete_custom_template' });
+      throw new ReportError('Failed to delete template');
+    }
+  } catch (err) {
+    if (err instanceof ReportError) throw err;
+    logError(err, { action: 'delete_custom_template' });
+    throw new ReportError('Failed to delete template. Please try again.');
+  }
 }
 
 // ─── Helpers ───
@@ -231,6 +333,14 @@ export const METRIC_LABELS: Record<string, string> = {
   max_receipt: 'Max Receipt',
 };
 
+/**
+ * Format a metric value for display.
+ * Count metrics are shown as integers; currency metrics use en-CA formatting.
+ *
+ * @param metric - The metric type.
+ * @param value - The numeric value to format.
+ * @returns Formatted string (e.g., "42" for counts, "$1,234.56" for currency).
+ */
 export function formatMetricValue(metric: Metric, value: number): string {
   if (metric === 'receipt_count') return String(Math.round(value));
   const fmt = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 2 });

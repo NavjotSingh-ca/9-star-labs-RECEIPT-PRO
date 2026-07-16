@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Save, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useReportGenerate, useSaveTemplate } from '@/hooks/useReports';
 import { ReportViewer } from './ReportViewer';
@@ -37,11 +38,13 @@ const DATE_PRESETS: { value: DatePreset; label: string }[] = [
 ];
 
 interface Props {
+  /** Called when the builder should close */
   onClose?: () => void;
+  /** Organization ID for scoping data queries */
   orgId: string;
 }
 
-export function CustomReportBuilder({ onClose, orgId }: Props) {
+export function CustomReportBuilder({ orgId }: Props) {
   const [name, setName] = useState('');
   const [groupBy, setGroupBy] = useState<Dimension | undefined>(undefined);
   const [selectedMetrics, setSelectedMetrics] = useState<Metric[]>(['total_spend', 'receipt_count']);
@@ -153,11 +156,10 @@ export function CustomReportBuilder({ onClose, orgId }: Props) {
             <div className="flex flex-wrap gap-3">
               {METRIC_OPTIONS.map((opt) => (
                 <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={selectedMetrics.includes(opt.value)}
-                    onChange={() => toggleMetric(opt.value)}
-                    className="accent-champagne h-4 w-4"
+                    onCheckedChange={() => toggleMetric(opt.value)}
+                    aria-label={opt.label}
                   />
                   <span className="text-sm">{opt.label}</span>
                 </label>
@@ -227,11 +229,10 @@ export function CustomReportBuilder({ onClose, orgId }: Props) {
             className="flex items-center gap-3 p-3 rounded-lg border border-glass-border bg-card"
           >
             <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={saveAsTemplate}
-                onChange={(e) => setSaveAsTemplate(e.target.checked)}
-                className="accent-champagne h-4 w-4"
+                onCheckedChange={(checked) => setSaveAsTemplate(checked === true)}
+                aria-label="Save as template"
               />
               <span className="text-sm font-medium">Save as template</span>
             </label>

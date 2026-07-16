@@ -6,8 +6,7 @@ import React from 'react';
 
 function BuggyComponent() {
   // This triggers a runtime error during render without TypeScript errors
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const obj = {} as any;
+    const obj = {} as any;
   return <div>{obj.missing.method()}</div>;
 }
 

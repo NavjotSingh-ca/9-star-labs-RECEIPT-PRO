@@ -10,6 +10,11 @@ const brandFeatures = [
   { icon: TrendingUp, label: 'CRA-Ready', desc: 'One-click compliance exports' },
 ];
 
+/**
+ * Brand panel with app logo, name, tagline, and animated gradient background.
+ * Shown on the left side of the auth screen (desktop) or hidden (mobile).
+ * Always renders on dark gradient — uses white/champagne text.
+ */
 export default function BrandPanel() {
   return (
     <div className="relative hidden lg:flex w-1/2 min-h-screen flex-col justify-between p-12 xl:p-16 overflow-hidden">
@@ -96,7 +101,7 @@ export default function BrandPanel() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.9 }}
-        className="relative z-10 text-xs text-zinc-600"
+        className="relative z-10 text-xs text-text-muted/50"
       >
         &copy; {new Date().getFullYear()} {APP_NAME}. All rights reserved.
       </motion.p>

@@ -63,6 +63,11 @@ function NotificationItem({
   );
 }
 
+/**
+ * Notification bell icon button with dropdown popover.
+ * Shows unread count badge, polls for new notifications every 30 seconds,
+ * and supports mark-as-read from the popover.
+ */
 export default function NotificationBell({ collapsed }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);

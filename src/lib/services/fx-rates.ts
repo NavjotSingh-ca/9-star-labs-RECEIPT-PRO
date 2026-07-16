@@ -1,30 +1,76 @@
 import { supabase } from '@/lib/supabase';
-import { logError, logInfo } from '@/lib/logger';
+import { logError, logInfo, logWarn } from '@/lib/logger';
 
-// Currencies supported by Bank of Canada Valet API
 const BOC_SUPPORTED_CURRENCIES = new Set([
   'USD', 'EUR', 'GBP', 'JPY', 'CHF', 'AUD', 'CAD', 'HKD', 'SEK',
   'NOK', 'DKK', 'SGD', 'MXN', 'NZD', 'CNY', 'INR',
 ]);
 
+const BOC_FETCH_TIMEOUT_MS = 8_000;
+const MAX_FALLBACK_DAYS = 7;
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+interface BoCApiResponse {
+  observations?: Array<{
+    [seriesName: string]: { v: string };
+  }>;
+}
+
+/**
+ * Offset a YYYY-MM-DD date string by N days.
+ *
+ * @param dateStr - Date string in YYYY-MM-DD format.
+ * @param days - Number of days to offset (negative for past).
+ * @returns Resulting date string in YYYY-MM-DD format.
+ */
+function offsetDate(dateStr: string, days: number): string {
+  const d = new Date(dateStr + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
+/**
+ * Validates that a string is a plausible YYYY-MM-DD date.
+ */
+function isValidDate(str: string): boolean {
+  if (!DATE_REGEX.test(str)) return false;
+  const d = new Date(str + 'T12:00:00Z');
+  return !isNaN(d.getTime());
+}
+
 /**
  * Fetch the historical CAD exchange rate for a given currency and date.
+ *
  * Strategy:
- *  1. Check fx_rate_cache (DB) — instant if already fetched
- *  2. Call Bank of Canada Valet API for the exact date
- *  3. If no data (weekend/holiday), walk back up to 7 trading days (CRA-accepted)
- *  4. Upsert into cache, return rate
- *  5. On any failure, return 1.0 and log — never block a save
+ *  1. Check fx_rate_cache (DB) — instant if already fetched.
+ *  2. Call Bank of Canada Valet API for the exact date.
+ *  3. If no data (weekend/holiday), walk back up to 7 trading days (CRA-accepted).
+ *  4. Upsert into cache, return rate.
+ *  5. On any failure, return 1.0 and log — never block a save.
+ *
+ * @param currency - ISO 4217 currency code (e.g., 'USD', 'EUR').
+ * @param date - Transaction date in YYYY-MM-DD format.
+ * @returns The exchange rate (CAD base). Returns 1.0 on any failure.
  */
 export async function getHistoricalCADRate(currency: string, date: string): Promise<number> {
+  if (!currency || typeof currency !== 'string') {
+    logWarn('[FX] Invalid currency parameter, returning 1.0', { currency });
+    return 1.0;
+  }
+
+  if (!date || !isValidDate(date)) {
+    logWarn('[FX] Invalid date parameter, returning 1.0', { date });
+    return 1.0;
+  }
+
   const upperCurrency = currency.toUpperCase();
-  
+
   // CAD-to-CAD is always 1.0
   if (upperCurrency === 'CAD') return 1.0;
 
   // If currency not supported by BoC, return 1.0 with warning
   if (!BOC_SUPPORTED_CURRENCIES.has(upperCurrency)) {
-    logError(new Error(`Unsupported currency for auto-rate: ${upperCurrency}`), { action: 'fx_rate_lookup' });
+    logWarn('[FX] Unsupported currency for auto-rate: ' + upperCurrency);
     return 1.0;
   }
 
@@ -36,68 +82,59 @@ export async function getHistoricalCADRate(currency: string, date: string): Prom
       .eq('date', date)
       .eq('currency', upperCurrency)
       .single();
-    
+
     if (cached?.rate_to_cad) {
       return Number(cached.rate_to_cad);
     }
-  } catch {
-    // Cache miss — continue to API
+  } catch (err) {
+    logError(err, { action: 'fx_cache_lookup', currency: upperCurrency, date });
   }
 
   // 2. Fetch from Bank of Canada Valet API with fallback dates
   const seriesName = `FX${upperCurrency}CAD`;
-  
-  for (let daysBack = 0; daysBack <= 7; daysBack++) {
+
+  for (let daysBack = 0; daysBack <= MAX_FALLBACK_DAYS; daysBack++) {
     const queryDate = offsetDate(date, -daysBack);
-    
+
     try {
       const url = `https://www.bankofcanada.ca/valet/observations/${seriesName}/json?start_date=${queryDate}&end_date=${queryDate}`;
-      
+
       const res = await fetch(url, {
-        signal: AbortSignal.timeout(8_000),
+        signal: AbortSignal.timeout(BOC_FETCH_TIMEOUT_MS),
         headers: { 'Accept': 'application/json' },
       });
-      
+
       if (!res.ok) continue;
-      
-      const json = await res.json();
+
+      const json = (await res.json()) as BoCApiResponse;
       const observations = json?.observations;
-      
+
       if (!Array.isArray(observations) || observations.length === 0) continue;
-      
+
       const rateStr = observations[0]?.[seriesName]?.v;
       if (!rateStr) continue;
-      
+
       const rate = parseFloat(rateStr);
       if (isNaN(rate) || rate <= 0) continue;
-      
+
       // Cache this rate in DB (use the original requested date, not the fallback date)
       try {
         await supabase.from('fx_rate_cache').upsert(
           { date, currency: upperCurrency, rate_to_cad: rate },
           { onConflict: 'date,currency', ignoreDuplicates: false }
         );
-      } catch {
-        // Cache write failure is non-critical
+      } catch (err) {
+        logError(err, { action: 'fx_cache_write', currency: upperCurrency, date });
       }
-      
+
       logInfo(`FX rate fetched: 1 ${upperCurrency} = ${rate} CAD for ${date} (using ${queryDate})`, {});
       return rate;
-    } catch {
-      continue;
+    } catch (err) {
+      logError(err, { action: 'fx_boc_api', currency: upperCurrency, queryDate, daysBack });
     }
   }
-  
+
   // Fallback: return 1.0 rather than blocking the save
   logError(new Error(`Could not fetch BoC rate for ${upperCurrency} on ${date}`), { action: 'fx_rate_fetch' });
   return 1.0;
-}
-
-/**
- * Offset a YYYY-MM-DD date string by N days
- */
-function offsetDate(dateStr: string, days: number): string {
-  const d = new Date(dateStr + 'T12:00:00Z');
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().split('T')[0];
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { useState, useCallback } from 'react';
 import { Check, MessageSquare, Send } from 'lucide-react';
 import { toast } from 'sonner';
@@ -77,7 +78,12 @@ export default function SlackAlerts() {
   };
 
   return (
-    <div className="space-y-5 fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="space-y-5"
+    >
       <PageHeader
         title="Slack Alerts"
         subtitle="Configure notifications sent to your Slack workspace"
@@ -144,7 +150,7 @@ export default function SlackAlerts() {
           <button
             type="button"
             onClick={handleSave}
-            className="inline-flex items-center gap-2 rounded-xl bg-champagne px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-champagne-dim"
+            className="inline-flex items-center gap-2 rounded-xl bg-champagne px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-champagne-dim"
           >
             {saved ? <Check className="h-4 w-4" /> : <MessageSquare className="h-4 w-4" />}
             {saved ? 'Saved' : 'Save Preferences'}
@@ -160,6 +166,6 @@ export default function SlackAlerts() {
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

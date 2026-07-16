@@ -3,22 +3,32 @@ import { env } from '@/lib/env';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { logError } from '@/lib/logger';
 import { decryptToken, encryptToken } from '@/lib/encryption';
+import { withRateLimit } from '@/lib/rate-limiter';
 
 const QBO_CLIENT_ID = env.QBO_CLIENT_ID || '';
 const QBO_CLIENT_SECRET = env.QBO_CLIENT_SECRET || '';
 
-export async function POST(request: Request) {
+/**
+ * POST /api/qbo/refresh
+ *
+ * Refreshes the QBO OAuth token for the caller's organization.
+ * Requires a valid Bearer token. Decrypts stored refresh token,
+ * exchanges it at Intuit, and stores the new encrypted tokens.
+ *
+ * Returns: { success: true } or { error: string }
+ * Rate limited: 5 requests per 60s.
+ */
+async function handler(request: Request) {
   try {
     if (!QBO_CLIENT_ID || !QBO_CLIENT_SECRET) {
       return NextResponse.json({ error: 'QBO not configured' }, { status: 503 });
     }
 
     const authHeader = request.headers.get('authorization') || '';
-    const token = authHeader.replace('Bearer ', '');
-
-    if (!token) {
+    if (!authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const token = authHeader.slice(7);
 
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) {
@@ -47,10 +57,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'QBO not connected' }, { status: 400 });
     }
 
-    // C7: Decrypt the stored token before sending to Intuit
     const refreshToken = decryptToken(encryptedRefreshToken);
 
-    // Refresh the token
     const tokenUrl = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer';
     const tokenResponse = await fetch(tokenUrl, {
       method: 'POST',
@@ -73,7 +81,6 @@ export async function POST(request: Request) {
     const tokenData = await tokenResponse.json();
     const { access_token, refresh_token: newRefreshToken, expires_in } = tokenData;
 
-    // Update stored tokens
     await supabaseAdmin
       .from('organization_settings')
       .update({
@@ -90,3 +97,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Token refresh failed' }, { status: 500 });
   }
 }
+
+export const POST = withRateLimit(handler, { maxTokens: 5, windowMs: 60_000, keyPrefix: 'qbo:refresh' });

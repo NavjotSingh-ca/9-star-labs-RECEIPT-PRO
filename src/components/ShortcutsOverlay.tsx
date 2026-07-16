@@ -2,20 +2,32 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Keyboard, X, Command, ArrowUpDown, Scan, Search, CheckCheck, Download } from 'lucide-react';
+import { Keyboard, X, Command, ArrowUpDown, Scan, Search, CheckCheck, Download, ReceiptText, Route, Landmark, PiggyBank, Receipt, TrendingUp, Kanban, ScrollText } from 'lucide-react';
 
 const shortcuts = [
   { keys: ['⌘K', 'Ctrl+K'], label: 'Command palette', icon: Command },
   { keys: ['?'], label: 'Show this menu', icon: Keyboard },
   { keys: ['Escape'], label: 'Close overlays / modals', icon: X },
-  { keys: ['⌘F', 'Ctrl+F'], label: 'Search receipts (AI semantic)', icon: Search },
-  { keys: ['S'], label: 'Open scanner', icon: Scan },
-  { keys: ['A'], label: 'Approve selected receipt', icon: CheckCheck },
-  { keys: ['R'], label: 'Reject selected receipt', icon: X },
-  { keys: ['←', '→'], label: 'Navigate tabs (swipe)', icon: ArrowUpDown },
-  { keys: ['⌘E', 'Ctrl+E'], label: 'Export data', icon: Download },
+  { keys: ['S'], label: 'Go to scanner', icon: Scan },
+  { keys: ['R'], label: 'Go to receipts', icon: ReceiptText },
+  { keys: ['M'], label: 'Go to mileage', icon: Route },
+  { keys: ['E'], label: 'Go to export', icon: Download },
+  { keys: ['A'], label: 'Go to audit', icon: ScrollText },
+  { keys: ['G'], label: 'Go to bank reconciliation', icon: Landmark },
+  { keys: ['F'], label: 'Go to smart search', icon: Search },
+  { keys: ['B'], label: 'Go to budgets', icon: PiggyBank },
+  { keys: ['T'], label: 'Go to tax dashboard', icon: Receipt },
+  { keys: ['K'], label: 'Go to kanban workflow', icon: Kanban },
+  { keys: ['I'], label: 'Go to spending insights', icon: TrendingUp },
+  { keys: ['Ctrl+Enter'], label: 'Save receipt (when form ready)', icon: CheckCheck },
+  { keys: ['← →'], label: 'Navigate tabs (swipe on mobile)', icon: ArrowUpDown },
 ];
 
+/**
+ * ShortcutsOverlay — Keyboard shortcuts help menu triggered by pressing `?`.
+ * Lists all available shortcuts with key bindings and descriptions.
+ * Click-outside or Escape to close.
+ */
 export default function ShortcutsOverlay() {
   const [open, setOpen] = useState(false);
 
@@ -43,6 +55,9 @@ export default function ShortcutsOverlay() {
           transition={{ duration: 0.15 }}
           className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
           onClick={() => setOpen(false)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); }}
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 10 }}

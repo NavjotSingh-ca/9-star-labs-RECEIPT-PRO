@@ -6,7 +6,6 @@ import { env } from '@/lib/env';
 import { isMathMismatch } from '@/lib/finance-utils';
 import { getHistoricalCADRate } from '@/lib/services/fx-rates';
 import { updateVendorDefaults } from '@/lib/services/vendor-defaults';
-import { supabaseAdmin } from '@/lib/supabase-admin';
 import { logError, logWarn } from '@/lib/logger';
 
 const ALLOWED_RECEIPT_COLUMNS = [
@@ -22,9 +21,17 @@ const ALLOWED_RECEIPT_COLUMNS = [
   'payment_reference', 'blur_score',
 ] as const;
 
+/**
+ * Persists a scanned receipt to the database via atomic PG function.
+ * Uses user-scoped client (never service role) with proper RLS enforcement.
+ * 
+ * @param payload - Sanitized receipt fields (only ALLOWED_RECEIPT_COLUMNS are persisted).
+ * @param integrityHash - SHA-256 hash of the raw scan result for audit chain.
+ * @returns { ok: true; id: string } or { ok: false; error: string }
+ */
 export async function saveReceiptAction(
   payload: Record<string, unknown>,
-  integrityHash: string,
+  integrityHash: string
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   try {
     const cookieStore = await cookies();
@@ -34,7 +41,7 @@ export async function saveReceiptAction(
       {
         cookies: {
           getAll: () => cookieStore.getAll(),
-          setAll: () => {},
+          setAll: () => {}, // Server actions don't set cookies
         },
       },
     );
@@ -50,7 +57,7 @@ export async function saveReceiptAction(
       Number(payload.subtotal ?? 0),
       Number(payload.tax_amount ?? 0),
       Number(payload.pst_amount ?? 0),
-      Number(payload.total_amount ?? 0),
+      Number(payload.total_amount ?? 0)
     );
 
     const currency = String(payload.currency ?? 'CAD');
@@ -67,22 +74,12 @@ export async function saveReceiptAction(
     }
     const cadEquivalent = currency !== 'CAD' ? Math.round(totalAmount * exchangeRate * 100) / 100 : null;
 
-    let previousHash: string | null = null;
-    try {
-      const { data: lastLog } = await supabaseAdmin
-        .from('audit_logs')
-        .select('event_hash')
-        .eq('user_id', userId)
-        .not('event_hash', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-      previousHash = (lastLog as { event_hash?: string } | null)?.event_hash ?? null;
-    } catch {
-      logWarn('Previous hash lookup failed — starting fresh Merkle chain (server action)');
-      previousHash = null;
-    }
+    // Compute duplicate hash
+    const normalizedVendor = String(payload.vendor_name ?? '').toLowerCase().trim();
+    const normalizedDate = transactionDate;
+    const duplicateHash = `${normalizedVendor}|${normalizedDate}|${totalAmount.toFixed(2)}|${Number(payload.tax_amount ?? 0).toFixed(2)}`;
 
+    // Build sanitized payload
     const sanitizedPayload: Record<string, unknown> = {};
     for (const key of ALLOWED_RECEIPT_COLUMNS) {
       if (key in payload) {
@@ -90,93 +87,86 @@ export async function saveReceiptAction(
       }
     }
 
-    const { data: orgData } = await supabaseAdmin.rpc('get_user_org');
-    const orgId: string | null = orgData ? String(orgData) : null;
-
+    // Force server-controlled values
     sanitizedPayload.user_id = userId;
-    sanitizedPayload.org_id = orgId || undefined;
-    sanitizedPayload.business_unit_id = payload.business_unit_id === '' ? null : payload.business_unit_id;
-    sanitizedPayload.project_id = payload.project_id === '' ? null : payload.project_id;
     sanitizedPayload.integrity_hash = integrityHash;
     sanitizedPayload.math_mismatch_warning = isMismatch;
     sanitizedPayload.cad_equivalent = cadEquivalent;
     sanitizedPayload.exchange_rate = exchangeRate;
+    sanitizedPayload.duplicate_hash = duplicateHash;
 
-    Object.keys(sanitizedPayload).forEach(key => {
+    // Strip empty strings
+    for (const key of Object.keys(sanitizedPayload)) {
       if (sanitizedPayload[key] === '') {
         sanitizedPayload[key] = null;
       }
-    });
-
-    const { data, error: insertError } = await supabaseAdmin
-      .from('receipts')
-      .insert([sanitizedPayload])
-      .select('id')
-      .single();
-
-    if (insertError) return { ok: false, error: insertError.message };
-    const newReceiptId = (data as { id: string } | undefined)?.id;
-    if (!newReceiptId) return { ok: false, error: 'No receipt ID returned' };
-
-    const { error: auditError } = await supabaseAdmin.from('audit_logs').insert({
-      user_id: userId,
-      org_id: orgId || null,
-      action: 'receiptcreated',
-      details: `Receipt created: ${payload.vendor_name || 'Unknown'} (${payload.transaction_date || 'Unknown Date'}) currency=${currency}`,
-      event_hash: integrityHash,
-      previous_hash: previousHash,
-    });
-
-    if (auditError) {
-      await supabaseAdmin.from('receipts').update({ is_deleted: true }).eq('id', newReceiptId);
-      return { ok: false, error: auditError.message };
     }
 
-    if (orgId) {
-      updateVendorDefaults(orgId, {
-        vendor_name: String(payload.vendor_name ?? ''),
-        category: payload.category ? String(payload.category) : null,
-        job_code: payload.job_code ? String(payload.job_code) : null,
-        business_use_percent: payload.business_use_percent != null ? Number(payload.business_use_percent) : null,
-      }).catch((err) => logError(err, { action: 'vendor_defaults_update_action' }));
+    // Call atomic PG function (handles advisory lock, Merkle chain, insert, audit log)
+    const { data: newReceiptId, error: rpcError } = await supabase.rpc('save_receipt_atomic', {
+      p_payload: sanitizedPayload,
+      p_user_id: userId,
+    });
 
-      // Notify org admins about new receipt submission
-      try {
-        const { data: admins } = await supabaseAdmin
-          .from('user_roles')
-          .select('user_id')
-          .eq('org_id', orgId)
-          .in('role', ['Owner', 'Accountant']);
+    if (rpcError) {
+      return { ok: false, error: rpcError.message };
+    }
 
-        const adminIds = (admins || [])
-          .map((r: { user_id: string }) => r.user_id)
-          .filter((id: string) => id !== userId);
+    const receiptId = newReceiptId as string;
 
-        if (adminIds.length > 0) {
-          const title = `New receipt from ${payload.vendor_name || 'Unknown Vendor'}`;
-          const message = `$${Number(payload.total_amount || 0).toFixed(2)} · ${new Date().toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}`;
-          const notificationPayload = adminIds.map((adminId: string) => ({
-            org_id: orgId,
-            user_id: adminId,
-            type: 'receipt_submitted' as const,
-            title,
-            message,
-            link: '/?tab=receipts',
-            is_read: false,
-          }));
+    // Fire-and-forget: update vendor recognition defaults
+    try {
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('org_id')
+        .eq('user_id', userId)
+        .single();
 
-          try {
-            await supabaseAdmin.from('notifications').insert(notificationPayload);
-          } catch {
-            // Non-blocking
+      const orgId = roleData?.org_id;
+      if (orgId) {
+        updateVendorDefaults(orgId, {
+          vendor_name: String(payload.vendor_name ?? ''),
+          category: payload.category ? String(payload.category) : null,
+          job_code: payload.job_code ? String(payload.job_code) : null,
+          business_use_percent: payload.business_use_percent != null ? Number(payload.business_use_percent) : null,
+        }).catch((err) => logError(err, { action: 'vendor_defaults_update_action' }));
+
+        // Notify org admins about new receipt submission
+        try {
+          const { data: admins } = await supabase
+            .from('user_roles')
+            .select('user_id')
+            .eq('org_id', orgId)
+            .in('role', ['Owner', 'Accountant']);
+
+          const adminIds = (admins || [])
+            .map((r: { user_id: string }) => r.user_id)
+            .filter((id: string) => id !== userId);
+
+          if (adminIds.length > 0) {
+            const title = `New receipt from ${payload.vendor_name || 'Unknown Vendor'}`;
+            const message = `$${Number(payload.total_amount || 0).toFixed(2)} · ${new Date().toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+            const notificationPayload = adminIds.map((adminId: string) => ({
+              org_id: orgId,
+              user_id: adminId,
+              type: 'receipt_submitted' as const,
+              title,
+              message,
+              link: '/?tab=receipts',
+              is_read: false,
+            }));
+
+            await supabase.from('notifications').insert(notificationPayload);
           }
+        } catch (adminErr) {
+          logWarn('Failed to query org admins for notification', { userId, orgId, error: adminErr instanceof Error ? adminErr.message : 'Unknown' });
         }
-      } catch {
-        // Non-blocking — notification failure should never block the receipt save
       }
+    } catch (err) {
+      logWarn('vendor_defaults_update_action failed', { userId, error: err instanceof Error ? err.message : 'Unknown' });
     }
 
-    return { ok: true, id: newReceiptId };
+    return { ok: true, id: receiptId };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Unknown error saving receipt' };
   }

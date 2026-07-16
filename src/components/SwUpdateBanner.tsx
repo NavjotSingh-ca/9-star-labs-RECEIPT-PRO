@@ -4,6 +4,11 @@ import { useEffect, useState } from 'react';
 import { RefreshCw, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+/**
+ * SwUpdateBanner — Service Worker update notification banner.
+ * Detects waiting SW registration and offers "Update" button via SKIP_WAITING postMessage.
+ * Auto-reloads on controller change. Dismissible.
+ */
 export default function SwUpdateBanner() {
   const [waiting, setWaiting] = useState(false);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);

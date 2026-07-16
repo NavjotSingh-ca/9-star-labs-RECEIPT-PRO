@@ -25,9 +25,20 @@ const envSchema = z.object({
   NEXT_PUBLIC_SITE_URL: z.string().url().optional().default('http://localhost:3000'),
   // Sentry
   NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
+  SENTRY_ORG: z.string().min(1).optional(),
+  SENTRY_PROJECT: z.string().min(1).optional(),
   // PostHog
   NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1).optional(),
   NEXT_PUBLIC_POSTHOG_HOST: z.string().url().optional().default('https://app.posthog.com'),
+  // Supabase Pooler
+  USE_POOLER: z.string().optional().default('false'),
+  // App identity
+  APP_NAME: z.string().min(1).optional().default('Leduc Receipt Pro'),
+  APP_TAGLINE: z.string().min(1).optional().default('Gold Standard Receipt Intelligence'),
+  APP_DESCRIPTION: z.string().min(1).optional().default('Enterprise-grade receipt management with AI-powered extraction, CRA-compliant mileage, and audit-grade audit trails.'),
+  // OpenTelemetry
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
+  OTEL_EXPORTER_OTLP_HEADERS: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.RESEND_API_KEY && !data.RESEND_FROM_EMAIL) {
     ctx.addIssue({
@@ -41,9 +52,29 @@ const envSchema = z.object({
       console.warn('[ENV] TOKEN_ENCRYPTION_KEY not set — OAuth tokens will be stored in plaintext');
     }
   }
+  // In production, NEXT_PUBLIC_SITE_URL must not be the localhost default.
+  // Stripe checkout redirects, QBO OAuth, and password reset links all use this URL.
+  // This check uses process.env.NODE_ENV which is the only env var available at module eval time.
+  if (data.NEXT_PUBLIC_SITE_URL === 'http://localhost:3000') {
+    const nodeEnv = (typeof process !== 'undefined' && process.env?.NODE_ENV) || 'development';
+    if (nodeEnv === 'production') {
+      // Log as a clear warning rather than throwing — Next.js build runs with NODE_ENV=production
+      // even in CI, and NEXT_PUBLIC_SITE_URL may be overridden at deploy time on Vercel.
+      // The app will function but Stripe/OAuth redirects will fail until the var is set.
+      if (typeof window === 'undefined') {
+        console.warn(
+          '[ENV] ⚠️  NEXT_PUBLIC_SITE_URL is set to http://localhost:3000 in a production build.\n' +
+          '        Stripe redirects, QBO OAuth callbacks, and email links will all point to localhost.\n' +
+          '        Set NEXT_PUBLIC_SITE_URL to your actual domain (e.g., https://yourapp.com) in Vercel env vars.'
+        );
+      }
+    }
+  }
 });
 
-function parseEnv() {
+type EnvVar = z.infer<typeof envSchema>;
+
+function parseEnv(): EnvVar {
   const parsed = envSchema.safeParse({
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -61,8 +92,17 @@ function parseEnv() {
     TOKEN_ENCRYPTION_KEY: process.env.TOKEN_ENCRYPTION_KEY,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    SENTRY_ORG: process.env.SENTRY_ORG,
+    SENTRY_PROJECT: process.env.SENTRY_PROJECT,
     NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
-    NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST || (typeof window !== 'undefined' ? 'https://app.posthog.com' : 'https://app.posthog.com'),
+    NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
+    USE_POOLER: process.env.USE_POOLER || 'false',
+    APP_NAME: process.env.APP_NAME || 'Leduc Receipt Pro',
+    APP_TAGLINE: process.env.APP_TAGLINE || 'Gold Standard Receipt Intelligence',
+    APP_DESCRIPTION: process.env.APP_DESCRIPTION || 'Enterprise-grade receipt management with AI-powered extraction, CRA-compliant mileage, and audit-grade audit trails.',
+    // OpenTelemetry
+    OTEL_EXPORTER_OTLP_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    OTEL_EXPORTER_OTLP_HEADERS: process.env.OTEL_EXPORTER_OTLP_HEADERS,
   });
 
   if (!parsed.success) {
@@ -75,7 +115,7 @@ function parseEnv() {
     }
   }
 
-  return parsed.data ?? ({} as z.infer<typeof envSchema>);
+  return parsed.data as EnvVar;
 }
 
 export const env = parseEnv();
@@ -91,4 +131,15 @@ export function getSiteUrl(): string {
     return window.location.origin;
   }
   return 'http://localhost:3000';
+}
+
+/** Check if connection pooling is enabled */
+export function isPoolerEnabled(): boolean {
+  return env.USE_POOLER === 'true';
+}
+
+/** Get the pooler host based on project ref */
+export function getPoolerHost(): string {
+  const match = env.NEXT_PUBLIC_SUPABASE_URL?.match(/https:\/\/([^.]+)\.supabase\.co/);
+  return match?.[1] ? `${match[1]}.pooler.supabase.com` : '';
 }

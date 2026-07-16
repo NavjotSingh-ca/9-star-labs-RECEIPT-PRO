@@ -3,23 +3,6 @@ import Sidebar from './Sidebar';
 import { withProviders } from '../../../.storybook/utils';
 import { useAppStore } from '@/lib/store';
 
-function SidebarWithState(args: { collapsed: boolean; activeTab: string }) {
-  const setCollapsed = useAppStore((s) => s.setSidebarCollapsed);
-  setCollapsed(args.collapsed);
-  return (
-    <div className="h-screen w-max">
-      <Sidebar
-        activeTab={args.activeTab as 'dashboard' | 'receipts' | 'scan' | 'more'}
-        onTabChange={() => {}}
-        role="Owner"
-        planLabel="Pro"
-        plan="pro"
-        handleSignOut={() => {}}
-      />
-    </div>
-  );
-}
-
 const meta: Meta<typeof Sidebar> = {
   title: 'Layout/Sidebar',
   component: Sidebar,

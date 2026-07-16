@@ -33,13 +33,13 @@ type MatchResult = {
 function levenshteinDistance(a: string, b: string): number {
   if (a.length === 0) return b.length;
   if (b.length === 0) return a.length;
-  
+
   if (a.length > b.length) {
     const tmp = a;
     a = b;
     b = tmp;
   }
-  
+
   const row = Array.from({ length: a.length + 1 }, (_, i) => i);
   for (let i = 1; i <= b.length; i++) {
     let prev = i;
@@ -58,11 +58,16 @@ function levenshteinDistance(a: string, b: string): number {
   return row[a.length];
 }
 
+/**
+ * BankReconciliation — Upload bank statements (PDF/OFX/QFX/CSV) for AI fuzzy matching
+ * against receipt records. Uses Levenshtein distance for vendor name matching and
+ * amount/date proximity scoring. Supports multi-currency matching with exchange rate conversion.
+ */
 export default function BankReconciliation({ receipts }: BankReconciliationProps) {
   const [error, setError] = useState('');
   const queryClient = useQueryClient();
 
-  const { data: bankData = [], isLoading: loading } = useQuery({
+  const { data: bankData = [], isLoading: loading, error: queryError, refetch } = useQuery({
     queryKey: ['bank_transactions'],
     queryFn: async () => {
       const data = await getBankTransactions();
@@ -119,7 +124,7 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
   };
 
   const handleConfirmMatch = (bankTransactionId: string, receiptId: string, _isManual: boolean, score?: number) => {
-    confirmMutation.mutate({ bankTransactionId, receiptId, score });
+    confirmMutation.mutate({ bankTransactionId: bankTransactionId, receiptId: receiptId, score });
   };
 
   const matches: MatchResult[] = useMemo(() => {
@@ -154,10 +159,36 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
 
       for (const receipt of candidates) {
         let score = 0;
-        const receiptTotal = toNumber(receipt.total_amount);
 
-        // Exact amount match is huge
-        if (Math.abs(receiptTotal - bankRow.amount) < 0.05) score += 60;
+        // Multi-currency amount matching with CAD equivalent
+        const receiptTotal = toNumber(receipt.total_amount);
+        const receiptCurrency = receipt.currency || 'CAD';
+        const bankAmount = bankRow.amount;
+
+        // Get CAD equivalent for comparison
+        let comparableAmount = receiptTotal;
+        if (receiptCurrency !== 'CAD') {
+          // Check if exchange rate exists, use it for comparison
+          const existingRate = receipt.exchange_rate;
+          if (existingRate && existingRate !== 1) {
+            comparableAmount = receiptTotal * existingRate;
+          } else if (receipt.cad_equivalent) {
+            comparableAmount = receipt.cad_equivalent;
+          }
+          // If no rate available, fall through to amount-only comparison (partial score)
+        }
+
+        // Exact amount match is huge (for CAD receipts)
+        if (Math.abs(comparableAmount - bankAmount) < 0.05) score += 60;
+        // Close match for different currencies without rate
+        else if (Math.abs(receiptTotal - bankAmount) < 0.05 && receiptCurrency === 'CAD') score += 50;
+        // Partial match for multi-currency without exact rate
+        else {
+          const diff = Math.abs(comparableAmount - bankAmount);
+          if (diff < 1.0) score += 30;
+          else if (diff < 5.0) score += 15;
+        }
+
         // Date match (exact is 20, 1 day off is 10)
         if (receipt.transaction_date === bankRow.date) {
           score += 20;
@@ -166,7 +197,7 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
           const bDate = new Date(bankRow.date).getTime();
           if (Math.abs(rDate - bDate) <= 86400000) score += 10;
         }
-        
+
         // Vendor name fuzzy match using Levenshtein
         const rName = (receipt.vendor_name || '').toLowerCase().trim();
         const bDesc = bankRow.description.toLowerCase().trim();
@@ -214,6 +245,21 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
         </div>
       )}
 
+      {queryError && (
+        <div className="flex items-center gap-3 rounded-[3rem] border border-danger/20 bg-danger/[0.06] px-4 py-3" role="alert">
+          <AlertCircle className="h-5 w-5 flex-shrink-0 text-danger" />
+          <p className="flex-1 text-sm text-danger">Failed to load bank transactions. Please try again.</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="flex items-center gap-1.5 rounded-[2rem] border border-danger/20 px-3 py-1.5 text-xs font-semibold text-danger transition hover:bg-danger/10"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Retry
+          </button>
+        </div>
+      )}
+
       {error && (
         <div className="rounded-[2rem] border border-danger/20 bg-danger/[0.06] p-4 text-sm text-danger" role="alert">
           <AlertCircle className="inline h-4 w-4 mr-2 mb-0.5" />
@@ -237,7 +283,7 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
 
           <div className="space-y-3">
             {matches.map((m, idx) => (
-              <motion.div 
+              <motion.div
                 key={m.bankRow.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -272,7 +318,7 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
                               {m.bankRow.is_reconciled ? 'Exact Match' : `${m.score}% Match Score`}
                             </span>
                           </div>
-                          
+
                           {!m.bankRow.is_reconciled && !m.bankRow.id.startsWith('csv-') && (
                             <button
                               type="button"

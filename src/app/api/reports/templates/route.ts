@@ -5,7 +5,13 @@ import { getOrgIdString } from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
 import { logError } from '@/lib/logger';
 
-async function GET(request: Request) {
+/**
+ * GET /api/reports/templates
+ *
+ * Returns all available report templates (built-in + custom for the org).
+ * Rate limited: 30 requests per 60s.
+ */
+async function GET(_request: Request) {
   try {
     const orgId = await getOrgIdString();
     if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -18,6 +24,13 @@ async function GET(request: Request) {
   }
 }
 
+/**
+ * POST /api/reports/templates
+ *
+ * Saves a custom report template for the caller's organization.
+ * Body: { name: string, config: ReportConfig }
+ * Rate limited: 20 requests per 60s.
+ */
 async function POST(request: Request) {
   try {
     const body = await request.json();

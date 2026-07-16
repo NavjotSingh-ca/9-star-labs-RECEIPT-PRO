@@ -14,6 +14,7 @@ const eslintConfig = defineConfig([
     // are designed to return non-memoizable functions and work correctly.
     rules: {
       "react-hooks/incompatible-library": "off",
+      "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
     },
   },
   // Override default ignores of eslint-config-next.
@@ -45,6 +46,7 @@ const eslintConfig = defineConfig([
     files: ["**/*.stories.tsx", "**/*.stories.ts"],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
     },
   },
 ]);

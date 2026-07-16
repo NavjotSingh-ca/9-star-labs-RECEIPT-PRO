@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { getOrgIdString } from '@/lib/supabase';
 import PageHeader from '@/components/layout/PageHeader';
@@ -30,7 +31,12 @@ export default function EmailForwardSetup() {
   };
 
   return (
-    <div className="space-y-5 fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="space-y-5"
+    >
       <PageHeader
         title="Email Receipt Forwarding"
         subtitle="Automatically import receipts by forwarding them to your unique email address"
@@ -54,7 +60,7 @@ export default function EmailForwardSetup() {
               <button
                 type="button"
                 onClick={copyEmail}
-                className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-obsidian hover:bg-accent-dim transition"
+                className="flex items-center gap-1.5 rounded-lg bg-champagne px-3 py-1.5 text-xs font-bold text-obsidian hover:bg-champagne-dim transition"
               >
                 {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                 {copied ? 'Copied' : 'Copy'}
@@ -72,7 +78,7 @@ export default function EmailForwardSetup() {
                 { num: 3, title: 'Send a receipt to test', desc: 'Forward an actual receipt email to verify everything works. It will appear in your receipts within minutes.' },
               ].map((step) => (
                 <div key={step.num} className="flex gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/10 text-sm font-bold text-accent">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-champagne/10 text-sm font-bold text-champagne">
                     {step.num}
                   </div>
                   <div>
@@ -93,7 +99,7 @@ export default function EmailForwardSetup() {
             <button
               type="button"
               onClick={() => toast.success('Forward a receipt email to test your setup. Check back in a few minutes.')}
-              className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-bold text-obsidian hover:bg-accent-dim transition"
+              className="inline-flex items-center gap-2 rounded-xl bg-champagne px-4 py-2 text-sm font-bold text-obsidian hover:bg-champagne-dim transition"
             >
               Test Setup
               <ArrowRight className="h-4 w-4" />
@@ -108,6 +114,6 @@ export default function EmailForwardSetup() {
           <p className="text-sm text-text-muted">Unable to load your organization details.</p>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

@@ -1,5 +1,11 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
+import { env } from "./src/lib/env";
+
+// OpenTelemetry instrumentation (runs before app initialization)
+if (process.env.NEXT_RUNTIME === 'nodejs' || process.env.NEXT_RUNTIME === 'edge') {
+  import('./src/lib/telemetry').then(m => m.initializeTelemetry()).catch(() => {});
+}
 
 const config: NextConfig = {
   output: 'standalone',
@@ -49,8 +55,8 @@ const wrapped = /* @__PURE__ */ (() => {
 
 export default withSentryConfig(wrapped(config) as NextConfig, {
   silent: true,
-  org: process.env.SENTRY_ORG || '',
-  project: process.env.SENTRY_PROJECT || '',
+  org: env.SENTRY_ORG || '',
+  project: env.SENTRY_PROJECT || '',
   widenClientFileUpload: true,
   tunnelRoute: '/monitoring',
   // Build-time tree-shaking/instrumentation options moved under `webpack.*`.

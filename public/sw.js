@@ -162,7 +162,24 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Offline sync is handled by the client-side online detection
-// in useScannerState.ts. Background Sync in the SW cannot process
-// receipts without auth context, so we rely on the app's own
-// reconnection logic instead.
+// Offline sync enhancement with IndexedDB message passing
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+
+  if (event.data?.type === 'PROCESS_SYNC_QUEUE') {
+    event.waitUntil(processSyncQueue(event.data.orgId));
+  }
+});
+
+async function processSyncQueue(orgId) {
+  try {
+    const clients = await self.clients.matchAll({ type: 'window' });
+    for (const client of clients) {
+      client.postMessage({ type: 'SYNC_STARTED', orgId });
+    }
+  } catch {
+    // Silent fail - clients may be offline
+  }
+}

@@ -5,8 +5,55 @@ export type UsageType = 'business' | 'personal' | 'mixed';
 export type DocumentType = 'receipt' | 'invoice' | 'statement' | 'estimate' | 'unknown';
 export type SourceFileType = 'image' | 'pdf' | 'heic' | 'png' | 'jpg' | 'jpeg' | '';
 
-export type UserRole = 'Owner' | 'Employee' | 'Accountant';
+export type UserRole = 'Owner' | 'Admin' | 'Employee' | 'Accountant' | 'Auditor';
 export type ProjectStatus = 'active' | 'on_hold' | 'completed' | 'cancelled';
+
+/** Available navigation tabs. */
+export type Tab = 
+  | 'dashboard' 
+  | 'history' 
+  | 'scanner' 
+  | 'mileage' 
+  | 'export' 
+  | 'reconciliation' 
+  | 'audit' 
+  | 'notifications' 
+  | 'approvals' 
+  | 'reimbursements' 
+  | 'projects' 
+  | 'anomaly' 
+  | 'reports' 
+  | 'time'
+  | 'smartSearch'
+  | 'receiptCalendar'
+  | 'receiptTimeline'
+  | 'vendorAnalytics'
+  | 'budgetManager'
+  | 'taxDashboard'
+  | 'cashFlowForecast'
+  | 'multiCurrency'
+  | 'receiptTags'
+  | 'batchOperations'
+  | 'receiptComparison'
+  | 'qboExport'
+  | 'xeroExport'
+  | 'recurringDetector'
+  | 'kanbanWorkflow'
+  | 'smartSearch'
+  | 'receiptCalendar'
+  | 'receiptTimeline'
+  | 'vendorAnalytics'
+  | 'budgetManager'
+  | 'taxDashboard'
+  | 'cashFlowForecast'
+  | 'multiCurrency'
+  | 'receiptTags'
+  | 'batchOperations'
+  | 'receiptComparison'
+  | 'qboExport'
+  | 'xeroExport'
+  | 'recurringDetector'
+  | 'kanbanWorkflow';
 
 export type PaidBy = 'company_card' | 'employee_cash' | '';
 export type ReimbursementStatus = 'pending' | 'approved' | 'rejected' | '';

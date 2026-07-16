@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { AlertTriangle, Ban, CopyCheck } from 'lucide-react';
 
 import { useFocusTrap } from '@/hooks/useFocusTrap';
@@ -25,19 +26,35 @@ function formatDate(date: string | null | undefined) {
   });
 }
 
+/**
+ * Duplicate receipt confirmation modal.
+ * Displays the existing record details and asks the user to confirm or cancel.
+ * Keyboard-accessible with focus trap, Escape to dismiss, and ARIA dialog semantics.
+ */
 export default function DuplicateModal({
   candidate,
   onCancel,
   onContinue,
 }: DuplicateModalProps) {
   const trapRef = useFocusTrap(true);
+  const titleId = 'duplicate-modal-title';
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, transition: { duration: 0.15 } }}
+      transition={{ duration: 0.2 }}
       className="fixed inset-0 z-[110] flex items-center justify-center bg-obsidian/80 p-4 backdrop-blur-xl"
       onClick={onCancel}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCancel?.(); } }}
     >
       <div
         ref={trapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         className="w-full max-w-lg overflow-hidden rounded-3xl border border-glass-border bg-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => { if (e.key === 'Escape') onCancel?.(); }}
@@ -45,11 +62,11 @@ export default function DuplicateModal({
         <div className="border-b border-glass-border px-5 py-4">
           <div className="flex items-start gap-3">
             <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[2rem] bg-warning/15 text-warning">
-              <AlertTriangle className="h-5 w-5" />
+              <AlertTriangle className="h-5 w-5" aria-hidden="true" />
             </div>
 
             <div>
-              <h3 className="text-base font-bold text-text-primary">Possible duplicate receipt</h3>
+              <h3 id={titleId} className="text-base font-bold text-text-primary">Possible duplicate receipt</h3>
               <p className="mt-1 text-sm text-text-secondary">
                 A matching receipt was found using the SHA-256 file hash or the vendor/date/amount fingerprint.
               </p>
@@ -93,7 +110,7 @@ export default function DuplicateModal({
 
           <div className="rounded-[3rem] border border-warning/20 bg-warning/[0.06] px-4 py-3">
             <div className="flex items-start gap-3">
-              <CopyCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning" />
+              <CopyCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning" aria-hidden="true" />
               <p className="text-sm leading-relaxed text-warning">
                 If this is a separate receipt that only looks similar, you can still save it. Otherwise, cancel and
                 review the existing record first.
@@ -108,7 +125,7 @@ export default function DuplicateModal({
             onClick={onCancel}
             className="inline-flex items-center justify-center gap-2 rounded-[2rem] border border-glass-border bg-surface px-4 py-3 text-sm font-semibold text-text-secondary transition hover:bg-surface-raised"
           >
-            <Ban className="h-4 w-4" />
+            <Ban className="h-4 w-4" aria-hidden="true" />
             Cancel
           </button>
 
@@ -117,11 +134,11 @@ export default function DuplicateModal({
             onClick={onContinue}
             className="inline-flex items-center justify-center gap-2 rounded-[2rem] bg-emerald-success px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-success/80"
           >
-            <CopyCheck className="h-4 w-4" />
+            <CopyCheck className="h-4 w-4" aria-hidden="true" />
             Save anyway
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

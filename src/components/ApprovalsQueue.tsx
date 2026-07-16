@@ -10,6 +10,7 @@ import {
   Clock,
   DollarSign,
   ImageIcon,
+  RefreshCw,
   ThumbsDown,
   ThumbsUp,
 } from 'lucide-react';
@@ -135,26 +136,32 @@ const ApprovalCard = React.memo(function ApprovalCard({
 
           {/* Inline approve / reject */}
           <div className="mt-3 flex gap-2">
-            <button
+            <motion.button
               type="button"
               onClick={() => onApprove(receipt.id)}
               disabled={loading}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 15 }}
               className="flex items-center gap-1.5 rounded-[2rem] bg-emerald-success/10 px-3 py-1.5 text-xs font-bold text-emerald-light transition hover:bg-emerald-success/20 disabled:opacity-50"
               aria-label="Approve (A)"
             >
               <ThumbsUp className="h-3.5 w-3.5" />
               Approve
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="button"
               onClick={() => onReject(receipt.id)}
               disabled={loading}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 15 }}
               className="flex items-center gap-1.5 rounded-[2rem] bg-danger/10 px-3 py-1.5 text-xs font-bold text-danger transition hover:bg-danger/20 disabled:opacity-50"
               aria-label="Reject (R)"
             >
               <ThumbsDown className="h-3.5 w-3.5" />
               Reject
-            </button>
+            </motion.button>
           </div>
         </div>
       </div>
@@ -162,12 +169,17 @@ const ApprovalCard = React.memo(function ApprovalCard({
   );
 });
 
+/**
+ * ApprovalsQueue — Review and approve/reject submitted receipts.
+ * Supports bulk actions via keyboard shortcuts (A = approve all, R = reject all).
+ * Optimistic updates with rollback on failure.
+ */
 export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const { data: pending = [], isLoading } = useQuery({
+  const { data: pending = [], isLoading, error: queryError, refetch } = useQuery({
     queryKey: ['approvals_pending'],
     queryFn: getReceiptsPendingApproval,
     enabled: role !== 'Employee',
@@ -335,6 +347,22 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
         >
           {selected.size === pending.length ? 'Deselect all' : 'Select all'}
         </button>
+      )}
+
+      {/* Error */}
+      {queryError && (
+        <div className="flex items-center gap-3 rounded-[3rem] border border-danger/20 bg-danger/[0.06] px-4 py-3" role="alert">
+          <AlertCircle className="h-5 w-5 flex-shrink-0 text-danger" />
+          <p className="flex-1 text-sm text-danger">Failed to load approvals. {queryError instanceof Error ? queryError.message : ''}</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="flex items-center gap-1.5 rounded-[2rem] border border-danger/20 px-3 py-1.5 text-xs font-semibold text-danger transition hover:bg-danger/10"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Retry
+          </button>
+        </div>
       )}
 
       {/* Loading */}

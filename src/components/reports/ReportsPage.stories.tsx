@@ -1,8 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function fn<T extends (...args: any[]) => any>(_impl?: T): T {
-  return ((..._args: any[]) => undefined) as T;
-}
 import { ReportsPage } from './ReportsPage';
 import { withProviders } from '../../../.storybook/utils';
 

@@ -44,15 +44,18 @@ export async function computeBlurScore(dataUrl: string): Promise<number> {
   });
 }
 
+/**
+ * Reads a File object and returns its contents as a data URL string.
+ * @throws {Error} If the FileReader fails to read the file.
+ */
 export async function readFileAsDataUrl(file: File): Promise<string> {
   return await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error('Could not read file.'));
+    reader.onerror = () => reject(new Error('Failed to read file. The file may be corrupted or inaccessible.'));
     reader.readAsDataURL(file);
   });
 }
-
 /**
  * Resize an image to fit within maxDimension, correcting EXIF orientation.
  * Reads the EXIF Orientation tag from the raw image bytes, then applies the
@@ -62,6 +65,13 @@ export async function readFileAsDataUrl(file: File): Promise<string> {
  * Orientation → transform mapping (EXIF tag 274):
  *   1 = none, 2 = flip H, 3 = rotate 180°, 4 = flip V,
  *   5 = transpose, 6 = rotate 90° CW, 7 = transverse, 8 = rotate 270° CW
+ *
+ * @param dataUrl - Source image as a data URL
+ * @param maxDimension - Longest side in pixels
+ * @param quality - JPEG quality 0.0–1.0
+ * @param outputMimeType - Output MIME type (default: 'image/jpeg')
+ * @returns Resized and EXIF-corrected image as a data URL
+ * @throws {Error} If canvas is unavailable or image cannot be loaded
  */
 export async function resizeImage(
   dataUrl: string,
@@ -141,11 +151,19 @@ export async function resizeImage(
   });
 }
 
+/**
+ * Returns the natural pixel dimensions of an image.
+ * Useful for validating minimum resolution before AI processing.
+ *
+ * @param dataUrl - Source image as a data URL
+ * @returns Object with width and height in pixels
+ * @throws {Error} If the image cannot be loaded
+ */
 export function getImageDimensions(dataUrl: string): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
-    img.onerror = () => reject(new Error('Could not load image for dimension check'));
+    img.onerror = () => reject(new Error('Could not load image for dimension check. The file may be corrupted.'));
     img.src = dataUrl;
   });
 }

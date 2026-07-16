@@ -3,7 +3,7 @@
 import React, { useCallback } from 'react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, AlertTriangle, CheckCircle2, DollarSign, Loader2 } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, DollarSign, Loader2, RefreshCw } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getReimbursementsPending, markReimbursementPaid } from '@/lib/services/receipts';
 import type { ReceiptRow, UserRole } from '@/lib/types';
@@ -87,6 +87,10 @@ const ReimburseCard = React.memo(function ReimburseCard({
   );
 });
 
+/**
+ * ReimbursementsPanel — Track and mark employee cash-expense reimbursements as paid.
+ * Shows pending payables with total outstanding amount and per-receipt "Mark Paid" actions.
+ */
 export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) {
   const queryClient = useQueryClient();
 
@@ -99,7 +103,7 @@ export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) 
     staleTime: Infinity,
   });
 
-  const { data: payables = [], isLoading } = useQuery({
+  const { data: payables = [], isLoading, error: queryError, refetch } = useQuery({
     queryKey: ['reimbursements_pending'],
     queryFn: async () => getReimbursementsPending(),
     enabled: !!user?.id && role !== 'Employee',
@@ -178,6 +182,22 @@ export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) 
         <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-glass-border bg-surface/30 py-16 text-center" role="status" aria-live="polite">
           <AlertCircle className="h-10 w-10 text-text-muted opacity-30" />
           <p className="text-sm text-text-muted">No outstanding payables. Employee cash reimbursements will appear here.</p>
+        </div>
+      )}
+
+      {/* Error */}
+      {queryError && (
+        <div className="flex items-center gap-3 rounded-[3rem] border border-danger/20 bg-danger/[0.06] px-4 py-3" role="alert">
+          <AlertCircle className="h-5 w-5 flex-shrink-0 text-danger" />
+          <p className="flex-1 text-sm text-danger">Failed to load reimbursements. {queryError instanceof Error ? queryError.message : ''}</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="flex items-center gap-1.5 rounded-[2rem] border border-danger/20 px-3 py-1.5 text-xs font-semibold text-danger transition hover:bg-danger/10"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Retry
+          </button>
         </div>
       )}
 

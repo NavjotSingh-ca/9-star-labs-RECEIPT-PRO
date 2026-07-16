@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { env } from '@/lib/env';
 import { APP_NAME } from '@/lib/constants';
 import { logError, logInfo } from '@/lib/logger';
-import { checkRateLimit, addRateLimitHeaders } from '@/lib/rate-limiter';
+import { withRateLimit } from '@/lib/rate-limiter';
 
 /**
  * Missing Receipt Email Digest
@@ -14,17 +14,16 @@ import { checkRateLimit, addRateLimitHeaders } from '@/lib/rate-limiter';
  * Trigger this via a cron job (e.g., weekly on Mondays at 9am).
  * Requires: SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY
  */
-export async function POST(request: Request) {
-  // Rate limit: 3 requests per 5 min
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
-  const rl = checkRateLimit(`missing_receipt_digest:${ip}`, 3, 300_000);
-  if (!rl.allowed) {
-    const headers = new Headers();
-    addRateLimitHeaders(headers, rl);
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: Object.fromEntries(headers) });
-  }
-
-  // Verify cron secret or internal auth
+/**
+ * POST /api/digest/missing-receipts
+ *
+ * Queries unmatched bank transactions (>7 days) and emails a digest
+ * to all Owners in each affected organization.
+ *
+ * Requires CRON_SECRET Bearer token for authorization.
+ * Rate limited: 3 requests per 5 min (enforced via withRateLimit wrapper).
+ */
+async function handler(request: Request) {
   const authHeader = request.headers.get('authorization');
   const cronSecret = env.CRON_SECRET;
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
@@ -154,6 +153,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export const POST = withRateLimit(handler, { maxTokens: 3, windowMs: 300_000, keyPrefix: 'digest:missing-receipts' });
 
 function escapeHtml(str: string): string {
   return str

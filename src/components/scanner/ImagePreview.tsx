@@ -19,6 +19,11 @@ interface ImagePreviewProps {
   formContent: React.ReactNode;
 }
 
+/**
+ * Displays the captured receipt image alongside AI analysis controls.
+ * Shows a progress scan-line animation during AI processing.
+ * When analysis is complete, renders the review form alongside the image.
+ */
 export default function ImagePreview({
   imageSrc,
   originalFileName,
@@ -43,19 +48,19 @@ export default function ImagePreview({
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={onCrop} className="text-xs font-bold">
+              <Button variant="outline" size="sm" onClick={onCrop} className="text-xs font-bold" aria-label="Crop the receipt image">
                 Crop
               </Button>
-              <Button variant="outline" size="icon" onClick={onReset} className="h-9 w-9 text-muted-foreground hover:text-destructive" aria-label="Reset image">
-                <RefreshCw className="h-4 w-4" />
+              <Button variant="outline" size="icon" onClick={onReset} className="h-9 w-9 text-muted-foreground hover:text-destructive" aria-label="Reset image and start over">
+                <RefreshCw className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
           </div>
 
-          <div className="relative bg-black group overflow-hidden">
+          <div className="relative bg-black group overflow-hidden" role="img" aria-label="Receipt image preview">
             <Image
               src={imageSrc}
-              alt="Captured receipt"
+              alt={originalFileName || fileName || 'Receipt image'}
               width={800}
               height={600}
               className="max-h-[60vh] w-full object-contain transition-transform duration-700 group-hover:scale-[1.02] sm:max-h-[70vh]"
@@ -67,11 +72,12 @@ export default function ImagePreview({
                   animate={{ top: '100%' }}
                   transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
                   className="absolute left-0 right-0 h-1 bg-emerald-light shadow-[0_0_20px_rgba(16,185,129,0.8)] z-20"
+                  aria-hidden="true"
                 />
-                <div className="absolute inset-0 bg-emerald-success/10 animate-pulse z-10 pointer-events-none" />
+                <div className="absolute inset-0 bg-emerald-success/10 animate-pulse z-10 pointer-events-none" aria-hidden="true" />
               </>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" aria-hidden="true" />
           </div>
         </Card>
 
@@ -82,8 +88,9 @@ export default function ImagePreview({
             disabled={!canProcess}
             size="lg"
             className="w-full h-14 text-sm font-bold uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90"
+            aria-label={processingAI ? 'AI analysis in progress' : canProcess ? 'Start AI analysis of receipt' : 'Capture a receipt first'}
           >
-            {processingAI ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <ScanLine className="mr-2 h-5 w-5" />}
+            {processingAI ? <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" /> : <ScanLine className="mr-2 h-5 w-5" aria-hidden="true" />}
             {processingAI ? 'AI Analysis in Progress...' : 'Start AI Analysis'}
           </Button>
         )}

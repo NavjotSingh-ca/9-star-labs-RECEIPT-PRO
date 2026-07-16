@@ -5,6 +5,7 @@ import { getOrgIdString } from '@/lib/supabase';
 import { logError } from '@/lib/logger';
 
 const SCHEDULE_FREQUENCIES = ['daily', 'weekly', 'monthly', 'quarterly'] as const;
+const VALID_FORMATS = ['pdf', 'csv'] as const;
 
 function computeNextRunAt(
   frequency: string,
@@ -48,6 +49,12 @@ function computeNextRunAt(
   return candidate.toISOString();
 }
 
+/**
+ * GET /api/reports/schedules
+ *
+ * Lists all report schedules for the caller's organization.
+ * Rate limited: 30 requests per 60s.
+ */
 async function GET() {
   try {
     const orgId = await getOrgIdString();
@@ -65,6 +72,13 @@ async function GET() {
   }
 }
 
+/**
+ * POST /api/reports/schedules
+ *
+ * Creates a new report schedule for periodic report delivery.
+ * Body: { report_name, frequency, email_to, format?, report_config?, day_of_week?, day_of_month?, time_of_day? }
+ * Rate limited: 20 requests per 60s.
+ */
 async function POST(request: Request) {
   try {
     const orgId = await getOrgIdString();
@@ -85,8 +99,7 @@ async function POST(request: Request) {
       return NextResponse.json({ error: 'Valid recipient email is required' }, { status: 400 });
     }
 
-    const validFormats = ['pdf', 'csv'];
-    const reportFormat = validFormats.includes(format) ? format : 'pdf';
+    const reportFormat = (VALID_FORMATS as readonly string[]).includes(format) ? format : 'pdf';
 
     const nextRunAt = computeNextRunAt(
       frequency,
@@ -122,6 +135,14 @@ async function POST(request: Request) {
   }
 }
 
+/**
+ * PATCH /api/reports/schedules?id=<uuid>
+ *
+ * Updates an existing report schedule (frequency, email, format, etc.).
+ * Re-computes next_run_at if frequency, time, or day values change.
+ * Query param: id (uuid, required)
+ * Rate limited: 20 requests per 60s.
+ */
 async function PATCH(request: Request) {
   try {
     const orgId = await getOrgIdString();
@@ -177,6 +198,13 @@ async function PATCH(request: Request) {
   }
 }
 
+/**
+ * DELETE /api/reports/schedules?id=<uuid>
+ *
+ * Deletes a report schedule by ID. Scoped to the caller's organization.
+ * Query param: id (uuid, required)
+ * Rate limited: 20 requests per 60s.
+ */
 async function DELETE(request: Request) {
   try {
     const orgId = await getOrgIdString();

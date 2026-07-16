@@ -13,8 +13,13 @@ function B({ children }: { children: React.ReactNode }) {
 }
 
 function A({ href, children }: { href: string; children: React.ReactNode }) {
+  const isExternal = href.startsWith('http');
   return (
-    <a href={href} className="text-champagne hover:text-champagne-dim underline underline-offset-2 transition">
+    <a
+      href={href}
+      className="text-champagne hover:text-champagne-dim underline underline-offset-2 transition"
+      {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+    >
       {children}
     </a>
   );
@@ -51,6 +56,11 @@ const TOC = [
   { id: 'general', label: '17. General Provisions' },
 ];
 
+/**
+ * Terms of Service page — 17-section legal agreement covering
+ * account obligations, AI disclaimer, liability cap, Quebec rights.
+ * Server-rendered for SEO and speed.
+ */
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-obsidian">

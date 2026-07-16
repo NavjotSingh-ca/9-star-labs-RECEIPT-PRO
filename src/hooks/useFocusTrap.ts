@@ -13,6 +13,13 @@ const FOCUSABLE_SELECTOR = [
   '[contenteditable]',
 ].join(', ');
 
+/**
+ * Traps keyboard focus inside the referenced element when `active` is true.
+ * Restores focus to the previously-focused element on deactivation.
+ *
+ * @param active - Whether the focus trap is currently active.
+ * @returns A ref to attach to the focus-trap container element.
+ */
 export function useFocusTrap(active: boolean) {
   const ref = useRef<HTMLDivElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
@@ -53,9 +60,15 @@ export function useFocusTrap(active: boolean) {
     };
 
     document.addEventListener('keydown', handleKeyDown);
+
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      previousFocus.current?.focus();
+      try {
+        previousFocus.current?.focus();
+      } catch {
+        // Focus restoration may fail if the element was removed from the DOM
+      }
+      previousFocus.current = null;
     };
   }, [active, getFocusableElements]);
 

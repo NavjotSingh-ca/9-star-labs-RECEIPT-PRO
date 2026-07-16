@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, ArrowUpDown, Loader2, Search } from 'lucide-react';
@@ -68,14 +69,14 @@ function VendorSparkline({ receipts: rs }: { receipts: ReceiptRow[] }) {
           <Line
             type="monotone"
             dataKey="amount"
-            stroke="#bea98e"
+            stroke="var(--champagne-light)"
             strokeWidth={1.5}
             dot={false}
           />
           <Tooltip
             contentStyle={{
-              background: '#1a1a1a',
-              border: '1px solid rgba(190, 169, 142, 0.2)',
+              background: 'var(--surface)',
+              border: '1px solid var(--champagne-glow-strong)',
               borderRadius: '8px',
               fontSize: '11px',
             }}
@@ -88,6 +89,11 @@ function VendorSparkline({ receipts: rs }: { receipts: ReceiptRow[] }) {
   );
 }
 
+/**
+ * Vendor analytics dashboard with spend breakdown, vendor table, and
+ * category distribution. Table columns are sortable by vendor name, count,
+ * and total. Shows supplier diversity metric.
+ */
 export default function VendorAnalytics() {
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('total_spend');
@@ -157,7 +163,12 @@ export default function VendorAnalytics() {
   );
 
   return (
-    <div className="space-y-5 fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="space-y-5"
+    >
       <PageHeader title="Vendor Analytics" subtitle="Spend breakdown by vendor" />
 
       {isLoading && (
@@ -292,6 +303,6 @@ export default function VendorAnalytics() {
           )}
         </>
       )}
-    </div>
+    </motion.div>
   );
 }

@@ -175,7 +175,7 @@ export default function DarkModeSync() {
           type="button"
           onClick={handleSync}
           disabled={isLoading}
-          className="inline-flex items-center gap-2 rounded-xl bg-champagne px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-champagne-dim disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-xl bg-champagne px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-champagne-dim disabled:opacity-50"
         >
           <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
           Sync Now

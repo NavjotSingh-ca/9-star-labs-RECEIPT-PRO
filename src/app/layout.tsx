@@ -48,6 +48,11 @@ export const viewport: Viewport = {
   themeColor: '#0c0c0c',
 };
 
+/**
+ * Root layout — provides HTML shell, font loading, global providers,
+ * skip-to-content link, toast system, and NextTopLoader.
+ * All pages render inside this layout via the `<main>` children slot.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -63,9 +68,21 @@ export default function RootLayout({
         <meta name="application-name" content={APP_NAME} />
         <meta name="msapplication-TileColor" content="#0c0c0c" />
         <meta name="format-detection" content="telephone=no" />
+        <meta name="color-scheme" content="light dark" />
         <link rel="preconnect" href="https://js.stripe.com" />
         <link rel="preconnect" href="https://generativelanguage.googleapis.com" />
         <link rel="dns-prefetch" href="https://*.supabase.co" />
+        <noscript>
+          <div style={{
+            padding: '1rem',
+            textAlign: 'center',
+            background: '#0c0c0c',
+            color: '#f5f5f4',
+            fontFamily: 'system-ui, sans-serif',
+          }}>
+            JavaScript is required to use {APP_NAME}. Please enable JavaScript in your browser.
+          </div>
+        </noscript>
       </head>
       <body className="font-sans antialiased selection:bg-champagne/30" suppressHydrationWarning>
         <header>

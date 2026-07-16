@@ -1,0 +1,18 @@
+{
+  "crons": [
+    {
+      "path": "/api/digest/missing-receipts",
+      "schedule": "0 9 * * 1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PATCH, PUT, DELETE, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Authorization, Content-Type, x-csrf-token, stripe-signature, resend-signature, svix-signature" }
+      ]
+    }
+  ]
+}

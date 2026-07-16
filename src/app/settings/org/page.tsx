@@ -2,10 +2,12 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import { supabase, getOrgIdString } from '@/lib/supabase';
 import { Loader2, Save, AlertCircle, CheckCircle2, Link2, RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,6 +62,11 @@ async function loadOrgSettings(): Promise<{ orgId: string; data: OrgSettingsRow 
   return { orgId, data: data as OrgSettingsRow | null };
 }
 
+/**
+ * Organization settings form — manages business info, CRA business number,
+ * reimbursement thresholds, approval policies, accounting integrations,
+ * and webhook configuration. Handles loading, error, success, and QBO auth states.
+ */
 function OrgSettings() {
   const queryClient = useQueryClient();
   const [error, setError] = useState('');
@@ -72,7 +79,7 @@ function OrgSettings() {
     queryKey: ['org_settings'],
     queryFn: loadOrgSettings,
     staleTime: 60_000,
-    retry: false,
+    retry: 2,
   });
 
   const orgId = data?.orgId;
@@ -122,7 +129,10 @@ function OrgSettings() {
       setSuccess('Organization settings saved successfully.');
       setTimeout(() => setSuccess(''), 3000);
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err: Error) => {
+      const msg = process.env.NODE_ENV === 'development' ? err.message : 'Failed to save organization settings.';
+      setError(msg);
+    },
   });
 
   const handleQboConnect = async () => {
@@ -152,6 +162,7 @@ function OrgSettings() {
   const saving = saveMutation.isPending;
 
   return (
+    <ErrorBoundary componentName="OrgSettings">
     <>
     <div className="mb-6">
       <h1 className="text-xl font-bold tracking-tight text-text-primary">Organization Settings</h1>
@@ -178,11 +189,16 @@ function OrgSettings() {
           {loading ? (
             <div className="flex justify-center py-12" role="status" aria-live="polite" aria-label="Loading organization settings"><Loader2 className="h-8 w-8 animate-spin text-champagne" /></div>
           ) : (
-            <div className="space-y-8">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-8"
+            >
               
               {/* Business Info */}
               <div>
-                <h3 className="text-lg font-bold mb-4">Business Information</h3>
+                <h3 className="text-lg font-bold tracking-tight mb-4">Business Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="org-business-name" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Business Name</label>
@@ -209,21 +225,24 @@ function OrgSettings() {
 
               {/* Thresholds & Policies */}
               <div className="pt-6 border-t">
-                <h3 className="text-lg font-bold mb-4">Reimbursement & Approval Policies</h3>
+                <h3 className="text-lg font-bold tracking-tight mb-4" id="thresholds-heading">Reimbursement & Approval Policies</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Require Approval Above ($)</label>
+                    <label htmlFor="require-approval-above" className="block text-xs font-bold uppercase tracking-wider text-text-muted mb-1.5">Require Approval Above ($)</label>
                     <Input
+                      id="require-approval-above"
                       type="number"
                       value={settings.require_approval_above}
                       onChange={(e) => setSettings({ ...settings, require_approval_above: parseFloat(e.target.value) || 0 })}
                       className="rounded-xl bg-background"
+                      aria-describedby="approval-threshold-desc"
                     />
-                    <p className="mt-1.5 text-xs text-muted-foreground">Receipts below this amount are auto-approved.</p>
+                    <p id="approval-threshold-desc" className="mt-1.5 text-xs text-text-muted">Receipts below this amount are auto-approved.</p>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">High Value Flag Threshold ($)</label>
+                    <label htmlFor="high-value-threshold" className="block text-xs font-bold uppercase tracking-wider text-text-muted mb-1.5">High Value Flag Threshold ($)</label>
                     <Input
+                      id="high-value-threshold"
                       type="number"
                       value={settings.high_value_threshold}
                       onChange={(e) => setSettings({ ...settings, high_value_threshold: parseFloat(e.target.value) || 0 })}
@@ -235,16 +254,16 @@ function OrgSettings() {
 
               {/* Integrations */}
               <div className="pt-6 border-t">
-                <h3 className="text-lg font-bold mb-4">Accounting Integrations</h3>
+                <h3 className="text-lg font-bold tracking-tight mb-4">Accounting Integrations</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div className="flex items-center justify-between rounded-xl border bg-muted/20 p-4">
+                  <div className="flex items-center justify-between rounded-xl border bg-surface-raised p-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 overflow-hidden rounded-xl bg-white p-1">
-                        <Image src="https://upload.wikimedia.org/wikipedia/commons/2/23/QuickBooks_Logo.svg" alt="QBO" width={40} height={40} className="h-full w-full object-contain" />
+                      <div className="h-10 w-10 overflow-hidden rounded-xl bg-card p-1">
+                        <Image src="https://upload.wikimedia.org/wikipedia/commons/2/23/QuickBooks_Logo.svg" alt="QuickBooks Online logo" width={40} height={40} className="h-full w-full object-contain" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold">QuickBooks Online</p>
-                        <p className={`text-[10px] uppercase tracking-wider font-bold ${qboConnected ? 'text-emerald-success' : 'text-muted-foreground'}`}>
+                        <p className="text-sm font-bold text-text-primary">QuickBooks Online</p>
+                        <p className={`text-[10px] uppercase tracking-wider font-bold ${qboConnected ? 'text-emerald-success' : 'text-text-muted'}`}>
                           {qboConnected ? `Connected ${qboConnectedAt ? `• ${new Date(qboConnectedAt).toLocaleDateString('en-CA')}` : ''}` : 'Not Connected'}
                         </p>
                       </div>
@@ -269,14 +288,14 @@ function OrgSettings() {
                     </Button>
                   </div>
 
-                  <div className="flex items-center justify-between rounded-xl border bg-muted/20 p-4">
+                  <div className="flex items-center justify-between rounded-xl border bg-surface-raised p-4">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 overflow-hidden rounded-xl bg-[#00b7e2] p-1">
-                        <Image src="https://upload.wikimedia.org/wikipedia/commons/9/9f/Xero_software_logo.svg" alt="Xero" width={40} height={40} className="h-full w-full object-contain" />
+                        <Image src="https://upload.wikimedia.org/wikipedia/commons/9/9f/Xero_software_logo.svg" alt="Xero logo" width={40} height={40} className="h-full w-full object-contain" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold">Xero</p>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Not Connected</p>
+                        <p className="text-sm font-bold text-text-primary">Xero</p>
+                        <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Not Connected</p>
                       </div>
                     </div>
                     <Button
@@ -291,16 +310,19 @@ function OrgSettings() {
                   </div>
                 </div>
 
-                <h3 className="text-lg font-bold mb-4">Webhooks</h3>
+                <h3 className="text-lg font-bold tracking-tight mb-4">Webhooks</h3>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Slack/Teams Webhook URL (Audit Alerts)</label>
+                  <label htmlFor="slack-webhook-url" className="block text-xs font-bold uppercase tracking-wider text-text-muted mb-1.5">Slack/Teams Webhook URL (Audit Alerts)</label>
                   <Input
+                    id="slack-webhook-url"
                     type="url"
                     value={settings.slack_webhook_url}
                     onChange={(e) => setSettings({ ...settings, slack_webhook_url: e.target.value })}
                     className="rounded-xl bg-background"
                     placeholder="https://hooks.slack.com/services/..."
+                    aria-describedby="webhook-desc"
                   />
+                  <p id="webhook-desc" className="mt-1.5 text-xs text-text-muted">Receive audit alerts via Slack or Microsoft Teams webhook.</p>
                 </div>
               </div>
 
@@ -317,14 +339,19 @@ function OrgSettings() {
                 </Button>
               </div>
 
-            </div>
+            </motion.div>
           )}
         </CardContent>
         </Card>
     </>
+    </ErrorBoundary>
   );
 }
 
+/**
+ * Org settings page entry — wraps the OrgSettings form in Suspense
+ * for nuqs/useSearchParams hydration.
+ */
 export default function OrgSettingsPage() {
   return (
     <Suspense fallback={<div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin text-champagne" /></div>}>

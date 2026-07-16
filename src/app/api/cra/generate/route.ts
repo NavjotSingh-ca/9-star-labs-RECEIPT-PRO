@@ -4,15 +4,30 @@ import { cookies } from 'next/headers';
 import { getCRAFormData } from '@/lib/services/receipts';
 import { logError } from '@/lib/logger';
 import { env } from '@/lib/env';
+import { withRateLimit } from '@/lib/rate-limiter';
 import { z } from 'zod';
-
-const yearSchema = z.coerce.number().int().min(2000).max(2099);
-const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export async function GET(request: Request) {
+const yearSchema = z.coerce.number().int().min(2000).max(2099);
+const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+/**
+ * GET /api/cra/generate
+ *
+ * Generates a multi-page CRA audit package PDF (T2125 + T777 + vendor report).
+ * Requires an authenticated session via Supabase SSR cookies.
+ *
+ * Query params:
+ *   - year (optional): Tax year (2000-2099). Defaults to previous year.
+ *   - fromDate (optional): ISO date (YYYY-MM-DD) for custom date range.
+ *   - toDate (optional): ISO date (YYYY-MM-DD) for custom date range.
+ *
+ * Returns: application/pdf binary with Content-Disposition attachment.
+ * Rate limited: 10 requests per 60s.
+ */
+async function handler(request: Request) {
   const { searchParams } = new URL(request.url);
   const rawYear = searchParams.get('year');
   const taxYear = rawYear ? yearSchema.safeParse(rawYear) : { data: new Date().getFullYear() - 1, success: true };
@@ -29,7 +44,6 @@ export async function GET(request: Request) {
   }
   const dateRange = fromDate?.success && toDate?.success ? { from: fromDate.data, to: toDate.data } : undefined;
 
-  // Auth check
   const cookieStore = await cookies();
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} },
@@ -37,7 +51,6 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Fetch org name
   const { data: orgId } = await supabase.rpc('get_user_org');
   if (!orgId) return NextResponse.json({ error: 'Organization not found', status: 404 }, { status: 404 });
   const { data: orgRow } = await supabase.from('organizations').select('name').eq('id', orgId).single();
@@ -45,7 +58,14 @@ export async function GET(request: Request) {
   const orgName = orgRow.name;
 
   try {
-    const cra = await getCRAFormData(taxYear.data, dateRange);
+    const cra = await getCRAFormData(taxYear.data, dateRange || undefined);
+
+    if (cra.receiptCount === 0) {
+      return NextResponse.json({
+        error: 'No receipts found for the selected tax year.',
+        message: `No business expenses were recorded in tax year ${taxYear.data}. Upload receipts before generating a CRA package.`,
+      }, { status: 404 });
+    }
 
     const jsPDFMod = await import('jspdf');
     const doc = new jsPDFMod.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
@@ -54,15 +74,13 @@ export async function GET(request: Request) {
     const contentW = pageW - margin * 2;
     let y = 0;
 
-    // ─── Helper Functions ───
     const fmt = (n: number) => `$${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
     const addPage = () => { doc.addPage(); y = margin; };
     const checkPage = () => { if (y > 260) addPage(); };
 
-    // ─── Cover Page ───
     doc.setFillColor(18, 18, 18);
     doc.rect(0, 0, pageW, 279.4, 'F');
-    doc.setTextColor(190, 169, 142); // champagne
+    doc.setTextColor(190, 169, 142);
     doc.setFontSize(28);
     doc.setFont('helvetica', 'bold');
     doc.text('CRA Audit Package', margin, 55);
@@ -71,11 +89,10 @@ export async function GET(request: Request) {
     doc.text(orgName, margin, 68);
     doc.setFontSize(12);
     doc.setTextColor(150, 150, 150);
-    doc.text(`Tax Year: ${taxYear}`, margin, 80);
+    doc.text(`Tax Year: ${taxYear.data}`, margin, 80);
     doc.text(`Generated: ${new Date().toLocaleDateString('en-CA')}`, margin, 88);
     doc.text(`Receipts: ${cra.receiptCount}  |  Period: ${cra.dateRange.from} to ${cra.dateRange.to}`, margin, 96);
 
-    // Summary boxes
     const boxes = [
       { label: 'Total Business Expenses', value: fmt(cra.totalBusinessExpenses) },
       { label: 'Total GST Paid', value: fmt(cra.totalGSTPaid) },
@@ -101,7 +118,14 @@ export async function GET(request: Request) {
     doc.setFont('helvetica', 'normal');
     doc.text('Prepared by Leduc Receipt Pro — for accountant review only, not an official CRA filing.', margin, 275);
 
-    // ─── T2125 Pre-Fill Page ───
+    // Quebec Law 25 compliance note (if applicable)
+    const orgProvince = (orgRow as { province?: string }).province || '';
+    if (orgProvince?.toUpperCase() === 'QC' || orgProvince?.toUpperCase() === 'QUEBEC') {
+      doc.setFontSize(7);
+      doc.setTextColor(120, 120, 120);
+      doc.text('Conformité à la Loi 25 du Québec: Les reçus doivent être conservés en français pour les organisations québécoises.', margin, 278);
+    }
+
     addPage();
     doc.setFillColor(245, 245, 245);
     doc.rect(0, 0, pageW, 279.4, 'F');
@@ -110,7 +134,7 @@ export async function GET(request: Request) {
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(30, 30, 30);
-    doc.text(`T2125 — Business & Professional Income (${taxYear})`, margin, y);
+    doc.text(`T2125 — Business & Professional Income (${taxYear.data})`, margin, y);
     y += 8;
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
@@ -118,14 +142,12 @@ export async function GET(request: Request) {
     doc.text('Statement of Business Activities — Pre-Fill Data (Review with your accountant)', margin, y);
     y += 10;
 
-    // Part 2: Business expenses by category
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(30, 30, 30);
     doc.text('Part 2 — Business Expenses', margin, y);
     y += 7;
 
-    // Table header
     doc.setFillColor(220, 220, 220);
     doc.rect(margin, y, contentW, 7, 'F');
     doc.setFontSize(8);
@@ -157,7 +179,6 @@ export async function GET(request: Request) {
       y += 7;
     }
 
-    // Total row
     checkPage();
     doc.setFillColor(190, 169, 142);
     doc.rect(margin, y, contentW, 8, 'F');
@@ -169,14 +190,13 @@ export async function GET(request: Request) {
     doc.text(fmt(cra.totalBusinessExpenses), margin + contentW * 0.85, y + 5.5);
     y += 14;
 
-    // ─── T777 Pre-Fill Page ───
     checkPage();
     if (y > 180) addPage();
     
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(30, 30, 30);
-    doc.text(`T777 — Employment Expenses (${taxYear})`, margin, y);
+    doc.text(`T777 — Employment Expenses (${taxYear.data})`, margin, y);
     y += 7;
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
@@ -210,7 +230,6 @@ export async function GET(request: Request) {
       }
     }
 
-    // ─── Top Vendors Page ───
     addPage();
     doc.setFillColor(245, 245, 245);
     doc.rect(0, 0, pageW, 279.4, 'F');
@@ -227,7 +246,6 @@ export async function GET(request: Request) {
     doc.text('Business numbers (GST/BN) required for ITC claims — verify with CRA before filing.', margin, y);
     y += 8;
 
-    // Vendor table
     doc.setFillColor(220, 220, 220);
     doc.rect(margin, y, contentW, 7, 'F');
     doc.setFontSize(8);
@@ -252,10 +270,10 @@ export async function GET(request: Request) {
       doc.setTextColor(40, 40, 40);
       doc.text(v.vendor_name.slice(0, 28), margin + 2, y + 5);
       if (hasBN) {
-        doc.setTextColor(16, 185, 129); // emerald
+        doc.setTextColor(16, 185, 129);
         doc.text(v.business_number!.slice(0, 20), margin + contentW * 0.45, y + 5);
       } else {
-        doc.setTextColor(239, 68, 68); // red
+        doc.setTextColor(239, 68, 68);
         doc.text('MISSING', margin + contentW * 0.45, y + 5);
       }
       doc.setTextColor(40, 40, 40);
@@ -266,7 +284,6 @@ export async function GET(request: Request) {
       y += 7;
     }
 
-    // Footer on each page
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
@@ -278,20 +295,23 @@ export async function GET(request: Request) {
         margin,
         272
       );
-      doc.text(`${orgName} | Tax Year ${taxYear}`, pageW - margin - 60, 272);
+      doc.text(`${orgName} | Tax Year ${taxYear.data}`, pageW - margin - 60, 272);
     }
 
     const pdfBytes = doc.output('arraybuffer');
     
+    const safeFilename = `${taxYear.data}-${orgName.replace(/[^a-zA-Z0-9-]/g, '-').replace(/-+/g, '-')}.pdf`;
     return new NextResponse(pdfBytes, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="CRA-Package-${taxYear}-${orgName.replace(/\s/g, '-')}.pdf"`,
+        'Content-Disposition': `attachment; filename="CRA-Package-${safeFilename}"`,
         'Cache-Control': 'no-store',
       },
     });
   } catch (err) {
-    logError(err, { action: 'generate_cra_pdf', taxYear });
+    logError(err, { action: 'generate_cra_pdf', taxYear: taxYear.data });
     return NextResponse.json({ error: 'Failed to generate CRA package.' }, { status: 500 });
   }
 }
+
+export const GET = withRateLimit(handler, { maxTokens: 10, windowMs: 60_000, keyPrefix: 'cra:generate' });

@@ -1,103 +1,141 @@
 'use client';
 
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { useRef, useState, useCallback } from 'react';
+import { getImageDimensions, readFileAsDataUrl, resizeImage } from '@/components/scanner/utils';
 
-import {
-  computeBlurScore,
-  getImageDimensions,
-  readFileAsDataUrl,
-  resizeImage,
-} from '@/components/scanner/utils';
-import { createBlankReceiptForm } from '@/components/scanner/types';
-import type { ReceiptForm } from '@/components/scanner/types';
-
-export const MAX_DIMENSION = 2400;
+export const MAX_DIMENSION = 2048;
+export const JPEG_QUALITY = 0.92;
 export const MIN_DIMENSION = 600;
-export const MAX_FILE_SIZE = 20 * 1024 * 1024;
-export const JPEG_QUALITY = 0.85;
-const DEFAULT_BLUR_THRESHOLD = 40;
+export const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 
-interface UseImageProcessorDeps {
+export interface UseImageProcessorOptions<TForm = Record<string, unknown>> {
   isBatchProcessing: boolean;
-  formData: ReceiptForm;
-  setFormData: React.Dispatch<React.SetStateAction<ReceiptForm>>;
-  blurThreshold?: number;
+  setFormData: React.Dispatch<React.SetStateAction<TForm>>;
 }
 
-export function useImageProcessor(deps: UseImageProcessorDeps) {
-  const { isBatchProcessing, setFormData, blurThreshold = DEFAULT_BLUR_THRESHOLD } = deps;
+export interface ImageProcessorResult {
+  imageSrc: string | null;
+  originalFileName: string;
+  mimeType: string;
+  showCropper: boolean;
+  setShowCropper: React.Dispatch<React.SetStateAction<boolean>>;
+  blurScore: number | null;
+  showBlurWarning: boolean;
+  setShowBlurWarning: React.Dispatch<React.SetStateAction<boolean>>;
+  isProcessing: boolean;
+  error: string | null;
+  processFile: (file: File) => Promise<{ dataUrl: string; fileName: string; mimeType: string } | null>;
+  reset: () => void;
+  setImageSrc: (src: string | null) => void;
+  onCapture: (file: File) => Promise<void>;
+  onApplyCroppedImage: (cropped: string) => Promise<string>;
+}
 
+export function useImageProcessor<TForm = Record<string, unknown>>({
+  isBatchProcessing: _isBatchProcessing,
+  setFormData,
+}: UseImageProcessorOptions<TForm>): ImageProcessorResult {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [originalFileName, setOriginalFileName] = useState('');
-  const [mimeType, setMimeType] = useState('image/jpeg');
+  const [originalFileName, setOriginalFileName] = useState<string>('');
+  const [mimeType, setMimeType] = useState<string>('');
+  const [showCropper, setShowCropper] = useState(false);
   const [blurScore, setBlurScore] = useState<number | null>(null);
   const [showBlurWarning, setShowBlurWarning] = useState(false);
-  const [showCropper, setShowCropper] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const processedRef = useRef(new Set<string>());
 
-  async function onCapture(file: File) {
+  const processFile = useCallback(async (file: File): Promise<{ dataUrl: string; fileName: string; mimeType: string } | null> => {
+    const key = `${file.name}-${file.size}`;
+    if (processedRef.current.has(key)) return null;
+
+    setIsProcessing(true);
+    setError(null);
     try {
-      if (file.size > MAX_FILE_SIZE) {
-        toast.error(`File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max is 20MB.`);
-        return;
-      }
-
-      setShowBlurWarning(false);
-      const rawDataUrl = await readFileAsDataUrl(file);
-      const { width, height } = await getImageDimensions(rawDataUrl);
+      const dataUrl = await readFileAsDataUrl(file);
+      const { width, height } = await getImageDimensions(dataUrl);
       const longest = Math.max(width, height);
       if (longest < MIN_DIMENSION) {
-        toast.warning(`Image is only ${longest}px — CRA recommends at least ${MIN_DIMENSION}px for legible records. Consider a clearer photo.`);
-      }
-
-      const resizedDataUrl = await resizeImage(rawDataUrl, MAX_DIMENSION, JPEG_QUALITY);
-      const score = await computeBlurScore(resizedDataUrl);
-      setBlurScore(score);
-
-      if (score < blurThreshold && !isBatchProcessing) {
+        setBlurScore(longest);
         setShowBlurWarning(true);
-        setImageSrc(resizedDataUrl);
-        setOriginalFileName(file.name);
-        setMimeType(file.type || 'image/jpeg');
-        return;
       }
 
-      setOriginalFileName(file.name);
-      setMimeType(file.type || 'image/jpeg');
-      setImageSrc(resizedDataUrl);
-      setFormData((prev) => ({
-        ...createBlankReceiptForm(),
-        capture_source: prev.capture_source,
-        usage_type: prev.usage_type,
-        business_use_percent: prev.business_use_percent,
-        business_unit_id: prev.business_unit_id,
-      }));
-      setShowCropper(true);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to capture receipt.');
+      const resized = await resizeImage(dataUrl, MAX_DIMENSION, JPEG_QUALITY);
+      const result = { dataUrl: resized, fileName: file.name, mimeType: file.type };
+      processedRef.current.add(key);
+      return result;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Image processing failed');
+      return null;
+    } finally {
+      setIsProcessing(false);
     }
-  }
+  }, []);
 
-  async function onApplyCroppedImage(cropped: string): Promise<string> {
+  const reset = useCallback(() => {
+    setImageSrc(null);
+    setOriginalFileName('');
+    setMimeType('');
+    setShowCropper(false);
+    setBlurScore(null);
+    setShowBlurWarning(false);
+    setError(null);
+    processedRef.current.clear();
+  }, []);
+
+  const onCapture = useCallback(async (file: File) => {
+    if (file.size > MAX_FILE_SIZE) {
+      setError(`File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB (max ${MAX_FILE_SIZE / 1024 / 1024}MB)`);
+      return;
+    }
+
+    setOriginalFileName(file.name);
+    setMimeType(file.type);
+    setShowCropper(false);
+    setBlurScore(null);
+    setShowBlurWarning(false);
+    setError(null);
+
+    const dataUrl = await readFileAsDataUrl(file);
+    const { width, height } = await getImageDimensions(dataUrl);
+    const longest = Math.max(width, height);
+    if (longest < MIN_DIMENSION) {
+      setBlurScore(longest);
+      setShowBlurWarning(true);
+    }
+
+    const resized = await resizeImage(dataUrl, MAX_DIMENSION, JPEG_QUALITY);
+    setImageSrc(resized);
+    setShowCropper(true);
+
+    setFormData((prev: TForm) => ({
+      ...prev,
+      capture_source: 'camera',
+    }));
+  }, [setFormData]);
+
+  const onApplyCroppedImage = useCallback(async (cropped: string): Promise<string> => {
     const resized = await resizeImage(cropped, MAX_DIMENSION, JPEG_QUALITY);
     setImageSrc(resized);
     setShowCropper(false);
     return resized;
-  }
+  }, []);
 
   return {
     imageSrc,
-    setImageSrc,
     originalFileName,
     mimeType,
+    showCropper,
+    setShowCropper,
     blurScore,
     showBlurWarning,
     setShowBlurWarning,
-    showCropper,
-    setShowCropper,
+    isProcessing,
+    error,
+    processFile,
+    reset,
+    setImageSrc,
     onCapture,
     onApplyCroppedImage,
-    MAX_DIMENSION,
-    JPEG_QUALITY,
   };
 }

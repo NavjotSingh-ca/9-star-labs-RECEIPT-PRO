@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -20,7 +20,13 @@ import {
 } from '@/components/scanner/utils';
 import { createBlankReceiptForm } from '@/components/scanner/types';
 import { useSaveReceipt } from './useSaveReceipt';
-import { useImageProcessor, MAX_DIMENSION, JPEG_QUALITY, MIN_DIMENSION, MAX_FILE_SIZE } from './useImageProcessor';
+import {
+  useImageProcessor,
+  MAX_DIMENSION,
+  JPEG_QUALITY,
+  MIN_DIMENSION,
+  MAX_FILE_SIZE,
+} from './useImageProcessor';
 import { useBatchProcessor, BATCH_LIMIT } from './useBatchProcessor';
 import type { ReceiptForm, ReceiptRow, BusinessUnit } from '@/components/scanner/types';
 import type { User } from '@supabase/supabase-js';
@@ -72,9 +78,9 @@ export interface ScannerState {
   onCapture: (file: File) => Promise<void>;
   onApplyCroppedImage: (cropped: string) => Promise<void>;
   onProcessAI: (explicitSrc?: string, source?: string) => Promise<void>;
-  performSave: (bypassCheck?: boolean, finalFormData?: ReceiptForm) => Promise<void>;
-  onSave: () => Promise<void>;
-  onContinueDuplicateSave: () => Promise<void>;
+  performSave: (bypassCheck?: boolean, finalFormData?: ReceiptForm) => void;
+  onSave: () => void;
+  onContinueDuplicateSave: () => void;
   handleFilesSelected: (filesList: FileList | null) => Promise<void>;
   handleCameraChange: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleGalleryChange: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
@@ -84,6 +90,11 @@ export interface ScannerState {
   setDuplicateCandidate: React.Dispatch<React.SetStateAction<DuplicateCandidate>>;
 }
 
+/**
+ * Root scanner orchestrator hook.
+ * Manages the full lifecycle: camera capture → image processing → AI extraction →
+ * duplicate check → save → offline fallback / batch processing.
+ */
 export function useScannerState(
   user: User | null,
   onSaveSuccess: () => void,
@@ -94,6 +105,7 @@ export function useScannerState(
   const { enqueue, getQueue, clearProcessed } = useOfflineQueue();
   const queryClient = useQueryClient();
   const cancelledRef = useRef(false);
+  const activeRef = useRef(true);
 
   const [businessUnits, setBusinessUnits] = useState<BusinessUnit[]>([]);
   const [formData, setFormData] = useState<ReceiptForm>(createBlankReceiptForm());
@@ -105,8 +117,12 @@ export function useScannerState(
   const [orgId, setOrgId] = useState<string | null>(null);
 
   const { trackReceiptScan } = useAnalytics();
+
   const batchProc = useBatchProcessor();
-  const imgProc = useImageProcessor({ isBatchProcessing: batchProc.isBatchProcessing, formData, setFormData });
+  const imgProc = useImageProcessor<ReceiptForm>({
+    isBatchProcessing: batchProc.isBatchProcessing,
+    setFormData,
+  });
   const saveHook = useSaveReceipt({
     user,
     orgId,
@@ -118,13 +134,17 @@ export function useScannerState(
     enqueue,
   });
 
+  // ── Init: business units + org ID ──
   useEffect(() => {
+    activeRef.current = true;
     let active = true;
+
     async function loadBusinessUnits() {
       setLoadingBusinessUnits(true);
       try {
         const { data, error } = await withRetry(
-          () => supabase.from('business_units').select('id, name').order('name', { ascending: true }),
+          () =>
+            supabase.from('business_units').select('id, name').order('name', { ascending: true }),
           { maxRetries: 2, delayMs: 500 },
         );
         if (!active) return;
@@ -138,29 +158,41 @@ export function useScannerState(
         const supabaseError = handleSupabaseError(err);
         toast.error(supabaseError.userMessage);
       } finally {
-        setLoadingBusinessUnits(false);
+        if (active) setLoadingBusinessUnits(false);
       }
     }
+
     loadBusinessUnits();
-    getOrgIdString().then((id) => {
-      if (id) setOrgId(id);
-    });
-    return () => { active = false; };
+
+    getOrgIdString()
+      .then((id) => {
+        if (active && id) setOrgId(id);
+      })
+      .catch(() => {
+        logWarn('Failed to resolve org ID — continuing in anonymous mode');
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
+  // ── Service worker offline-sync listener ──
   useEffect(() => {
     if (!navigator.serviceWorker) return;
+
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'PROCESS_OFFLINE_QUEUE') {
         const items = event.data.items;
         if (!items || items.length === 0) return;
         toast.info(`${items.length} receipt(s) saved offline. Syncing now...`);
+
         (async () => {
           let successCount = 0;
           const processedIds: string[] = [];
           for (const item of items) {
-            const locked = await getQueue();
-            const stillExists = locked.some(i => i.id === item.id);
+            const queue = await getQueue();
+            const stillExists = queue.some((i: { id: string }) => i.id === item.id);
             if (!stillExists) continue;
             try {
               await saveReceipt(item.payload, item.integrityHash, item.userId);
@@ -180,19 +212,27 @@ export function useScannerState(
           }
         })();
       }
+
       if (event.data?.type === 'SYNC_COMPLETE') {
         if (event.data.count > 0) {
           toast.success(`${event.data.count} receipt(s) synced successfully!`);
         }
       }
     };
+
     navigator.serviceWorker.addEventListener('message', handleMessage);
     return () => navigator.serviceWorker.removeEventListener('message', handleMessage);
   }, [clearProcessed, getQueue, queryClient]);
 
-  const canProcess = useMemo(() => Boolean(imgProc.imageSrc) && !processingAI && !cancelledRef.current, [imgProc.imageSrc, processingAI]);
+  // ── Derived state ──
+  const canProcess = useMemo(
+    () => Boolean(imgProc.imageSrc) && !processingAI && !cancelledRef.current,
+    [imgProc.imageSrc, processingAI],
+  );
 
-  function resetScanner() {
+  // ── Mutators ──
+
+  const resetScanner = useCallback(() => {
     imgProc.setImageSrc(null);
     setFormData(createBlankReceiptForm());
     saveHook.setDuplicateCandidate(null);
@@ -201,9 +241,9 @@ export function useScannerState(
     setVendorPrefillSource(null);
     if (cameraInputRef.current) cameraInputRef.current.value = '';
     if (galleryInputRef.current) galleryInputRef.current.value = '';
-  }
+  }, [imgProc, saveHook, batchProc, cameraInputRef, galleryInputRef]);
 
-  function mergeScanData(result: Record<string, unknown>) {
+  const mergeScanData = useCallback((result: Record<string, unknown>) => {
     const businessNumber = String(result.business_number ?? '').trim();
     const paymentMethod = String(result.payment_method ?? formData.payment_method ?? 'Unknown').trim();
     const totalAmount = Number(result.total_amount ?? 0);
@@ -213,17 +253,24 @@ export function useScannerState(
     const confidenceScore = Number(result.confidence_score ?? 0);
     const detectedCurrency = String(result.currency ?? 'CAD').toUpperCase();
     const missingBnWarning = businessNumber.length === 0;
-    const mathMismatchWarning = Math.abs(Number((subtotal + taxAmount + pstAmount - totalAmount).toFixed(2))) > 0.02;
-    const readinessScore = Math.max(0, Math.min(100, [
-      result.vendor_name ? 18 : 0,
-      result.transaction_date ? 16 : 0,
-      totalAmount > 0 ? 18 : 0,
-      subtotal >= 0 ? 10 : 0,
-      taxAmount >= 0 ? 8 : 0,
-      paymentMethod ? 8 : 0,
-      businessNumber ? 14 : 0,
-      confidenceScore >= 70 ? 8 : confidenceScore >= 40 ? 4 : 0,
-    ].reduce((sum, val) => sum + val, 0) - (mathMismatchWarning ? 10 : 0)));
+    const mathMismatchWarning =
+      Math.abs(Number((subtotal + taxAmount + pstAmount - totalAmount).toFixed(2))) > 0.02;
+    const readinessScore = Math.max(
+      0,
+      Math.min(
+        100,
+        [
+          result.vendor_name ? 18 : 0,
+          result.transaction_date ? 16 : 0,
+          totalAmount > 0 ? 18 : 0,
+          subtotal >= 0 ? 10 : 0,
+          taxAmount >= 0 ? 8 : 0,
+          paymentMethod ? 8 : 0,
+          businessNumber ? 14 : 0,
+          confidenceScore >= 70 ? 8 : confidenceScore >= 40 ? 4 : 0,
+        ].reduce((sum, val) => sum + val, 0) - (mathMismatchWarning ? 10 : 0),
+      ),
+    );
 
     const lineItemsRaw = result.line_items;
     const lineItems = Array.isArray(lineItemsRaw)
@@ -276,181 +323,217 @@ export function useScannerState(
       exchange_rate: detectedCurrency !== 'CAD' ? prev.exchange_rate : 1.0,
       line_items: lineItems,
     }));
-  }
+  }, [formData.line_items, formData.payment_method]);
 
-  async function handleProcessAI(explicitSrc?: string, source: string = 'camera') {
-    const srcToUse = explicitSrc || imgProc.imageSrc;
-    if (!srcToUse) {
-      toast.error('Please capture a receipt first.');
-      return;
-    }
+  const handleProcessAI = useCallback(
+    async (explicitSrc?: string, source: string = 'camera') => {
+      const srcToUse = explicitSrc || imgProc.imageSrc;
+      if (!srcToUse) {
+        toast.error('Please capture a receipt first.');
+        return;
+      }
 
-    cancelledRef.current = false;
-    setProcessingAI(true);
-    try {
-      if (cancelledRef.current) { setProcessingAI(false); return; }
+      cancelledRef.current = false;
+      setProcessingAI(true);
+      try {
+        if (cancelledRef.current) {
+          setProcessingAI(false);
+          return;
+        }
 
-      if (!online) {
+        if (!online) {
+          setHasAnalyzed(true);
+          setProcessingAI(false);
+          toast.info(
+            'Offline — enter receipt details manually. It will sync when connection returns.',
+          );
+          setTimeout(() => {
+            formContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 100);
+          return;
+        }
+
+        const result = await scanReceipt(srcToUse, source);
+        if (cancelledRef.current) {
+          setProcessingAI(false);
+          return;
+        }
+        if (!result.success) {
+          trackReceiptScan('failure', { error: result.error, source });
+          toast.error(result.error);
+          return;
+        }
+
+        trackReceiptScan('success', {
+          vendor: result.data.vendor_name,
+          amount: result.data.total_amount,
+          confidence: result.data.confidence_score,
+          source,
+        });
+
+        mergeScanData(result.data as unknown as Record<string, unknown>);
         setHasAnalyzed(true);
-        setProcessingAI(false);
-        toast.info('Offline — enter receipt details manually. It will sync when connection returns.');
+        toast.success('Processing complete. Please review the details below.');
+
+        if (result.data.vendor_name && orgId) {
+          getVendorDefaults(orgId, result.data.vendor_name)
+            .then((defaults) => {
+              if (!activeRef.current || !defaults) return;
+              setFormData((prev) => ({
+                ...prev,
+                ...(defaults.category ? { category: defaults.category } : {}),
+                ...(defaults.job_code ? { job_code: defaults.job_code } : {}),
+                business_use_percent: defaults.business_use_percent,
+              }));
+              setVendorPrefillSource('history');
+            })
+            .catch(() => {
+              logWarn('Vendor defaults lookup failed — using AI result as-is');
+            });
+        }
+
         setTimeout(() => {
           formContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
-        return;
-      }
 
-      const result = await scanReceipt(srcToUse, source);
-      if (cancelledRef.current) { setProcessingAI(false); return; }
-      if (!result.success) {
-        trackReceiptScan('failure', { error: result.error, source });
-        toast.error(result.error);
-        return;
-      }
-      
-      trackReceiptScan('success', { 
-        vendor: result.data.vendor_name, 
-        amount: result.data.total_amount, 
-        confidence: result.data.confidence_score,
-        source 
-      });
-
-      mergeScanData(result.data as unknown as Record<string, unknown>);
-      setHasAnalyzed(true);
-      toast.success('Receipt processed successfully. Please review the details below.');
-
-      if (result.data.vendor_name && orgId) {
-        getVendorDefaults(orgId, result.data.vendor_name).then((defaults) => {
-          if (defaults) {
-            setFormData((prev) => ({
-              ...prev,
-              ...(defaults.category ? { category: defaults.category } : {}),
-              ...(defaults.job_code ? { job_code: defaults.job_code } : {}),
-              business_use_percent: defaults.business_use_percent,
-            }));
-            setVendorPrefillSource('history');
-          }
-        }).catch(() => {
-          logWarn('Vendor defaults lookup failed — using AI result as-is');
-        });
-      }
-
-      setTimeout(() => {
-        formContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-
-      if (batchProc.isBatchProcessing) {
-        await saveHook.performSave(true);
-      }
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : 'AI processing failed.';
-      toast.error(msg);
-    } finally {
-      setProcessingAI(false);
-    }
-  }
-
-  async function handleApplyCroppedImage(cropped: string) {
-    const resized = await imgProc.onApplyCroppedImage(cropped);
-    toast.info('AI Extraction starting...');
-    await handleProcessAI(resized);
-  }
-
-  async function handleFilesSelected(filesList: FileList | null) {
-    if (!filesList || filesList.length === 0) return;
-    let processedFiles: File[] = [];
-
-    for (let i = 0; i < filesList.length; i++) {
-      const file = filesList[i];
-      if (file.name.toLowerCase().endsWith('.zip')) {
-        try {
-          const JSZip = (await import('jszip')).default;
-          const zip = new JSZip();
-          const contents = await zip.loadAsync(file);
-          for (const [relativePath, zipEntry] of Object.entries(contents.files)) {
-            if (!zipEntry.dir && relativePath.match(/\.(jpe?g|png)$/i)) {
-              const blob = await zipEntry.async('blob');
-              processedFiles.push(new File([blob], zipEntry.name, { type: blob.type || 'image/jpeg' }));
-            }
-          }
-        } catch {
-          toast.error('Failed to parse ZIP file: ' + file.name);
+        if (batchProc.isBatchProcessing) {
+          saveHook.performSave(true);
         }
-      } else if (file.type.startsWith('image/')) {
-        processedFiles.push(file);
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : 'AI processing failed.';
+        toast.error(msg);
+      } finally {
+        if (activeRef.current) setProcessingAI(false);
       }
-    }
+    },
+    [
+      imgProc.imageSrc,
+      online,
+      formContainerRef,
+      trackReceiptScan,
+      mergeScanData,
+      orgId,
+      batchProc.isBatchProcessing,
+      saveHook,
+    ],
+  );
 
-    if (processedFiles.length > BATCH_LIMIT) {
-      toast.info(`Batch limit is ${BATCH_LIMIT} files. Only the first ${BATCH_LIMIT} will be processed.`);
-      processedFiles = processedFiles.slice(0, BATCH_LIMIT);
-    }
+  const handleApplyCroppedImage = useCallback(
+    async (cropped: string) => {
+      const resized = await imgProc.onApplyCroppedImage(cropped);
+      toast.info('AI extraction starting...');
+      await handleProcessAI(resized);
+    },
+    [imgProc, handleProcessAI],
+  );
 
-    if (processedFiles.length === 0) {
-      toast.error('No valid image files found to process.');
-      return;
-    }
-
-    if (processedFiles.length === 1) {
-      await imgProc.onCapture(processedFiles[0]);
-    } else {
-      batchProc.setIsBatchProcessing(true);
-      batchProc.setBatchTotal(processedFiles.length);
-      batchProc.setBatchProgress(1);
-      batchProc.setBatchQueue(processedFiles.slice(1));
-      await handleProcessNextBatchItem(processedFiles, processedFiles.length);
-    }
-  }
-
-  async function handleProcessNextBatchItem(queue: File[], total: number) {
-    if (queue.length === 0) {
-      batchProc.resetBatchState();
-      toast.success('Batch processing completed.');
-      onSaveSuccess();
-      return;
-    }
-
-    const [nextFile, ...remaining] = queue;
-    try {
-      if (nextFile.size > MAX_FILE_SIZE) {
-        toast.warning(`Skipping ${nextFile.name}: too large (${(nextFile.size / 1024 / 1024).toFixed(1)}MB)`);
-        setTimeout(() => handleProcessNextBatchItem(remaining, total), 500);
+  const handleProcessNextBatchItem = useCallback(
+    async (queue: File[], total: number) => {
+      if (queue.length === 0) {
+        batchProc.resetBatchState();
+        toast.success('Batch processing completed.');
+        onSaveSuccess();
         return;
       }
 
-      const rawDataUrl = await readFileAsDataUrl(nextFile);
-      const { width, height } = await getImageDimensions(rawDataUrl);
-      const longest = Math.max(width, height);
-      if (longest < MIN_DIMENSION) {
-        toast.warning(`${nextFile.name}: image is only ${longest}px — consider a clearer photo`);
+      const [nextFile, ...remaining] = queue;
+      try {
+        if (nextFile.size > MAX_FILE_SIZE) {
+          toast.warning(
+            `Skipping ${nextFile.name}: too large (${(nextFile.size / 1024 / 1024).toFixed(1)}MB)`,
+          );
+          setTimeout(() => handleProcessNextBatchItem(remaining, total), 500);
+          return;
+        }
+
+        const rawDataUrl = await readFileAsDataUrl(nextFile);
+        const { width, height } = await getImageDimensions(rawDataUrl);
+        const longest = Math.max(width, height);
+        if (longest < MIN_DIMENSION) {
+          toast.warning(`${nextFile.name}: image is only ${longest}px — consider a clearer photo`);
+        }
+
+        const resized = await resizeImage(rawDataUrl, MAX_DIMENSION, JPEG_QUALITY);
+        imgProc.setImageSrc(resized);
+        setFormData((prev) => ({
+          ...createBlankReceiptForm(),
+          capture_source: prev.capture_source,
+          usage_type: prev.usage_type,
+          business_use_percent: prev.business_use_percent,
+          business_unit_id: prev.business_unit_id,
+        }));
+
+        batchProc.advanceBatch(remaining, total);
+
+        await handleProcessAI(resized);
+      } catch (e) {
+        logWarn('Failed to read file: ' + nextFile.name, { error: e instanceof Error ? e.message : String(e) });
+        toast.error('Failed to read file: ' + nextFile.name);
       }
 
-      const resized = await resizeImage(rawDataUrl, MAX_DIMENSION, JPEG_QUALITY);
-      imgProc.setImageSrc(resized);
-      setFormData((prev) => ({
-        ...createBlankReceiptForm(),
-        capture_source: prev.capture_source,
-        usage_type: prev.usage_type,
-        business_use_percent: prev.business_use_percent,
-        business_unit_id: prev.business_unit_id,
-      }));
+      setTimeout(() => handleProcessNextBatchItem(remaining, total), 1000);
+    },
+    [batchProc, onSaveSuccess, handleProcessAI, imgProc],
+  );
 
-      batchProc.advanceBatch(remaining, total);
+  const handleFilesSelected = useCallback(
+    async (filesList: FileList | null) => {
+      if (!filesList || filesList.length === 0) return;
+      let processedFiles: File[] = [];
 
-      await handleProcessAI(resized);
-    } catch {
-      toast.error('Failed to read file: ' + nextFile.name);
-    }
+      for (let i = 0; i < filesList.length; i++) {
+        const file = filesList[i];
+        if (file.name.toLowerCase().endsWith('.zip')) {
+          try {
+            const JSZip = (await import('jszip')).default;
+            const zip = new JSZip();
+            const contents = await zip.loadAsync(file);
+            for (const [relativePath, zipEntry] of Object.entries(contents.files)) {
+              if (!zipEntry.dir && relativePath.match(/\.(jpe?g|png)$/i)) {
+                const blob = await zipEntry.async('blob');
+                processedFiles.push(
+                  new File([blob], zipEntry.name, { type: blob.type || 'image/jpeg' }),
+                );
+              }
+            }
+          } catch (e) {
+            logWarn('Failed to parse ZIP file: ' + file.name, { error: e instanceof Error ? e.message : String(e) });
+            toast.error('Failed to parse ZIP file: ' + file.name);
+          }
+        } else if (file.type.startsWith('image/')) {
+          processedFiles.push(file);
+        }
+      }
 
-    setTimeout(() => handleProcessNextBatchItem(remaining, total), 1000);
-  }
+      if (processedFiles.length > BATCH_LIMIT) {
+        toast.info(`Batch limit is ${BATCH_LIMIT} files. Only the first ${BATCH_LIMIT} will be processed.`);
+        processedFiles = processedFiles.slice(0, BATCH_LIMIT);
+      }
 
-  function cancelProcessing() {
+      if (processedFiles.length === 0) {
+        toast.error('No valid image files found to process.');
+        return;
+      }
+
+      if (processedFiles.length === 1) {
+        await imgProc.onCapture(processedFiles[0]);
+      } else {
+        batchProc.setIsBatchProcessing(true);
+        batchProc.setBatchTotal(processedFiles.length);
+        batchProc.setBatchProgress(1);
+        batchProc.setBatchQueue(processedFiles.slice(1));
+        await handleProcessNextBatchItem(processedFiles, processedFiles.length);
+      }
+    },
+    [imgProc, batchProc, handleProcessNextBatchItem],
+  );
+
+  const cancelProcessing = useCallback(() => {
     cancelledRef.current = true;
     setProcessingAI(false);
     batchProc.resetBatchState();
     toast.info('Processing cancelled.');
-  }
+  }, [batchProc]);
 
   return {
     imageSrc: imgProc.imageSrc,
@@ -494,23 +577,32 @@ export function useScannerState(
     onSave: saveHook.onSave,
     onContinueDuplicateSave: saveHook.onContinueDuplicateSave,
     handleFilesSelected,
-    handleCameraChange: async (e: React.ChangeEvent<HTMLInputElement>) => {
-      await handleFilesSelected(e.target.files);
-      if (cameraInputRef.current) cameraInputRef.current.value = '';
-    },
-    handleGalleryChange: async (e: React.ChangeEvent<HTMLInputElement>) => {
-      await handleFilesSelected(e.target.files);
-      if (galleryInputRef.current) galleryInputRef.current.value = '';
-    },
-    handleScreenshotChange: async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        await imgProc.onCapture(file);
-        setFormData(prev => ({ ...prev, capture_source: 'email_screenshot' }));
-        setTimeout(() => handleProcessAI(undefined, 'email_screenshot'), 500);
-      }
-      if (screenshotInputRef.current) screenshotInputRef.current.value = '';
-    },
+    handleCameraChange: useCallback(
+      async (e: React.ChangeEvent<HTMLInputElement>) => {
+        await handleFilesSelected(e.target.files);
+        if (cameraInputRef.current) cameraInputRef.current.value = '';
+      },
+      [handleFilesSelected, cameraInputRef],
+    ),
+    handleGalleryChange: useCallback(
+      async (e: React.ChangeEvent<HTMLInputElement>) => {
+        await handleFilesSelected(e.target.files);
+        if (galleryInputRef.current) galleryInputRef.current.value = '';
+      },
+      [handleFilesSelected, galleryInputRef],
+    ),
+    handleScreenshotChange: useCallback(
+      async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          await imgProc.onCapture(file);
+          setFormData((prev) => ({ ...prev, capture_source: 'email_screenshot' }));
+          setTimeout(() => handleProcessAI(undefined, 'email_screenshot'), 500);
+        }
+        if (screenshotInputRef.current) screenshotInputRef.current.value = '';
+      },
+      [imgProc, handleProcessAI, screenshotInputRef],
+    ),
     cancelDuplicate: saveHook.cancelDuplicate,
     cancelProcessing,
     setDuplicateCandidate: saveHook.setDuplicateCandidate,
