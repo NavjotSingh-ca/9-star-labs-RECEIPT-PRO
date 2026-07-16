@@ -32,21 +32,24 @@ test.describe('Global UI components', () => {
 
 test.describe('Terms page', () => {
   test('renders all sections', async ({ page }) => {
-    await page.goto('/terms', { waitUntil: 'networkidle' });
+    await page.goto('/terms', { waitUntil: 'load' });
     await expect(page.getByRole('heading', { name: /terms of service/i })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText(/acceptance/i)).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(/limitation of liability/i)).toBeVisible({ timeout: 10000 });
+    // Use .first() for body text that appears in multiple sections
+    await expect(page.getByText(/acceptance/i).first()).toBeVisible({ timeout: 10000 });
+    // Use getByRole('heading',...) to avoid TOC link+heading strict mode conflict
+    await expect(page.getByRole('heading', { name: /limitation of liability/i })).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/quebec/i)).toBeVisible({ timeout: 10000 });
   });
 });
 
 test.describe('Privacy page', () => {
   test('renders all sections', async ({ page }) => {
-    await page.goto('/privacy', { waitUntil: 'networkidle' });
+    await page.goto('/privacy', { waitUntil: 'load' });
     await expect(page.getByRole('heading', { name: /privacy policy/i })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText(/information we collect/i)).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(/quebec law 25/i)).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(/data retention/i)).toBeVisible({ timeout: 10000 });
+    // Section headings only exist once — use getByRole to bypass TOC link conflict
+    await expect(page.getByRole('heading', { name: /information we collect/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /quebec law 25/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /data retention/i })).toBeVisible({ timeout: 10000 });
   });
 });
 

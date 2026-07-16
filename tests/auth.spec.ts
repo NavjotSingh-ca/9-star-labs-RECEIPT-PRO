@@ -46,9 +46,10 @@ test.describe('Auth page', () => {
   test('sign-up form has password requirements checklist', async ({ page }) => {
     await page.getByRole('button', { name: /sign in/i }).click();
     await page.getByRole('button', { name: /sign up/i }).click();
-    // Type a password to make the requirements checklist visible
+    // Wait for AnimatePresence transition, then type a password
+    await page.getByRole('textbox', { name: /create password/i }).waitFor({ state: 'visible', timeout: 5000 });
     await page.getByRole('textbox', { name: /create password/i }).fill('TestPass123');
-    await expect(page.getByText(/at least 8 characters/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('8+ characters')).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/uppercase/i)).toBeVisible();
     await expect(page.getByText(/number/i)).toBeVisible();
   });
@@ -77,10 +78,10 @@ test.describe('Auth page', () => {
   });
 
   test('tab navigation works from auth page when logged out', async ({ page }) => {
-    await page.goto('/privacy', { waitUntil: 'networkidle' });
+    await page.goto('/privacy', { waitUntil: 'load' });
     await expect(page.getByRole('heading', { name: /privacy/i })).toBeVisible({ timeout: 15000 });
 
-    await page.goto('/terms', { waitUntil: 'networkidle' });
+    await page.goto('/terms', { waitUntil: 'load' });
     await expect(page.getByRole('heading', { name: /terms/i })).toBeVisible({ timeout: 15000 });
   });
 
