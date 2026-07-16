@@ -13,6 +13,7 @@ function createSupabaseClient(): SupabaseClient {
 
   if (isPlaceholder || process.env.CI === 'true') {
     // Return a mock client for CI/testing environments where real Supabase isn't available
+    const mockSubscription = { unsubscribe: () => {} };
     return {
       from: () => ({
         select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: null }) }) }),
@@ -26,7 +27,7 @@ function createSupabaseClient(): SupabaseClient {
         signUp: () => Promise.resolve({ data: { user: null, session: null }, error: { message: 'CI mode - no real auth' } }),
         getUser: () => Promise.resolve({ data: { user: null }, error: null }),
         signOut: () => Promise.resolve({ error: null }),
-        onAuthStateChange: () => ({ data: { subscription: null }, unsubscribe: () => {} }),
+        onAuthStateChange: () => ({ data: { subscription: mockSubscription } }),
       },
       rpc: () => Promise.resolve({ data: null, error: null }),
       storage: {
