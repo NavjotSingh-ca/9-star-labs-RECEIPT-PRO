@@ -234,7 +234,7 @@ export default function PrivacyPage() {
               <li><B>AES-256 encryption at rest</B> for all stored data on AWS EBS volumes managed by Supabase.</li>
               <li><B>Role-based access controls</B> — three-tier permission model (Owner, Employee, Accountant) with database-enforced policy boundaries.</li>
               <li><B>Multi-factor authentication (MFA)</B> support via TOTP authenticator apps for all user accounts.</li>
-              <li><B>Security headers</B> — X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Strict-Transport-Security with 2-year max-age, and nonce-based Content-Security-Policy enforcement on all pages.</li>
+              <li><B>Security headers</B> — X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Strict-Transport-Security with 2-year max-age, and Content-Security-Policy enforcement on all pages.</li>
             </ul>
             <p>Despite these safeguards, no internet-based service can guarantee absolute security. If you discover a security vulnerability, please contact us immediately at <A href="mailto:9starlaba@gmail.com">9starlaba@gmail.com</A>.</p>
           </Section>

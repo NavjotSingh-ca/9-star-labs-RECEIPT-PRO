@@ -268,7 +268,7 @@ Report vulnerabilities per `SECURITY.md`.
 - `supabase/setup.sql` is the single source of truth for schema.
 - Token encryption uses AES-256-GCM (format `enc:iv:authTag:ciphertext`).
 - `CRON_SECRET` made fail-closed.
-- CSP removed in dev mode (Turbopack nonce bug).
+- CSP uses `'unsafe-inline'` + `'self'` in all environments (Turbopack nonce propagation bug prevents nonce-based CSP).
 - Google OAuth auth flow includes org bootstrapping.
 - Layout uses responsive tiers: desktop ≥1024px, tablet <1024px, phone <768px.
 - **Visual identity**: Signature accent = champagne (amber/gold). Font = Geist Variable. Sidebar = always dark (#09090b). Content = off-white in light mode. Cards have shadow depth. Focus rings in champagne. Replaced all blue/violet/purple/indigo with champagne — the app now has a single, cohesive accent color.
@@ -303,7 +303,7 @@ When no more tasks exist or I need fresh direction, the user can take `PROJECT_B
 ## Critical Context
 - The existing database has `transaction_date` as `date` type (not `text`).
 - `setup.sql` duplicate cleanup runs before trigger creation.
-- CSP is disabled in dev (Turbopack nonce bug). Won't occur in production on Vercel.
+- CSP uses `'unsafe-inline'` + `'self'` for scripts (not nonce-based). Nonce + strict-dynamic was incompatible with Next.js chunk loading — the `x-nonce` header isn't consumed to add nonces to `<script src="...">` chunk tags. Revisit if Next.js adds proper nonce propagation for dynamically loaded chunks.
 - Scanner and BankReconciliation 503/404 errors were Turbopack compilation race conditions — hard refresh resolves them.
 - Google OAuth requires Supabase provider enabled + Google Cloud OAuth client.
 - `env.ts` validates `SUPABASE_SERVICE_ROLE_KEY` as optional — if missing, `supabase-admin.ts` throws at import.

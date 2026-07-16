@@ -73,28 +73,27 @@ const publicApiPrefixes = [
   '/api/integrations/',
 ];
 
-// Allowed inline script/style hashes for scripts we can't easily move to external files.
-// Generated via: `sha256 -b <inline-content>` (openssl dgst -sha256 -binary | base64)
-// In CI/dev mode, we allow scripts with nonces - strict-dynamic handles this
-const INLINE_SCRIPT_HASHES = process.env.CI === 'true' ? [] : [
-  "'sha256-+6WnXGr4YUd6/0KZg5YH5Y5Y5Y5Y5Y5Y5Y5Y5Y5Y5Y5Y='", // placeholder - will be populated at build
-];
-
-function buildCSP(nonce: string): string {
-  // Use nonce + strict-dynamic for scripts. 'unsafe-inline' removed.
-  // For styles, use nonce + 'unsafe-inline' (legacy inline styles still exist in some components).
-  // Note: 'unsafe-eval' needed for Framer Motion / Recharts in development only.
-  // In CI/dev mode, allow unsafe-inline to handle dynamic script tags from Next.js
-  const isDev = process.env.NODE_ENV === 'development' || process.env.CI === 'true';
-
-  const scriptSrc = isDev
-    ? [`'self'`, "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com", "https://*.posthog.com"].join(' ')
-    : [`'self'`, `'nonce-${nonce}'`, "'strict-dynamic'", ...INLINE_SCRIPT_HASHES, "https://js.stripe.com", "https://*.posthog.com"].join(' ');
+function buildCSP(): string {
+  // NOTE: Nonce-based CSP with strict-dynamic was attempted but is incompatible with
+  // this Next.js version's chunk loading. The x-nonce header is not consumed by Next.js
+  // to add nonce attributes to <script src="..."> tags for chunk files, so all chunks
+  // are blocked. Using 'unsafe-inline' + 'self' as a practical alternative.
+  // Revisit when Next.js improves nonce propagation for dynamically loaded chunks.
+  // 
+  // Security tradeoff: without a nonce, any injected inline script can execute. However,
+  // external scripts from unknown origins are still blocked by the lack of their URLs.
+  // XSS protection relies on React's built-in escaping + HttpOnly cookies + CSRF tokens.
+  const scriptSrc = [
+    "'self'",
+    "'unsafe-inline'",   // needed because nonce mechanism doesn't propagate to chunk files
+    "'unsafe-eval'",     // needed for Recharts / Framer Motion
+    "https://js.stripe.com",
+    "https://*.posthog.com",
+  ].join(' ');
 
   const styleSrc = [
-    `'self'`,
-    `'nonce-${nonce}'`,
-    "'unsafe-inline'", // legacy inline styles - can be removed once all styles are in CSS modules
+    "'self'",
+    "'unsafe-inline'",
   ].join(' ');
 
   return [
@@ -136,11 +135,6 @@ export async function proxy(request: NextRequest) {
   const requestId = generateUUID();
   
   let supabaseResponse = NextResponse.next({ request });
-  
-  // Add CSRF token to response
-  const csrfToken = getOrCreateCSRFToken(request, supabaseResponse);
-  supabaseResponse.headers.set('x-csrf-token', csrfToken);
-  supabaseResponse.headers.set('x-request-id', requestId);
 
   const supabase = createServerClient(
     SUPABASE_URL ?? '',
@@ -189,10 +183,15 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Production CSP — nonce-based with strict-dynamic
-  const nonce = generateUUID();
-  supabaseResponse.headers.set('x-nonce', nonce);
-  const csp = buildCSP(nonce);
+  // Re-set CSRF cookie + headers AFTER getUser() to fix setAll() reassignment bug:
+  // The setAll callback in createServerClient reassigns supabaseResponse on cookie
+  // refresh, discarding any cookies/headers set before getUser(). Re-create them here
+  // on the final response since no more Supabase cookie ops occur after this point.
+  const csrfToken = getOrCreateCSRFToken(request, supabaseResponse);
+  supabaseResponse.headers.set('x-csrf-token', csrfToken);
+  supabaseResponse.headers.set('x-request-id', requestId);
+
+  const csp = buildCSP();
   supabaseResponse.headers.set('Content-Security-Policy', csp);
 
   // Security headers
