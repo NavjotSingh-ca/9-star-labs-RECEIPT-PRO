@@ -79,10 +79,10 @@ test.describe('Auth page', () => {
 
   test('tab navigation works from auth page when logged out', async ({ page }) => {
     await page.goto('/privacy', { waitUntil: 'load' });
-    await expect(page.getByRole('heading', { name: /privacy/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: 'Privacy Policy' })).toBeVisible({ timeout: 15000 });
 
     await page.goto('/terms', { waitUntil: 'load' });
-    await expect(page.getByRole('heading', { name: /terms/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: 'Terms of Service' })).toBeVisible({ timeout: 15000 });
   });
 
   test('protected route redirects to auth', async ({ page }) => {
