@@ -1,0 +1,8 @@
+{
+  "audit": {
+    "level": "high",
+    "dev": false,
+    "quiet": false,
+    "allowlist": []
+  }
+}

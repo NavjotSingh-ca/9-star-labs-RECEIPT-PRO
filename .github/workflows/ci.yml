@@ -48,7 +48,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npx audit-ci --moderate --skip-dev
+      - run: npx audit-ci --config audit-ci.json
 
   e2e:
     name: End-to-End Tests
