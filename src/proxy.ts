@@ -117,19 +117,27 @@ function buildCSP(): string {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Placeholder mode: skip auth checks to avoid hanging on fake Supabase URL
-  // (CI tests with real mock URLs will pass through to the mocked createServerClient)
-  if (SUPABASE_URL.includes('placeholder') || SUPABASE_ANON_KEY.includes('placeholder')) {
-    const resp = NextResponse.next({ request });
-    resp.headers.set('x-request-id', generateUUID());
-    return resp;
-  }
-
   const isPublic =
     publicPaths.includes(pathname) ||
     pathname.startsWith('/_next') ||
     staticPaths.includes(pathname) ||
     publicApiPrefixes.some((p) => pathname === p || pathname.startsWith(p));
+
+  // Placeholder mode: skip Supabase auth API calls (URL is fake), but still redirect
+  // protected page routes so CI tests verify redirect behavior.
+  if (SUPABASE_URL.includes('placeholder') || SUPABASE_ANON_KEY.includes('placeholder')) {
+    if (!isPublic) {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      const url = request.nextUrl.clone();
+      url.pathname = '/';
+      return NextResponse.redirect(url);
+    }
+    const resp = NextResponse.next({ request });
+    resp.headers.set('x-request-id', generateUUID());
+    return resp;
+  }
 
   // Generate request ID for tracing
   const requestId = generateUUID();

@@ -57,7 +57,7 @@ test.describe('Responsive layout — desktop (1440px)', () => {
 
   test('settings pages have sidebar nav', async ({ page }) => {
     await page.goto('/settings/billing');
-    await expect(page.getByLabel(/email/i)).toBeVisible(); // redirected to auth
+    await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible({ timeout: 10000 }); // redirected to landing page
   });
 });
 

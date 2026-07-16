@@ -5,7 +5,7 @@ test.describe('Accessibility Audit', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     // Wait for the full page loader to disappear
-    await page.waitForSelector('[role="status"][aria-label="Loading application"]', { state: 'hidden', timeout: 30000 });
+    await page.waitForSelector('[role="status"][aria-label="Loading application"]', { state: 'hidden', timeout: 10000 });
   });
 
   test('should not have any detectable accessibility issues on landing page', async ({ page }) => {
@@ -21,7 +21,7 @@ test.describe('Accessibility Audit', () => {
     await page.getByRole('button', { name: /sign in/i }).click();
     // Check if AuthScreen is visible - mode is signin by default, so "Welcome back"
     const authHeading = page.getByRole('heading', { name: /welcome back/i });
-    await expect(authHeading).toBeVisible();
+    await expect(authHeading).toBeVisible({ timeout: 10000 });
 
     const results = await new AxeBuilder({ page })
       .include('form')

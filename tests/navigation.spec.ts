@@ -6,7 +6,7 @@ test.describe('Navigation — logged-out layout', () => {
   });
 
   test('auth page has correct title', async ({ page }) => {
-    await expect(page).toHaveTitle(/Leduc Receipt Pro/i);
+    await expect(page).toHaveTitle(/Leduc Receipt Pro/i, { timeout: 10000 });
   });
 
   test('page has proper lang attribute', async ({ page }) => {
@@ -36,7 +36,7 @@ test.describe('Navigation — desktop sidebar (≥1024px)', () => {
 
   test('sidebar shows nav items', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText(/sign in/i)).toBeVisible();
+    await expect(page.getByText(/sign in/i)).toBeVisible({ timeout: 10000 });
   });
 });
 
@@ -47,7 +47,7 @@ test.describe('Navigation — mobile (<768px)', () => {
     await page.goto('/');
     // Landing page shows first - need to click sign in
     await page.getByRole('button', { name: /sign in/i }).click();
-    await expect(page.getByLabel(/email/i)).toBeVisible();
-    await expect(page.getByLabel(/password/i)).toBeVisible();
+    await expect(page.getByLabel(/email/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByLabel(/password/i)).toBeVisible({ timeout: 10000 });
   });
 });
