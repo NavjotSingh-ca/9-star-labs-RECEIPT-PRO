@@ -45,8 +45,8 @@ test.describe('Navigation — mobile (<768px)', () => {
 
   test('mobile viewport renders correctly', async ({ page }) => {
     await page.goto('/');
-    // Landing page shows first - need to click sign in
-    await page.getByRole('button', { name: /sign in/i }).click();
+    // Landing page shows first - click "Start Free Trial" because "Sign In" is hidden on mobile
+    await page.getByRole('button', { name: /start free trial/i }).first().click();
     await expect(page.getByLabel(/email/i)).toBeVisible({ timeout: 10000 });
     await expect(page.getByLabel(/password/i)).toBeVisible({ timeout: 10000 });
   });

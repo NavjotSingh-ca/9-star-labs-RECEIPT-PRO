@@ -17,6 +17,22 @@ async function handler(_request: Request) {
   const startTime = Date.now();
   const checks: Record<string, { status: 'healthy' | 'degraded' | 'unhealthy'; latencyMs: number; error?: string }> = {};
 
+  // Placeholder mode: skip real checks (CI/local dev without Supabase credentials)
+  const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL || '';
+  if (SUPABASE_URL.includes('placeholder') || !SUPABASE_URL) {
+    return NextResponse.json({
+      status: 'degraded',
+      timestamp: new Date().toISOString(),
+      latencyMs: Date.now() - startTime,
+      checks: {
+        database: { status: 'degraded', latencyMs: 0, error: 'Placeholder mode — Supabase not configured' },
+        stripe: { status: 'degraded', latencyMs: 0, error: 'Placeholder mode — not checked' },
+        resend: { status: 'degraded', latencyMs: 0, error: 'Placeholder mode — not checked' },
+        auth: { status: 'degraded', latencyMs: 0, error: 'Placeholder mode — Supabase not configured' },
+      },
+    }, { status: 200, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } });
+  }
+
   // Check Supabase (database)
   try {
     const dbStart = Date.now();

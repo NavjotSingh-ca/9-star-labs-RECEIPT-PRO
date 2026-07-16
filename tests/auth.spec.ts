@@ -12,7 +12,7 @@ test.describe('Auth page', () => {
 
   test('shows sign-in form after clicking sign in button', async ({ page }) => {
     await page.getByRole('button', { name: /sign in/i }).click();
-    await expect(page.getByText(/AI-powered/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 10000 });
     await expect(page.getByLabel(/email/i)).toBeVisible();
     await expect(page.getByLabel(/password/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /^sign in$/i })).toBeVisible();

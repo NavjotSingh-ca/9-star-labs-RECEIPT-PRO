@@ -15,10 +15,11 @@ test.describe('Global UI components', () => {
     expect(errors.filter((e) => !e.includes('favicon') && !e.includes('third-party') && !e.includes('placeholder') && !e.includes('supabase.co'))).toEqual([]);
   });
 
-  test('top loader bar element exists', async ({ page }) => {
+  test('top loader style element is injected', async ({ page }) => {
     await page.goto('/');
-    const loader = page.locator('#nprogress, .nextjs-toploader, [data-toploader]');
-    await expect(loader).toBeAttached({ timeout: 10000 });
+    // NextTopLoader injects a <style> element with nprogress CSS on mount.
+    // The actual progress bar (#nprogress) is only created when navigation starts.
+    await expect(page.locator('style:has-text("nprogress")')).toBeAttached({ timeout: 10000 });
   });
 });
 
