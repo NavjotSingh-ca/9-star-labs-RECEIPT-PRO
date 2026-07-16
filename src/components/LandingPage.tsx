@@ -198,7 +198,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
     { icon: <Moon className="h-5 w-5" />, title: 'Dark Mode', description: 'Light and dark themes, system-aware. Sync preference across devices.' },
     { icon: <ScrollText className="h-5 w-5" />, title: 'CRA-Ready Reports', description: 'Generate T2125 statements, expense summaries, and mileage logs for tax filing.' },
     { icon: <FileSpreadsheet className="h-5 w-5" />, title: 'QBO & Xero Export', description: 'One-click CSV export formatted for QuickBooks Online and Xero.' },
-    { icon: <Lightbulb className="h-5 w-5" />, title: 'Spending Insights', description: 'AI-generated observations about your spending patterns and trends.' },
+    { icon: <Lightbulb className="h-5 w-5" />, title: 'AI Insights', description: 'AI-generated observations about your spending patterns and trends.' },
     { icon: <Star className="h-5 w-5" />, title: 'Custom Reports', description: 'Build custom reports with date ranges, categories, and metrics. Schedule email delivery.' },
   ];
 
