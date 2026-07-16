@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# superpowers brainstorming mockups
+.superpowers/
+
 # debug
 npm-debug.log*
 yarn-debug.log*

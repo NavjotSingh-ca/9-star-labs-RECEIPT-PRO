@@ -50,24 +50,42 @@ const fadeUp = {
   transition: { duration: 0.6, ease: 'easeOut' as const },
 };
 
-const stagger = {
+const staggerVariants = {
   initial: { opacity: 0, y: 20 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true },
-  transition: { duration: 0.4, ease: 'easeOut' as const },
+  animate: { opacity: 1, y: 0 },
 };
+const staggerTransition = { duration: 0.4, ease: 'easeOut' as const };
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
     <motion.div
-      variants={stagger}
-      className="group relative rounded-2xl border border-glass-border bg-card p-6 transition-all duration-200 hover:shadow-lg hover:border-champagne/30 hover:-translate-y-0.5"
+      variants={staggerVariants}
+      initial="initial"
+      whileInView="animate"
+      viewport={{ once: true }}
+      transition={staggerTransition}
+      onClick={() => {
+        document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`${title} — Learn more`}
+      className="group relative rounded-2xl border border-glass-border bg-card p-6 transition-all duration-200 hover:shadow-lg hover:border-champagne/30 hover:-translate-y-0.5 cursor-pointer"
     >
       <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-champagne/10 text-champagne group-hover:bg-champagne/15 transition-colors">
         {icon}
       </div>
       <h3 className="text-sm font-bold text-text-primary mb-1.5">{title}</h3>
       <p className="text-xs text-text-muted leading-relaxed">{description}</p>
+      <p className="mt-3 text-[10px] font-semibold text-champagne opacity-0 group-hover:opacity-100 transition-opacity">
+        Learn more →
+      </p>
     </motion.div>
   );
 }
@@ -167,6 +185,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
  */
 export default function LandingPage({ onGetStarted }: LandingPageProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showAllFeatures, setShowAllFeatures] = useState(false);
   const { scrollY } = useScroll();
   const headerBg = useTransform(scrollY, [0, 80], ['rgba(12,12,12,0)', 'rgba(12,12,12,0.95)']);
   const headerBorder = useTransform(scrollY, [0, 80], ['rgba(0,0,0,0)', 'rgba(255,255,255,0.06)']);
@@ -201,6 +220,13 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
     { icon: <Lightbulb className="h-5 w-5" />, title: 'AI Insights', description: 'AI-generated observations about your spending patterns and trends.' },
     { icon: <Star className="h-5 w-5" />, title: 'Custom Reports', description: 'Build custom reports with date ranges, categories, and metrics. Schedule email delivery.' },
   ];
+
+  const visibleFeatures = showAllFeatures ? features : features.filter(f =>
+    ['AI Receipt Scanning', 'CRA Readiness Score', 'Audit Trail',
+     'Budget Management', 'Team Approvals', 'Mileage Tracking',
+     'Bank Reconciliation', 'Smart Search', 'Multi-Currency',
+     'Custom Reports', 'QBO & Xero Export', 'Dark Mode'].includes(f.title)
+  );
 
   function handlePricingClick(planName: string) {
     if (planName === 'Enterprise') {
@@ -299,13 +325,17 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-6">
             {navItems.map((item) => (
-              <a
+              <button
                 key={item.label}
-                href={item.href}
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById(item.href.replace('#', ''));
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }}
                 className="text-xs font-medium text-text-muted hover:text-text-primary transition-colors"
               >
                 {item.label}
-              </a>
+              </button>
             ))}
             <button
               type="button"
@@ -338,14 +368,18 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             >
               <div className="space-y-1 px-4 py-3">
                 {navItems.map((item) => (
-                  <a
+                  <button
                     key={item.label}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block rounded-lg px-3 py-2 text-sm font-medium text-text-muted hover:bg-surface-hover hover:text-text-primary transition"
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      const el = document.getElementById(item.href.replace('#', ''));
+                      el?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="block w-full text-left rounded-lg px-3 py-2 text-sm font-medium text-text-muted hover:bg-surface-hover hover:text-text-primary transition"
                   >
                     {item.label}
-                  </a>
+                  </button>
                 ))}
                 <button
                   type="button"
@@ -361,7 +395,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       </motion.header>
 
       {/* HERO SECTION */}
-      <section className="relative overflow-hidden pt-28 pb-20 sm:pt-36 sm:pb-28">
+      <section className="relative overflow-hidden pt-24 pb-16 sm:pt-36 sm:pb-28">
         {/* Ambient gradients */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-champagne/8 via-champagne/3 to-transparent" />
         <div className="pointer-events-none absolute -left-32 -top-32 h-[500px] w-[500px] rounded-full bg-champagne/10 blur-[120px]" />
@@ -382,7 +416,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl leading-[1.1]"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]"
           >
             Receipt Management{' '}
             <span className="bg-gradient-to-r from-champagne to-champagne-dim bg-clip-text text-transparent">
@@ -441,7 +475,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       </section>
 
       {/* FEATURES SECTION */}
-      <section id="features" className="py-20 sm:py-28">
+      <section id="features" className="py-20 sm:py-28 scroll-mt-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <motion.div {...fadeUp} className="text-center mb-14">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-champagne mb-3">Everything You Need</p>
@@ -451,21 +485,27 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             </p>
           </motion.div>
 
-          <motion.div
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"
-          >
-            {features.map((f) => (
+          <motion.div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+            {visibleFeatures.map((f) => (
               <FeatureCard key={f.title} icon={f.icon} title={f.title} description={f.description} />
             ))}
           </motion.div>
+          {!showAllFeatures && features.length > 12 && (
+            <motion.div {...fadeUp} className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={() => setShowAllFeatures(true)}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-champagne hover:text-champagne-dim transition"
+              >
+                Show all {features.length} features <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+            </motion.div>
+          )}
         </div>
       </section>
 
       {/* PRICING SECTION */}
-      <section id="pricing" className="py-20 sm:py-28 bg-gradient-to-b from-transparent via-champagne/[0.02] to-transparent">
+      <section id="pricing" className="py-20 sm:py-28 bg-gradient-to-b from-transparent via-champagne/[0.02] to-transparent scroll-mt-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <motion.div {...fadeUp} className="text-center mb-14">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-champagne mb-3">Simple Pricing</p>
@@ -475,14 +515,9 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             </p>
           </motion.div>
 
-          <motion.div
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true }}
-            className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-start max-w-4xl mx-auto"
-          >
+          <motion.div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 items-start max-w-4xl mx-auto">
             {pricingPlans.map((plan) => (
-              <motion.div key={plan.name} variants={stagger}>
+              <motion.div key={plan.name} variants={staggerVariants} initial="initial" whileInView="animate" viewport={{ once: true }} transition={staggerTransition}>
                 <PricingCard {...plan} onGetStarted={() => handlePricingClick(plan.name)} />
               </motion.div>
             ))}
@@ -521,7 +556,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       </section>
 
       {/* FAQ SECTION */}
-      <section id="faq" className="py-20 sm:py-28 border-t border-glass-border">
+      <section id="faq" className="py-20 sm:py-28 border-t border-glass-border scroll-mt-20">
         <div className="mx-auto max-w-3xl px-4 sm:px-6">
           <motion.div {...fadeUp} className="text-center mb-10">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-champagne mb-3">FAQ</p>
