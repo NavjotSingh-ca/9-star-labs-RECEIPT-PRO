@@ -1,107 +1,49 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { createBrowserClient } from '@supabase/ssr';
-import { env } from './env';
+/**
+ * Unified Supabase client exports.
+ *
+ * For client components: import { supabase, getBrowserSupabase } from '@/lib/supabase'
+ * For server components/actions/API routes: import { createServerSupabaseClient, getSupabase } from '@/lib/supabase'
+ */
 
-let client: SupabaseClient | null = null;
+import type { SupabaseClient } from '@supabase/supabase-js';
 
-function createSupabaseClient(): SupabaseClient {
-  const isPlaceholder = env.NEXT_PUBLIC_SUPABASE_URL?.includes('placeholder') ||
-                       env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.includes('placeholder') ||
-                       process.env.CI === 'true' ||
-                       !env.NEXT_PUBLIC_SUPABASE_URL ||
-                       !env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Client-side exports
+export {
+  supabase,
+  getBrowserSupabase,
+} from './supabase-client';
 
-  if (isPlaceholder || process.env.CI === 'true') {
-    // Return a mock client for CI/testing environments where real Supabase isn't available
-    const mockSubscription = { unsubscribe: () => {} };
+import { getBrowserSupabase } from './supabase-client';
 
-    return {
-      from: () => ({
-        select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: null }) }) }),
-        insert: () => Promise.resolve({ data: null, error: null }),
-        update: () => ({ eq: () => Promise.resolve({ data: null, error: null }) }),
-        delete: () => ({ eq: () => Promise.resolve({ data: null, error: null }) }),
-        createSignedUrl: () => Promise.resolve({ data: { signedUrl: '' }, error: null }),
-      }),
-      auth: {
-        signInWithPassword: () => Promise.resolve({ data: { user: null, session: null }, error: { message: 'CI mode - no real auth' } }),
-        signUp: () => Promise.resolve({ data: { user: null, session: null }, error: { message: 'CI mode - no real auth' } }),
-        getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-        signOut: () => Promise.resolve({ error: null }),
-        onAuthStateChange: (callback: (event: string, session: null) => void) => {
-          // Immediately invoke with SIGNED_OUT since there's no user in CI mode
-          setTimeout(() => callback('SIGNED_OUT', null), 0);
-          return { data: { subscription: mockSubscription } };
-        },
-        getSession: () => Promise.resolve({ data: { session: null } }),
-      },
-      rpc: () => Promise.resolve({ data: null, error: null }),
-      storage: {
-        from: () => ({
-          createSignedUrl: () => Promise.resolve({ data: { signedUrl: '' }, error: null }),
-        }),
-      },
-      channel: () => ({
-        on: () => ({ subscribe: () => ({ unsubscribe: () => {} }) }),
-        subscribe: () => ({ unsubscribe: () => {} }),
-        unsubscribe: () => {},
-      }),
-    } as unknown as SupabaseClient;
-  }
+// Server-side exports (lazy to avoid next/headers import on client)
+export { createServerSupabaseClient } from './supabase-server';
+export { createServerSupabaseClient as createServerClient } from './supabase-server';
 
+/**
+ * Get the Supabase client for the current environment.
+ * - On the client: returns a promise resolving to the singleton browser client
+ * - On the server: returns a promise resolving to a fresh server client per request
+ *
+ * Always `await` the result — the server client requires async cookie access
+ * and on the client we wrap the sync return for a consistent API.
+ */
+export async function getSupabase(): Promise<SupabaseClient> {
   if (typeof window !== 'undefined') {
-    return createBrowserClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
-      global: {
-        fetch: (...args: Parameters<typeof fetch>) => {
-          const [url, init] = args;
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 15000);
-          return fetch(url, { ...init, signal: controller.signal }).finally(() =>
-            clearTimeout(timeoutId)
-          );
-        },
-      },
-    });
+    // Client-side: use singleton browser client
+    return getBrowserSupabase();
   }
-
-  return createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-    global: {
-      fetch: (...args: Parameters<typeof fetch>) => {
-        const [url, init] = args;
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000);
-        return fetch(url, { ...init, signal: controller.signal }).finally(() =>
-          clearTimeout(timeoutId)
-        );
-      },
-    },
-  });
+  // Server-side: create fresh server client per request
+  // Import dynamically to avoid bundling next/headers in client
+  const m = await import('./supabase-server');
+  return m.createServerSupabaseClient();
 }
-
-export function getSupabase(): SupabaseClient {
-  if (!client) {
-    client = createSupabaseClient();
-  }
-  return client;
-}
-
-export const supabase = new Proxy<SupabaseClient>({} as SupabaseClient, {
-  get(_, prop: keyof SupabaseClient) {
-    return getSupabase()[prop];
-  },
-});
 
 export async function getReceiptImageUrl(pathOrUrl: string | null | undefined): Promise<string | null> {
   if (!pathOrUrl) return null;
   if (pathOrUrl.startsWith('http')) {
     return pathOrUrl;
   }
-  const c = getSupabase();
+  const c = await getSupabase();
   const { data, error } = await c.storage
     .from('receipt-images')
     .createSignedUrl(pathOrUrl, 3600);
@@ -110,6 +52,7 @@ export async function getReceiptImageUrl(pathOrUrl: string | null | undefined): 
 }
 
 export async function getOrgIdString(): Promise<string | null> {
-  const { data } = await getSupabase().rpc('get_user_org');
+  const client = await getSupabase();
+  const { data } = await client.rpc('get_user_org');
   return typeof data === 'string' ? data : null;
 }

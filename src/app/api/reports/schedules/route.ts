@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withRateLimit } from '@/lib/rate-limiter';
-import { supabase } from '@/lib/supabase';
+import { createServerClient } from '@/lib/supabase';
 import { getOrgIdString } from '@/lib/supabase';
 import { logError } from '@/lib/logger';
 
@@ -59,6 +59,7 @@ async function GET() {
   try {
     const orgId = await getOrgIdString();
     if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const supabase = await createServerClient();
     const { data, error } = await supabase
       .from('report_schedules')
       .select('*')
@@ -83,6 +84,7 @@ async function POST(request: Request) {
   try {
     const orgId = await getOrgIdString();
     if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -147,6 +149,7 @@ async function PATCH(request: Request) {
   try {
     const orgId = await getOrgIdString();
     if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const supabase = await createServerClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'Schedule ID required' }, { status: 400 });
@@ -209,6 +212,7 @@ async function DELETE(request: Request) {
   try {
     const orgId = await getOrgIdString();
     if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const supabase = await createServerClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'Schedule ID required' }, { status: 400 });

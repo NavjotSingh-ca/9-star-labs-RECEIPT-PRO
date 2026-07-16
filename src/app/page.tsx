@@ -267,7 +267,14 @@ function AppContent() {
   useEffect(() => {
     if (!hasMounted) return;
     let active = true;
+    let authResolved = false;
     let subscription: { unsubscribe: () => void } | null = null;
+
+    function resolveAuth(isResolved: boolean) {
+      if (authResolved) return;
+      authResolved = true;
+      setAuthLoading(!isResolved);
+    }
 
     async function resolveUser(currentUser: User) {
       setUser(currentUser);
@@ -275,7 +282,7 @@ function AppContent() {
         const rolePromise = getUserRole(currentUser.id);
         const orgPromise = supabase.rpc('get_user_org');
         const timeout = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Auth timeout')), 3000)
+          setTimeout(() => reject(new Error('Auth timeout')), 5000)
         );
 
         const [role, { data: orgId }] = await Promise.all([
@@ -311,14 +318,14 @@ function AppContent() {
               }
             }
           }
-          setAuthLoading(false);
+          resolveAuth(true);
         }
       } catch (err) {
         if (active) {
           logError(err, { action: 'auth_resolution_failed' });
           toast.error('Unable to verify your role. Some features may be limited.');
           setRole('Employee');
-          setAuthLoading(false);
+          resolveAuth(true);
         }
       }
     }
@@ -331,10 +338,10 @@ function AppContent() {
         if (user) {
           resolveUser(user);
         } else {
-          setAuthLoading(false);
+          resolveAuth(false);
         }
       }).catch(() => {
-        if (active) setAuthLoading(false);
+        if (active) resolveAuth(true);
       });
 
       const { data: subResult } = supabase.auth.onAuthStateChange((event, session) => {
@@ -343,21 +350,23 @@ function AppContent() {
           resolveUser(session.user);
         } else {
           setUser(null);
-          setAuthLoading(false);
+          resolveAuth(false);
         }
       });
       subscription = subResult.subscription;
     } catch (err) {
       if (active) {
         logError(err, { action: 'auth_effect_failed' });
-        setAuthLoading(false);
+        resolveAuth(true);
         return;
       }
     }
 
+    // Safety timeout — ensures loading screen never persists indefinitely
+    // even if all auth flows hang. Extended to 5 seconds for slow networks.
     const safetyTimeout = setTimeout(() => {
-      setAuthLoading(false);
-    }, 3000);
+      resolveAuth(false);
+    }, 5000);
 
     return () => {
       active = false;

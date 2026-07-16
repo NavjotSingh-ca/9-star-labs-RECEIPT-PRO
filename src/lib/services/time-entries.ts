@@ -26,7 +26,7 @@ export interface TimeEntryResult<T = TimeEntry | TimeEntry[] | null> {
 
 export async function clockIn(orgId: string, notes?: string): Promise<TimeEntryResult<TimeEntry>> {
   try {
-    const supabase = getSupabase();
+    const supabase = await getSupabase();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return { error: 'Not authenticated' };
 
@@ -65,7 +65,7 @@ export async function clockIn(orgId: string, notes?: string): Promise<TimeEntryR
 
 export async function clockOut(orgId: string, entryId: string, notes?: string): Promise<TimeEntryResult<TimeEntry>> {
   try {
-    const supabase = getSupabase();
+    const supabase = await getSupabase();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return { error: 'Not authenticated' };
 
@@ -98,7 +98,7 @@ export async function clockOut(orgId: string, entryId: string, notes?: string): 
 
 export async function getActiveEntry(orgId: string): Promise<TimeEntryResult<TimeEntry | null>> {
   try {
-    const supabase = getSupabase();
+    const supabase = await getSupabase();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return { error: 'Not authenticated' };
 
@@ -124,7 +124,7 @@ export async function getActiveEntry(orgId: string): Promise<TimeEntryResult<Tim
 
 export async function getTodayEntries(orgId: string): Promise<TimeEntryResult<TimeEntry[]>> {
   try {
-    const supabase = getSupabase();
+    const supabase = await getSupabase();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return { error: 'Not authenticated' };
 
@@ -155,7 +155,7 @@ export async function getTimeEntryHistory(
   offset = 0,
 ): Promise<TimeEntryResult<TimeEntry[]>> {
   try {
-    const supabase = getSupabase();
+    const supabase = await getSupabase();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return { error: 'Not authenticated' };
 

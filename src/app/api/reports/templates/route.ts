@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withRateLimit } from '@/lib/rate-limiter';
 import { getPrebuiltTemplates, getCustomTemplates, saveCustomTemplate, ReportConfigSchema } from '@/lib/services/reports';
-import { getOrgIdString } from '@/lib/supabase';
-import { supabase } from '@/lib/supabase';
+import { getOrgIdString, createServerClient } from '@/lib/supabase';
 import { logError } from '@/lib/logger';
 
 /**
@@ -41,7 +40,8 @@ async function POST(request: Request) {
     const parsed = ReportConfigSchema.parse(config);
     const orgId = await getOrgIdString();
     if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    const { data: { user } } = await supabase.auth.getUser();
+    const serverClient = await createServerClient();
+    const { data: { user } } = await serverClient.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     await saveCustomTemplate(orgId, user.id, name, parsed);

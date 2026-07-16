@@ -8,7 +8,13 @@
       "Bash(git push *)",
       "Bash(taskkill *)",
       "Bash(curl -s https://openrouter.ai/api/v1/models)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(awk -F: '{sum+=$2} END {print sum \" total tests\"}')",
+      "Bash(npx playwright *)",
+      "Bash(Get-Process -Name \"node\" -ErrorAction SilentlyContinue)",
+      "Bash(Stop-Process -Force -ErrorAction SilentlyContinue)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(pkill -f \"next dev\")"
     ]
   }
 }

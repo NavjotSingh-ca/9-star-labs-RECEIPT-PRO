@@ -71,7 +71,8 @@ export function isRoleAllowedForFeature(
  */
 export async function getOrgFeaturesRaw(orgId: string): Promise<OrgFeatureRow[]> {
   try {
-    const { data, error } = await getSupabase()
+    const supabase = await getSupabase();
+    const { data, error } = await supabase
       .from('org_features')
       .select('*')
       .eq('org_id', orgId);
@@ -97,7 +98,8 @@ export async function getOrgFeatures(
   role?: UserRole,
 ): Promise<FeaturesMap> {
   try {
-    const { data, error } = await getSupabase()
+    const supabase = await getSupabase();
+    const { data, error } = await supabase
       .from('org_features')
       .select('feature_key, enabled, allowed_roles')
       .eq('org_id', orgId);
@@ -107,7 +109,10 @@ export async function getOrgFeatures(
       return getAllEnabled();
     }
 
-    if (!data || data.length === 0) {
+    type OrgFeatureRow = { feature_key: string; enabled: boolean; allowed_roles: string[] | null };
+    const rows = (data as OrgFeatureRow[]) || [];
+
+    if (rows.length === 0) {
       return getAllEnabled();
     }
 
@@ -115,7 +120,7 @@ export async function getOrgFeatures(
     const isOwner = role === 'Owner';
 
     for (const key of ALL_FEATURE_KEYS) {
-      const row = data.find((r) => r.feature_key === key);
+      const row = rows.find((r) => r.feature_key === key);
       const enabled = row ? row.enabled : true;
       const allowedRoles: string[] = row?.allowed_roles ?? DEFAULT_ROLES_ALL;
 
@@ -146,7 +151,8 @@ export async function setOrgFeature(
   enabled: boolean,
 ): Promise<{ success: boolean; features?: FeaturesMap; error?: string }> {
   try {
-    const { error } = await getSupabase()
+    const client1 = await getSupabase();
+    const { error } = await client1
       .from('org_features')
       .upsert(
         { org_id: orgId, feature_key: featureKey, enabled },
@@ -182,7 +188,8 @@ export async function setFeatureRoles(
       return { success: false, error: `Invalid roles: ${invalid.join(', ')}` };
     }
 
-    const { error } = await getSupabase()
+    const supabase3 = await getSupabase();
+    const { error } = await supabase3
       .from('org_features')
       .upsert(
         { org_id: orgId, feature_key: featureKey, allowed_roles: allowedRoles },
@@ -216,7 +223,8 @@ export async function setOrgFeaturesBulk(
       enabled: Boolean(enabled),
     }));
 
-    const { error } = await getSupabase()
+    const supabase4 = await getSupabase();
+    const { error } = await supabase4
       .from('org_features')
       .upsert(rows, { onConflict: 'org_id, feature_key' });
 
@@ -238,7 +246,8 @@ export async function setOrgFeaturesBulk(
  */
 export async function bootstrapOrgFeatures(orgId: string): Promise<boolean> {
   try {
-    const { error } = await getSupabase().rpc('bootstrap_org_features', { p_org_id: orgId });
+    const supabase5 = await getSupabase();
+    const { error } = await supabase5.rpc('bootstrap_org_features', { p_org_id: orgId });
     if (error) {
       logError(error, { action: 'bootstrapOrgFeatures_rpc_failed', orgId });
       return false;

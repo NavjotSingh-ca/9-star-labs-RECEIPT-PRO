@@ -35,7 +35,7 @@ export function ConsentBanner() {
     setVisible(false);
 
     try {
-      const supabase = getSupabase();
+      const supabase = await getSupabase();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase.from('audit_logs').insert({
@@ -54,7 +54,7 @@ export function ConsentBanner() {
     setVisible(false);
 
     try {
-      const supabase = getSupabase();
+      const supabase = await getSupabase();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase.from('audit_logs').insert({
