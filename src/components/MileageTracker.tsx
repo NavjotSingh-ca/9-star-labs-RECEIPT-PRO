@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { AlertCircle, Plus, Car, Trash2, MapPin, Calendar, Gauge, Loader2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
@@ -385,9 +386,9 @@ export default function MileageTracker() {
           {logs.map((log, idx) => (
             <motion.div
               key={log.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.03 }}
+              variants={fadeUp}
+              initial="hidden"
+              animate="show"
               className="rounded-[2rem] border border-glass-border bg-surface p-4 shadow-sm group"
             >
               <div className="flex items-start justify-between">

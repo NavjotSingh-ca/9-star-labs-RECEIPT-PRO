@@ -124,11 +124,11 @@ function FeaturesSettingsContent() {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="animate-pulse rounded-2xl border border-glass-border bg-surface p-6">
-            <div className="mb-4 h-5 w-24 rounded bg-glass-border" />
+          <div key={i} className="rounded-2xl border border-glass-border bg-surface p-6">
+            <div className="mb-4 skeleton skeleton-lg" />
             <div className="space-y-3">
               {[1, 2, 3].map((j) => (
-                <div key={j} className="h-20 rounded-xl bg-glass-border" />
+                <div key={j} className="skeleton skeleton-card" />
               ))}
             </div>
           </div>

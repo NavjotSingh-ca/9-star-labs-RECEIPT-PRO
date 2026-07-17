@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { fadeUp } from '@/lib/animations';
-import { Download, FileDown } from 'lucide-react';
+import { Download, FileDown, FolderSearch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { METRIC_LABELS, formatMetricValue } from '@/lib/services/reports';
 import type { ReportResult } from '@/lib/services/reports';
@@ -109,9 +109,18 @@ export function ReportViewer({ result, templateName }: Props) {
       )}
 
       {result.rows.length === 0 && (
-        <div className="px-4 py-8 text-center text-sm text-text-muted">
-          No data matches the current filters and date range.
-        </div>
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          animate="show"
+          className="flex flex-col items-center gap-3 px-4 py-12 text-center"
+          role="status"
+          aria-live="polite"
+        >
+          <FolderSearch className="h-10 w-10 text-text-muted/30" />
+          <p className="text-sm text-text-muted">No data matches the current filters and date range.</p>
+          <p className="text-xs text-text-muted/60">Try adjusting your date range or selecting different metrics.</p>
+        </motion.div>
       )}
     </motion.div>
   );

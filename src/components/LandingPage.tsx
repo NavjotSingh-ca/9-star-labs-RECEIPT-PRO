@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { slideDown } from '@/lib/animations';
 import {
   ReceiptText,
   Camera,
@@ -404,9 +405,9 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6 text-center">
           {/* Top badge */}
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            variants={slideDown}
+            initial="hidden"
+            animate="show"
             className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-champagne/20 bg-champagne/5 px-3.5 py-1 text-[10px] font-bold uppercase tracking-widest text-champagne"
           >
             <Star className="h-3 w-3" /> CRA-Ready Accounting

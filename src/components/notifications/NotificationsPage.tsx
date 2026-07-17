@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { Bell, CheckCheck, Trash2, ArrowLeft } from 'lucide-react';
 import { useNotificationStore } from '@/lib/stores/notifications';
 import { getNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification } from '@/lib/services/notifications';
@@ -198,8 +199,9 @@ export default function NotificationsPage({ onBack }: NotificationsPageProps) {
         </div>
       ) : filtered.length === 0 ? (
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
+          variants={fadeUp}
+          initial="hidden"
+          animate="show"
           className="flex flex-col items-center justify-center py-24 text-center"
         >
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-champagne/10">

@@ -86,10 +86,10 @@ export default function TaxOptimizer() {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4" role="status" aria-label="Loading tax optimizations">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-glass-border bg-surface p-4 animate-pulse">
-            <div className="h-4 w-20 bg-surface-raised rounded mb-2" />
-            <div className="h-6 w-16 bg-surface-raised rounded mb-2" />
-            <div className="h-3 w-full bg-surface-raised rounded" />
+          <div key={i} className="rounded-xl border border-glass-border bg-surface p-4">
+            <div className="skeleton skeleton-md mb-2" />
+            <div className="skeleton skeleton-xl mb-2" />
+            <div className="skeleton skeleton-sm" />
           </div>
         ))}
       </div>

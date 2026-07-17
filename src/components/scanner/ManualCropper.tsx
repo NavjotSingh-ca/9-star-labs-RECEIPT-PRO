@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback, startTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { Check, RotateCcw, X, Maximize2, Lock, Unlock, Move } from 'lucide-react';
 
 import { useFocusTrap } from '@/hooks/useFocusTrap';
@@ -589,8 +590,9 @@ export default function ManualCropper({ imageSrc, fileName, onCancel, onApply }:
         <AnimatePresence>
           {!crop && isReady && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+              variants={fadeUp}
+              initial="hidden"
+              animate="show"
               exit={{ opacity: 0, y: -10 }}
               className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10"
             >

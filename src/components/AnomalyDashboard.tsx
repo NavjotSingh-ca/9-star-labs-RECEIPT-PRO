@@ -2,7 +2,9 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase, getOrgIdString } from '@/lib/supabase';
-import { TrendingUp, SearchX, Calculator, CopySlash, Loader2, FileWarning } from 'lucide-react';
+import { TrendingUp, SearchX, Calculator, CopySlash, Loader2, FileWarning, ShieldCheck, CheckCircle2, Receipt } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { formatDineroIntl } from '@/lib/finance-utils';
 import type { ReceiptRow } from '@/lib/types';
 import { toNumber } from '@/lib/ui-utils';
@@ -138,7 +140,10 @@ export default function AnomalyDashboard() {
           </div>
           <div className="space-y-3">
             {fraudReceipts.length === 0 ? (
-              <p className="text-sm text-text-muted text-center py-4">No fraud flags detected.</p>
+              <motion.div variants={fadeUp} initial="hidden" animate="show" className="flex flex-col items-center gap-2 py-6 text-center" role="status" aria-live="polite">
+                <ShieldCheck className="h-8 w-8 text-emerald-success/40" />
+                <p className="text-sm text-text-muted">No fraud flags detected.</p>
+              </motion.div>
             ) : (
               fraudReceipts.map(r => (
                 <div key={r.id} className="rounded-xl bg-surface-raised p-3 text-sm">
@@ -169,7 +174,10 @@ export default function AnomalyDashboard() {
           </div>
           <div className="space-y-3">
             {spendAnomalies.length === 0 ? (
-              <p className="text-sm text-text-muted text-center py-4">No spend anomalies detected.</p>
+              <motion.div variants={fadeUp} initial="hidden" animate="show" className="flex flex-col items-center gap-2 py-6 text-center" role="status" aria-live="polite">
+                <TrendingUp className="h-8 w-8 text-text-muted/30" />
+                <p className="text-sm text-text-muted">No spend anomalies detected.</p>
+              </motion.div>
             ) : (
               spendAnomalies.map(s => (
                 <div key={s.receipt_id} className="rounded-xl bg-surface-raised p-3 text-sm">
@@ -202,7 +210,10 @@ export default function AnomalyDashboard() {
           </div>
           <div className="space-y-3">
             {mathErrors.length === 0 ? (
-              <p className="text-sm text-text-muted text-center py-4">No math errors detected.</p>
+              <motion.div variants={fadeUp} initial="hidden" animate="show" className="flex flex-col items-center gap-2 py-6 text-center" role="status" aria-live="polite">
+                <Calculator className="h-8 w-8 text-text-muted/30" />
+                <p className="text-sm text-text-muted">No math errors detected.</p>
+              </motion.div>
             ) : (
               mathErrors.map(r => (
                 <div key={r.id} className="rounded-xl bg-surface-raised p-3 text-sm">
@@ -235,7 +246,10 @@ export default function AnomalyDashboard() {
           </div>
           <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
             {missingBN.length === 0 ? (
-              <p className="text-sm text-text-muted text-center py-4">No major BN omissions.</p>
+              <motion.div variants={fadeUp} initial="hidden" animate="show" className="flex flex-col items-center gap-2 py-6 text-center" role="status" aria-live="polite">
+                <Receipt className="h-8 w-8 text-text-muted/30" />
+                <p className="text-sm text-text-muted">No major BN omissions.</p>
+              </motion.div>
             ) : (
               missingBN.map(r => (
                 <div key={r.id} className="rounded-xl bg-surface-raised p-3 text-sm mb-2">
@@ -266,7 +280,10 @@ export default function AnomalyDashboard() {
           </div>
           <div className="space-y-3">
             {duplicates.length === 0 ? (
-              <p className="text-sm text-text-muted text-center py-4">No forced duplicates.</p>
+              <motion.div variants={fadeUp} initial="hidden" animate="show" className="flex flex-col items-center gap-2 py-6 text-center" role="status" aria-live="polite">
+                <CheckCircle2 className="h-8 w-8 text-emerald-success/40" />
+                <p className="text-sm text-text-muted">No forced duplicates.</p>
+              </motion.div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {duplicates.map(r => (

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { AlertCircle, Loader2, Plus, Trash2, Briefcase, X, Columns3, List, RefreshCw } from 'lucide-react';
 
 import PageHeader from '@/components/layout/PageHeader';
@@ -218,8 +219,9 @@ export default function ProjectManager() {
                   <motion.div
                     key={p.id}
                     layout
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    variants={fadeUp}
+                    initial="hidden"
+                    animate="show"
                     exit={{ opacity: 0, scale: 0.95 }}
                     className="group rounded-3xl border border-glass-border bg-surface p-5 hover:bg-surface-raised transition-all"
                   >

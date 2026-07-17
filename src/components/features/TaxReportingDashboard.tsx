@@ -85,9 +85,9 @@ export default function TaxReportingDashboard() {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4" role="status" aria-label="Loading tax summary">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-glass-border bg-surface p-4 animate-pulse">
-            <div className="h-3 w-16 bg-surface-raised rounded mb-2" />
-            <div className="h-6 w-20 bg-surface-raised rounded" />
+          <div key={i} className="rounded-xl border border-glass-border bg-surface p-4">
+            <div className="skeleton skeleton-sm mb-2" />
+            <div className="skeleton skeleton-xl" />
           </div>
         ))}
       </div>

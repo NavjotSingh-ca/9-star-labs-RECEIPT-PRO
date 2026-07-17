@@ -74,10 +74,10 @@ export default function PredictiveAnalytics() {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4" role="status" aria-label="Loading predictions">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-glass-border bg-surface p-4 animate-pulse">
-            <div className="h-3 w-16 bg-surface-raised rounded mb-2" />
-            <div className="h-5 w-20 bg-surface-raised rounded mb-1" />
-            <div className="h-2 w-full bg-surface-raised rounded" />
+          <div key={i} className="rounded-xl border border-glass-border bg-surface p-4">
+            <div className="skeleton skeleton-sm mb-2" />
+            <div className="skeleton skeleton-lg mb-1" />
+            <div className="skeleton skeleton-sm" />
           </div>
         ))}
       </div>

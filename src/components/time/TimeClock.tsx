@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, LogOut, AlertCircle, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { slideDown } from '@/lib/animations';
 import { clockIn, clockOut, getActiveEntry } from '@/lib/services/time-entries';
 
 interface TimeClockProps {
@@ -124,8 +125,9 @@ export default function TimeClock({ orgId }: TimeClockProps) {
               {isClockedIn && activeEntry?.clock_in_time && (
                 <motion.div
                   key="elapsed"
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  variants={slideDown}
+                  initial="hidden"
+                  animate="show"
                   exit={{ opacity: 0, y: -10 }}
                 >
                   <ElapsedTimer clockInTime={activeEntry.clock_in_time} />

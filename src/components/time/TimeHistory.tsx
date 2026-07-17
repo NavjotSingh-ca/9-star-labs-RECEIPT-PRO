@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Clock, ChevronDown, CalendarDays } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { getTimeEntryHistory, type TimeEntry } from '@/lib/services/time-entries';
 
 interface TimeHistoryProps {
@@ -73,13 +74,13 @@ export default function TimeHistory({ orgId }: TimeHistoryProps) {
         {isLoading ? (
           <div className="space-y-2">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="flex animate-pulse items-center gap-4 rounded-xl border border-glass-border bg-surface-raised p-4">
-                <div className="h-10 w-10 rounded-lg bg-glass-border" />
+              <div key={i} className="flex items-center gap-4 rounded-xl border border-glass-border bg-surface-raised p-4">
+                <div className="skeleton skeleton-circle" style={{ width: '2.5rem', height: '2.5rem' }} />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 w-40 rounded bg-glass-border" />
-                  <div className="h-3 w-20 rounded bg-glass-border" />
+                  <div className="skeleton skeleton-md" />
+                  <div className="skeleton skeleton-sm" />
                 </div>
-                <div className="h-4 w-16 rounded bg-glass-border" />
+                <div className="skeleton skeleton-md" />
               </div>
             ))}
           </div>
@@ -96,8 +97,9 @@ export default function TimeHistory({ orgId }: TimeHistoryProps) {
                 {entries.map((entry: TimeEntry, i: number) => (
                   <motion.div
                     key={entry.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    variants={fadeUp}
+                    initial="hidden"
+                    animate="show"
                     transition={{ delay: i * 0.03 }}
                     className="flex items-center justify-between rounded-lg border border-transparent px-4 py-3 transition-colors hover:border-glass-border hover:bg-surface-raised/50"
                   >

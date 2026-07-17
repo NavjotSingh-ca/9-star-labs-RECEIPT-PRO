@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { useQuery } from '@tanstack/react-query';
 import { Clock } from 'lucide-react';
 import { getTodayEntries, type TimeEntry } from '@/lib/services/time-entries';
@@ -36,13 +37,13 @@ function Skeleton() {
   return (
     <div className="space-y-2">
       {[1, 2].map((i) => (
-        <div key={i} className="flex animate-pulse items-center gap-4 rounded-xl border border-glass-border bg-surface-raised p-4">
-          <div className="h-10 w-10 rounded-lg bg-glass-border" />
+        <div key={i} className="flex items-center gap-4 rounded-xl border border-glass-border bg-surface-raised p-4">
+          <div className="skeleton skeleton-circle" style={{ width: '2.5rem', height: '2.5rem' }} />
           <div className="flex-1 space-y-2">
-            <div className="h-4 w-32 rounded bg-glass-border" />
-            <div className="h-3 w-24 rounded bg-glass-border" />
+            <div className="skeleton skeleton-md" />
+            <div className="skeleton skeleton-sm" />
           </div>
-          <div className="h-4 w-16 rounded bg-glass-border" />
+          <div className="skeleton skeleton-md" />
         </div>
       ))}
     </div>
@@ -80,9 +81,10 @@ export default function TodaySummary({ orgId }: TodaySummaryProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: 0.1 }}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
+      transition={{ delay: 0.1 }}
       className="rounded-2xl border border-glass-border bg-card shadow-card"
     >
       <div className="border-b border-glass-border px-6 py-4">

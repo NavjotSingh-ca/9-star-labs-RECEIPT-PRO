@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { Save, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -224,8 +225,9 @@ export function CustomReportBuilder({ orgId }: Props) {
       <AnimatePresence>
         {reportResult && !generateMutation.isPending && (
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
             className="flex items-center gap-3 p-3 rounded-lg border border-glass-border bg-card"
           >
             <label className="flex items-center gap-2 cursor-pointer">

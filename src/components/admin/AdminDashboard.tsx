@@ -36,7 +36,7 @@ function StatCard({ icon, label, value, loading }: { icon: React.ReactNode; labe
         <div className="min-w-0">
           <p className="text-xs font-medium text-text-muted">{label}</p>
           {loading ? (
-            <div className="mt-1 h-5 w-20 animate-pulse rounded bg-surface-hover" />
+            <div className="mt-1 skeleton skeleton-lg" />
           ) : (
             <p className="text-lg font-bold tracking-tight tabular-nums text-text-primary">{value}</p>
           )}

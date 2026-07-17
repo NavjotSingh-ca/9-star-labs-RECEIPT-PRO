@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  AlertCircle, Loader2, Clock, CheckCircle2, XCircle, GripVertical,
+  AlertCircle, Loader2, Clock, CheckCircle2, XCircle, GripVertical, Inbox,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { fadeUp, springGentle } from '@/lib/animations';
@@ -210,9 +210,10 @@ export default function KanbanWorkflow() {
                   ))}
 
                   {items.length === 0 && (
-                    <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-glass-border bg-surface/30 py-8 text-center">
-                      <p className="text-xs text-text-muted/60">No receipts</p>
-                    </div>
+                    <motion.div variants={fadeUp} initial="hidden" animate="show" className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-glass-border bg-surface/30 py-8 text-center" role="status" aria-live="polite">
+                      <Inbox className="h-6 w-6 text-text-muted/30" />
+                      <p className="text-xs text-text-muted/60">Drop receipts here</p>
+                    </motion.div>
                   )}
                 </div>
               </div>

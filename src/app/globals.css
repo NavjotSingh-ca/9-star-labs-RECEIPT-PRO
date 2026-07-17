@@ -350,6 +350,14 @@ body {
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: 0.5rem;
 }
+/* Skeleton size variants — use with rounded-* and w-* for flexible layout */
+.skeleton-sm { height: 0.75rem; min-width: 3rem; }
+.skeleton-md { height: 1rem; min-width: 5rem; }
+.skeleton-lg { height: 1.25rem; min-width: 7rem; }
+.skeleton-xl { height: 1.5rem; min-width: 10rem; }
+.skeleton-card { height: 8rem; border-radius: 0.75rem; }
+.skeleton-circle { border-radius: 9999px; aspect-ratio: 1; }
+.skeleton-text { height: 1rem; width: 100%; margin-bottom: 0.5rem; }
 
 @keyframes shimmer {
   0% { background-position: -200% 0; }
@@ -485,12 +493,26 @@ body {
 }
 
 /* ─── Stagger entrance for list children (CSS-only) ─── */
-@for $i from 1 through 20 {
-  .stagger-enter > :nth-child($i) {
-    animation: fadeSlideUp 0.4s ease-out both;
-    animation-delay: calc($i * 30ms);
-  }
-}
+.stagger-enter > :nth-child(1)  { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(1 * 30ms); }
+.stagger-enter > :nth-child(2)  { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(2 * 30ms); }
+.stagger-enter > :nth-child(3)  { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(3 * 30ms); }
+.stagger-enter > :nth-child(4)  { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(4 * 30ms); }
+.stagger-enter > :nth-child(5)  { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(5 * 30ms); }
+.stagger-enter > :nth-child(6)  { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(6 * 30ms); }
+.stagger-enter > :nth-child(7)  { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(7 * 30ms); }
+.stagger-enter > :nth-child(8)  { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(8 * 30ms); }
+.stagger-enter > :nth-child(9)  { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(9 * 30ms); }
+.stagger-enter > :nth-child(10) { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(10 * 30ms); }
+.stagger-enter > :nth-child(11) { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(11 * 30ms); }
+.stagger-enter > :nth-child(12) { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(12 * 30ms); }
+.stagger-enter > :nth-child(13) { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(13 * 30ms); }
+.stagger-enter > :nth-child(14) { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(14 * 30ms); }
+.stagger-enter > :nth-child(15) { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(15 * 30ms); }
+.stagger-enter > :nth-child(16) { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(16 * 30ms); }
+.stagger-enter > :nth-child(17) { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(17 * 30ms); }
+.stagger-enter > :nth-child(18) { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(18 * 30ms); }
+.stagger-enter > :nth-child(19) { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(19 * 30ms); }
+.stagger-enter > :nth-child(20) { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(20 * 30ms); }
 
 /* ─── Champagne glow pulse for active/selected items ─── */
 @keyframes glowPulse {
@@ -528,6 +550,23 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ─── GPU acceleration via will-change ─── */
+/* Only applies to known animated classes — too broad a selector creates too many compositing layers */
+.antigravity-card,
+.antigravity-btn,
+.antigravity-float,
+.antigravity-float-slow,
+.antigravity-drift,
+.glow-pulse,
+.shimmer-scan,
+.shimmer-auth,
+.skeleton {
+  will-change: transform, opacity;
+}
+.skeleton {
+  will-change: background-position;
 }
 
 /* ─── Safe Areas ─── */
