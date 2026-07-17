@@ -20,10 +20,10 @@ import SmoothScroll from '@/components/SmoothScroll';
 // Register GSAP ScrollTrigger
 gsap.registerPlugin(ScrollTrigger);
 
-// Dynamically import the 3D scene — it uses Three.js canvas (SSR skip)
+// Lazy-load 3D scene only after page is interactive
 const Scene3D = dynamic(
   () => import('@/components/landing/Scene3D').then((m) => m.default),
-  { ssr: false, loading: () => <div className="h-[320px] sm:h-[420px]" /> },
+  { ssr: false, loading: () => null },
 );
 
 const featureList = features as typeof features;
@@ -104,6 +104,20 @@ function GlowBorder({ children }: { children: React.ReactNode }) {
 
 export default function LandingPage({ onGetStarted }: LandingPageProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [show3D, setShow3D] = useState(false);
+
+  // Defer 3D scene load until after initial paint + idle
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => setShow3D(true), { timeout: 3000 });
+      } else {
+        setShow3D(true);
+      }
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   const { scrollY } = useScroll();
   const headerBg = useTransform(scrollY, [0, 80], ['rgba(12,12,12,0)', 'rgba(12,12,12,0.95)']);
   const headerBorder = useTransform(scrollY, [0, 80], ['rgba(0,0,0,0)', 'rgba(255,255,255,0.06)']);
@@ -315,13 +329,33 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         <FloatingOrb className="left-1/3 bottom-0 bg-champagne/5" size={400} />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-champagne/5 via-transparent to-obsidian" />
 
-        {/* 3D Scene background layer */}
+        {/* 3D Scene background layer with static fallback */}
         <motion.div
           className="absolute inset-0 z-0"
           data-parallax="hero"
           style={{ scale: heroScale, opacity: heroOpacity, filter: heroBlur }}
         >
-          <Scene3D />
+          {show3D ? (
+            <Scene3D />
+          ) : (
+            // Static fallback — no JS, no canvas, instant paint
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="relative">
+                <div className="absolute -inset-4 bg-gradient-to-tr from-champagne/10 via-transparent to-transparent blur-3xl" />
+                <div className="relative w-[280px] h-[420px] mx-auto">
+                  <div className="absolute inset-0 bg-gradient-to-br from-champagne/5 via-champagne/10 to-transparent rounded-2xl border border-champagne/20" />
+                  <div className="absolute inset-0 bg-gradient-radial from-champagne/10 via-transparent to-transparent" />
+                  <div className="relative h-full flex items-center justify-center">
+                    <div className="w-full h-full max-w-xs mx-auto">
+                      <div className="aspect-[2/3] bg-gradient-to-br from-champagne/20 via-champagne/5 to-transparent rounded-xl border border-champagne/30 flex items-center justify-center">
+                        <ReceiptText className="w-32 h-32 text-champagne/50 mx-auto" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </motion.div>
 
         {/* Content overlay */}
