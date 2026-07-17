@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
   ReceiptText, Camera, ArrowRight, Check, Menu, X,
   ChevronDown, Sparkles, Zap, ShieldCheck, Clock,
@@ -13,6 +15,10 @@ import { slideDown } from '@/lib/animations';
 import { features } from '@/lib/feature-content';
 import { TiltCard } from '@/components/landing/TiltCard';
 import { AnimatedCounter } from '@/components/landing/AnimatedCounter';
+import SmoothScroll from '@/components/SmoothScroll';
+
+// Register GSAP ScrollTrigger
+gsap.registerPlugin(ScrollTrigger);
 
 // Dynamically import the 3D scene — it uses Three.js canvas (SSR skip)
 const Scene3D = dynamic(
@@ -32,18 +38,18 @@ interface LandingPageProps {
 import type { Variants } from 'framer-motion';
 
 const heroEntrance: Variants = {
-  hidden: { opacity: 0, y: 40, scale: 0.96 },
+  hidden: { opacity: 0, y: 60, scale: 0.95 },
   show: {
     opacity: 1, y: 0, scale: 1,
-    transition: { type: 'spring' as const, stiffness: 120, damping: 22, mass: 0.9 },
+    transition: { type: 'spring' as const, stiffness: 60, damping: 28, mass: 1.2 },
   },
 };
 
 const fadeUpSection: Variants = {
-  hidden: { opacity: 0, y: 40 },
+  hidden: { opacity: 0, y: 50 },
   show: {
     opacity: 1, y: 0,
-    transition: { type: 'spring' as const, stiffness: 180, damping: 24, mass: 0.8 },
+    transition: { type: 'spring' as const, stiffness: 80, damping: 26, mass: 1 },
   },
 };
 
@@ -51,15 +57,15 @@ const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.06, delayChildren: 0.1 },
+    transition: { staggerChildren: 0.12, delayChildren: 0.2 },
   },
 };
 
 const staggerItem: Variants = {
-  hidden: { opacity: 0, y: 24, scale: 0.97 },
+  hidden: { opacity: 0, y: 30, scale: 0.96 },
   show: {
     opacity: 1, y: 0, scale: 1,
-    transition: { type: 'spring' as const, stiffness: 200, damping: 22, mass: 0.7 },
+    transition: { type: 'spring' as const, stiffness: 100, damping: 24, mass: 0.9, duration: 0.8 },
   },
 };
 
@@ -161,7 +167,72 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
     }
   }, []);
 
+  // ─── GSAP cinematic parallax effects ───────────────────────
+  const heroRef = useRef<HTMLDivElement>(null);
+  const pricingRef = useRef<HTMLDivElement>(null);
+  const ctaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Only run GSAP on desktop — mobile doesn't need heavy parallax
+    if (typeof window === 'undefined' || window.innerWidth < 768) return;
+
+    const ctx = gsap.context(() => {
+      // Hero parallax: the 3D scene moves slower than scroll
+      if (heroRef.current) {
+        gsap.to(heroRef.current.querySelector('[data-parallax="hero"]'), {
+          yPercent: 15,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: heroRef.current,
+            start: 'top top',
+            end: 'bottom top',
+            scrub: 0.5,
+          },
+        });
+      }
+
+      // Pricing section parallax glow
+      if (pricingRef.current) {
+        gsap.fromTo(
+          pricingRef.current.querySelector('[data-parallax="glow"]'),
+          { opacity: 0.3 },
+          {
+            opacity: 1,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: pricingRef.current,
+              start: 'top bottom',
+              end: 'top center',
+              scrub: 1,
+            },
+          },
+        );
+      }
+
+      // CTA section scale-in
+      if (ctaRef.current) {
+        gsap.fromTo(
+          ctaRef.current,
+          { scale: 0.92, opacity: 0.7 },
+          {
+            scale: 1,
+            opacity: 1,
+            duration: 1.2,
+            ease: 'power2.out',
+            scrollTrigger: {
+              trigger: ctaRef.current,
+              start: 'top 80%',
+            },
+          },
+        );
+      }
+    });
+
+    return () => ctx.revert();
+  }, []);
+
   return (
+    <SmoothScroll>
     <div className="min-h-screen bg-obsidian text-text-primary selection:bg-champagne/30 overflow-x-hidden">
       {/* ─── Fixed Nav ─── */}
       <motion.header
@@ -247,6 +318,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         {/* 3D Scene background layer */}
         <motion.div
           className="absolute inset-0 z-0"
+          data-parallax="hero"
           style={{ scale: heroScale, opacity: heroOpacity, filter: heroBlur }}
         >
           <Scene3D />
@@ -597,6 +669,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         </div>
       </footer>
     </div>
+    </SmoothScroll>
   );
 }
 

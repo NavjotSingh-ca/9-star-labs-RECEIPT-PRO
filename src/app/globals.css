@@ -456,16 +456,19 @@ body {
 /* ─── Antigravity hover for cards (CSS-only, no framer) ─── */
 .antigravity-card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  will-change: transform, box-shadow;
 }
 .antigravity-card:hover {
   transform: translateY(-4px) scale(1.005);
   box-shadow: 0 8px 24px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.04);
+  /* Promote to its own layer only while interacting, not permanently —
+     a permanent will-change on every card wastes GPU memory. */
+  will-change: transform, box-shadow;
 }
 @media (prefers-reduced-motion: reduce) {
   .antigravity-card:hover {
     transform: none;
     box-shadow: none;
+    will-change: auto;
   }
 }
 
