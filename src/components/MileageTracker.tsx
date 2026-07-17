@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fadeUp } from '@/lib/animations';
-import { AlertCircle, Plus, Car, Trash2, MapPin, Calendar, Gauge, Loader2 } from 'lucide-react';
+import { AlertCircle, Plus, Car, Trash2, MapPin, Calendar, Gauge, Loader2, Download } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,6 +16,7 @@ import {
   getMileageLogs, createMileageLog, deleteMileageLog,
   calculateCRAMileage, getYearToDateKm,
 } from '@/lib/services/mileage';
+import type { MileageLog, Vehicle } from '@/lib/services/mileage';
 import { supabase } from '@/lib/supabase';
 
 const vehicleSchema = z.object({
@@ -38,6 +39,32 @@ const tripSchema = z.object({
 
 type VehicleForm = z.infer<typeof vehicleSchema>;
 type TripForm = z.infer<typeof tripSchema>;
+
+/** Download all mileage logs as a CSV (Date, Purpose, Distance, Rate, Amount, Vehicle). */
+function exportMileageCSV(logs: MileageLog[], vehicles: Vehicle[]): void {
+  const vehicleMap = new Map(vehicles.map((v) => [v.id, v.nickname]));
+  const headers = ['Date', 'Purpose', 'Start', 'End', 'Distance (km)', 'Rate ($/km)', 'Amount', 'Vehicle'];
+  const rows = logs.map((l) => [
+    l.trip_date,
+    l.purpose,
+    l.start_location ?? '',
+    l.end_location ?? '',
+    String(l.distance_km),
+    l.rate_per_km != null ? l.rate_per_km.toFixed(2) : '',
+    l.total_amount != null ? l.total_amount.toFixed(2) : '',
+    l.vehicle_id ? (vehicleMap.get(l.vehicle_id) ?? '') : '',
+  ]);
+  const csv = [headers, ...rows]
+    .map((row) => row.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `mileage-log-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 /**
  * MileageTracker — CRA-compliant mileage log with vehicle management, trip logging,
@@ -116,6 +143,14 @@ export default function MileageTracker() {
     const totalKm = logs.reduce((s, l) => s + Number(l.distance_km), 0);
     const totalAmount = logs.reduce((s, l) => s + Number(l.total_amount), 0);
     return { totalKm: Math.round(totalKm * 10) / 10, totalAmount: Math.round(totalAmount * 100) / 100, tripCount: logs.length };
+  }, [logs]);
+
+  const ytdDeduction = useMemo(() => {
+    const year = new Date().getFullYear();
+    const total = logs
+      .filter((l) => new Date(l.trip_date).getFullYear() === year)
+      .reduce((s, l) => s + Number(l.total_amount), 0);
+    return Math.round(total * 100) / 100;
   }, [logs]);
 
   const addVehicleMutation = useMutation({
@@ -225,6 +260,16 @@ export default function MileageTracker() {
         action={
           <div className="flex gap-2">
             <button
+              onClick={() => exportMileageCSV(logs, vehicles)}
+              disabled={logs.length === 0}
+              type="button"
+              className="flex items-center gap-1.5 rounded-full border border-glass-border bg-surface px-3 py-2 text-xs font-semibold text-text-primary hover:bg-surface-raised transition disabled:opacity-40"
+              aria-label="Export mileage log as CSV"
+              title="Export mileage log as CSV"
+            >
+              <Download className="h-3.5 w-3.5" /> Export CSV
+            </button>
+            <button
               onClick={() => { setShowAddVehicle(true); setShowAddTrip(false); }}
               type="button"
               className="flex items-center gap-1.5 rounded-full border border-glass-border bg-surface px-3 py-2 text-xs font-semibold text-text-primary hover:bg-surface-raised transition"
@@ -243,7 +288,7 @@ export default function MileageTracker() {
       />
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-3xl border border-glass-border bg-surface p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Total Distance</p>
           <p className="mt-2 text-2xl font-bold tabular-nums text-text-primary">{summary.totalKm.toLocaleString()} km</p>
@@ -255,6 +300,10 @@ export default function MileageTracker() {
         <div className="rounded-3xl border border-glass-border bg-surface p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Trips Logged</p>
           <p className="mt-2 text-2xl font-bold tabular-nums text-text-primary">{summary.tripCount}</p>
+        </div>
+        <div className="rounded-3xl border border-glass-border bg-surface p-4 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">YTD Deduction (Est.)</p>
+          <p className="mt-2 text-2xl font-bold tabular-nums text-champagne">{formatCurrency(ytdDeduction)}</p>
         </div>
       </div>
 

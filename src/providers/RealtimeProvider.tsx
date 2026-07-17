@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -13,6 +13,7 @@ interface RealtimePayload {
 
 interface RealtimeContextType {
   subscribeToReceipts: (callback: (payload: RealtimePayload) => void) => () => void;
+  isConnected: boolean;
 }
 
 const RealtimeContext = createContext<RealtimeContextType | null>(null);
@@ -20,6 +21,7 @@ const RealtimeContext = createContext<RealtimeContextType | null>(null);
 export function RealtimeProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     if (!user?.orgId) return;
@@ -38,10 +40,13 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           // The actual handler will be set via subscribeToReceipts
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        setIsConnected(status === 'SUBSCRIBED');
+      });
 
     return () => {
       channelRef.current?.unsubscribe();
+      setIsConnected(false);
     };
   }, [user?.orgId]);
 
@@ -68,7 +73,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <RealtimeContext.Provider value={{ subscribeToReceipts }}>
+    <RealtimeContext.Provider value={{ subscribeToReceipts, isConnected }}>
       {children}
     </RealtimeContext.Provider>
   );

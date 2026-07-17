@@ -18,6 +18,29 @@ export function ReportViewer({ result, templateName }: Props) {
   const groupBy = result.config.groupBy;
 
   const handleExport = async (format: 'csv' | 'json') => {
+    // Mileage reports are aggregated client-side and aren't served by the
+    // receipt report RPC, so export directly from the in-memory result.
+    if (result.source === 'mileage') {
+      const groupByCol = result.config.groupBy;
+      const header = groupByCol
+        ? [METRIC_LABELS[groupByCol] || groupByCol, ...result.config.metrics.map((m) => METRIC_LABELS[m] || m)]
+        : result.config.metrics.map((m) => METRIC_LABELS[m] || m);
+      const rows = result.rows.map((row) =>
+        groupByCol
+          ? [String(row[groupByCol] ?? ''), ...result.config.metrics.map((m) => formatMetricValue(m, Number(row[m] ?? 0)))]
+          : result.config.metrics.map((m) => formatMetricValue(m, Number(row[m] ?? 0)))
+      );
+      const csvContent = [header.join(','), ...rows.map((r) => r.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${templateName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
+
     const res = await fetch('/api/reports/export', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

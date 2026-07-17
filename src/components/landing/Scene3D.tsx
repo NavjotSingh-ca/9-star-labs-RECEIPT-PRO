@@ -202,10 +202,12 @@ function ShaderReceiptCard({
 
 function ParticleField({
   reducedMotion,
+  isMobile,
 }: {
   reducedMotion: boolean;
+  isMobile: boolean;
 }) {
-  const count = reducedMotion ? 200 : 2000;
+  const count = reducedMotion ? 150 : isMobile ? 400 : 800;
   const meshRef = useRef<THREE.Points>(null);
 
   // Seeded PRNG for stable particle positions (React Compiler purity)
@@ -389,22 +391,26 @@ function SceneContent({
 
   return (
     <>
-      {/* Post-processing pipeline */}
-      <EffectComposer multisampling={4}>
-        <Bloom
-          intensity={0.3}
-          luminanceThreshold={0.6}
-          luminanceSmoothing={0.7}
-        />
-        <DepthOfField
-          focusDistance={0}
-          focalLength={0.02}
-          bokehScale={1.5}
-        />
-        <ChromaticAberration
-          offset={new THREE.Vector2(0.002, 0.002)}
-        />
-      </EffectComposer>
+      {!isMobile && !reducedMotion && (
+        <>
+          {/* Post-processing pipeline (desktop only) */}
+          <EffectComposer multisampling={2}>
+            <Bloom
+              intensity={0.25}
+              luminanceThreshold={0.7}
+              luminanceSmoothing={0.5}
+            />
+            <DepthOfField
+              focusDistance={0}
+              focalLength={0.02}
+              bokehScale={1.2}
+            />
+            <ChromaticAberration
+              offset={new THREE.Vector2(0.0015, 0.0015)}
+            />
+          </EffectComposer>
+        </>
+      )}
 
       <group ref={groupRef}>
         {/* Ambient glow */}
@@ -420,7 +426,7 @@ function SceneContent({
 
         <ShaderReceiptCard reducedMotion={reducedMotion} />
 
-        <ParticleField reducedMotion={reducedMotion} />
+        <ParticleField reducedMotion={reducedMotion} isMobile={isMobile} />
 
         {!reducedMotion && !isMobile && (
           <>
@@ -430,22 +436,6 @@ function SceneContent({
               offset={0}
               size={0.18}
               type="icosahedron"
-              reducedMotion={reducedMotion}
-            />
-            <OrbitingShape
-              radius={2.8}
-              speed={-0.25}
-              offset={Math.PI}
-              size={0.14}
-              type="torusKnot"
-              reducedMotion={reducedMotion}
-            />
-            <OrbitingShape
-              radius={1.9}
-              speed={0.45}
-              offset={Math.PI / 2}
-              size={0.12}
-              type="octahedron"
               reducedMotion={reducedMotion}
             />
           </>
@@ -468,7 +458,7 @@ export default function Scene3D({ className }: Scene3DProps) {
     <div className={className} aria-hidden="true">
       <Canvas
         camera={{ position: [0, 0, 6], fov: 42 }}
-        dpr={[1, 1.5]}
+        dpr={[1, 1.2]}
         gl={{
           antialias: true,
           alpha: true,

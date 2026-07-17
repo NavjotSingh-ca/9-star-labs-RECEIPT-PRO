@@ -53,6 +53,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import RealtimeStatus from '@/components/layout/RealtimeStatus';
+import { useRealtime } from '@/providers/RealtimeProvider';
 import type { UserRole } from '@/lib/types';
 import { useFeatures } from '@/lib/features/hooks';
 import type { FeatureKey } from '@/lib/features/registry';
@@ -153,6 +155,7 @@ function NavLink({
       type="button"
       onClick={onClick}
       aria-label={label}
+      aria-current={active ? 'page' : undefined}
       title={label}
       {...navItemHover}
        className={`relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150 ${
@@ -202,6 +205,7 @@ export default function Sidebar({
   const isPrivileged = role !== 'Employee';
   const unreadCount = useNotificationStore((s) => s.unreadCount());
   const { features } = useFeatures();
+  const { isConnected } = useRealtime();
 
   /**
    * Check if a tab should be visible based on feature flags.
@@ -338,7 +342,7 @@ export default function Sidebar({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 scroll-smooth no-scrollbar">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 scroll-smooth no-scrollbar" aria-label="Main navigation">
         {navGroups.map((group) => {
           const hasItems = group.items.length > 0;
           if (!hasItems) return null;
@@ -372,6 +376,14 @@ export default function Sidebar({
 
         {/* Bottom section */}
       <div className="border-t border-sidebar-border px-2 py-2">
+        {/* Live sync status */}
+        <div
+          className={`mb-1 flex items-center rounded-lg px-2.5 py-1.5 text-sidebar-text-muted ${collapsed ? 'justify-center' : ''}`}
+          title={collapsed ? (isConnected ? 'Live sync connected' : 'Live sync disconnected') : undefined}
+        >
+          <RealtimeStatus connected={isConnected} showLabel={!collapsed} />
+        </div>
+
         {/* Billing & Plan */}
         <Link
           href="/settings/billing"

@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
 import { useReportTemplates, useReportGenerate } from '@/hooks/useReports';
+import { generateMileageByVehicleReport } from '@/lib/services/reports';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -30,10 +31,15 @@ export function ReportsPage({ orgId }: Props) {
 
   const handleGenerate = useCallback(async (template: ReportTemplate) => {
     setSelectedTemplate(template);
+    if (template.source === 'mileage') {
+      const result = await generateMileageByVehicleReport(orgId);
+      setReportResult(result);
+      return;
+    }
     const config = { ...template.config, ...activeFilters };
     const result = await generateMutation.mutateAsync(config);
     setReportResult(result);
-  }, [activeFilters, generateMutation]);
+  }, [activeFilters, generateMutation, orgId]);
 
   const handleFiltersChange = useCallback((filters: Partial<ReportConfig>) => {
     setActiveFilters(filters);

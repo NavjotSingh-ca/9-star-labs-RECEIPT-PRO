@@ -19,6 +19,12 @@ interface AppState {
   sidebarCollapsed: boolean;
   /** Toggles sidebar collapsed state. */
   setSidebarCollapsed: (collapsed: boolean) => void;
+  /** Whether the global command palette (⌘K) is open. */
+  commandOpen: boolean;
+  /** Opens or closes the command palette. */
+  setCommandOpen: (open: boolean) => void;
+  /** Toggles the command palette open state. */
+  toggleCommand: () => void;
 }
 
 /** Global app store for UI state. */
@@ -31,4 +37,7 @@ export const useAppStore = create<AppState>((set) => ({
   setRole: (role) => set({ role }),
   sidebarCollapsed: false,
   setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+  commandOpen: false,
+  setCommandOpen: (open) => set({ commandOpen: open }),
+  toggleCommand: () => set((s) => ({ commandOpen: !s.commandOpen })),
 }));

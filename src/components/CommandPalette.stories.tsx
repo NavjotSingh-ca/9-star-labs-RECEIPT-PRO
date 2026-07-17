@@ -10,7 +10,12 @@ const meta: Meta<typeof CommandPalette> = {
   component: CommandPalette,
   decorators: [withProviders],
   parameters: {
-    docs: { description: { component: 'Cmd+K / Ctrl+K command palette. Searchable list of actions: scan, bulk upload, missing BN queue, export, toggle role. Spring-animated modal with backdrop blur.' } },
+    docs: {
+      description: {
+        component:
+          'Cmd+K / Ctrl+K command palette. Fuzzy search across navigation, settings pages, and quick actions (theme toggle, sign out). Spring-animated modal with backdrop blur and champagne accents.',
+      },
+    },
   },
   tags: ['autodocs'],
 };
@@ -20,7 +25,9 @@ type Story = StoryObj<typeof CommandPalette>;
 
 export const Default: Story = {
   args: {
-    onAction: (action: string) => console.log('Action:', action),
+    onTabChange: (tab) => console.log('Navigate to:', tab),
+    onSignOut: () => console.log('Sign out'),
+    role: 'Owner',
   },
 };
 
@@ -33,7 +40,13 @@ export const Open: Story = {
           <Command className="size-4 mr-2" />
           {open ? 'Close' : 'Open'} Command Palette
         </Button>
-        {open && <CommandPalette onAction={(a) => { console.log(a); setOpen(false); }} />}
+        {open && (
+          <CommandPalette
+            onTabChange={(t) => console.log(t)}
+            onSignOut={() => console.log('sign out')}
+            role="Owner"
+          />
+        )}
       </div>
     );
   },

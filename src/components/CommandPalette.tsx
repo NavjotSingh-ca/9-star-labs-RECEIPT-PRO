@@ -1,131 +1,262 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { navItemHover } from '@/lib/animations';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Command } from 'cmdk';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
+import { useAppStore } from '@/lib/store';
+import type { Tab } from '@/components/tab-content';
+import type { UserRole } from '@/lib/types';
 import {
-  Search,
-  ScanLine,
-  FileArchive,
-  AlertOctagon,
-  FileDown,
-  UserCog,
-  Command,
+  LayoutDashboard, Camera, ReceiptText, Route, Clock, Building2, Search,
+  CalendarDays, History, FileDown, Landmark, Wallet, PiggyBank, Receipt,
+  TrendingUp, Store, Tags, GitCompare, Repeat, Kanban, ScrollText, Users,
+  AlertTriangle, BarChart3, ClipboardCheck, Lightbulb, Share2,
+  CreditCard, Building, ShieldCheck, Sparkles, Bell, FileText, Lock,
+  Sun, Moon, LogOut, ArrowRight, type LucideIcon,
 } from 'lucide-react';
-import { APP_NAME } from '@/lib/constants';
 
 interface CommandPaletteProps {
-  onAction: (action: string) => void;
+  /** Switches the active app tab. */
+  onTabChange: (tab: Tab) => void;
+  /** Signs the current user out. */
+  onSignOut: () => void | Promise<void>;
+  /** Current user role — gates privileged tabs. */
+  role: UserRole;
+}
+
+interface PaletteItemProps {
+  icon: LucideIcon;
+  label: string;
+  hint?: string;
+  keywords?: string[];
+  onSelect: () => void;
+}
+
+/** A single selectable row inside the palette. */
+function PaletteItem({ icon: Icon, label, hint, keywords, onSelect }: PaletteItemProps) {
+  return (
+    <Command.Item
+      value={label}
+      keywords={keywords}
+      onSelect={onSelect}
+      className="group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground/90 outline-none transition-colors [&[data-selected='true']]:bg-champagne/10 [&[data-selected='true']]:text-foreground"
+    >
+      <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-surface-raised text-muted-foreground transition-colors group-hover:text-foreground [&[data-selected='true']]:bg-champagne/15 [&[data-selected='true']]:text-champagne">
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="flex-1 truncate">{label}</span>
+      {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 [&[data-selected='true']]:opacity-100" />
+    </Command.Item>
+  );
 }
 
 /**
- * CommandPalette — Cmd+K / Ctrl+K command palette overlay.
- * Provides quick access to scanner, bulk upload, missing BN queue, exports, and role toggle.
- * Filters items by label/description text match. Escape or click-outside to close.
+ * Global command palette (⌘K / Ctrl+K).
+ * Fuzzy search across app navigation, settings pages, and quick actions.
+ * Self-contained: owns its open/close keyboard handling and respects the
+ * app-wide reduced-motion preference via the root MotionConfig.
  */
-export default function CommandPalette({ onAction }: CommandPaletteProps) {
-  const [open, setOpen] = useState(false);
+export default function CommandPalette({ onTabChange, onSignOut, role }: CommandPaletteProps) {
+  const open = useAppStore((s) => s.commandOpen);
+  const setOpen = useAppStore((s) => s.setCommandOpen);
+  const { resolvedTheme, setTheme } = useTheme();
+  const router = useRouter();
   const [search, setSearch] = useState('');
+  const lastFocused = useRef<HTMLElement | null>(null);
 
-  // Listen for Cmd+K or Ctrl+K
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setOpen((open) => !open);
-      }
-    };
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
-  }, []);
+  const isPrivileged = role !== 'Employee';
 
-  const handleAction = (action: string) => {
+  const close = useCallback(() => {
+    setSearch('');
     setOpen(false);
-    onAction(action);
-  };
+    lastFocused.current?.focus?.();
+  }, [setOpen, setSearch]);
 
-  const menuItems = [
-    { id: 'scan', icon: ScanLine, label: 'New Scan', description: 'Jump to the scanner interface' },
-    { id: 'bulk-upload', icon: FileArchive, label: 'Bulk / ZIP Upload', description: 'Enter advanced multi-receipt processing' },
-    { id: 'missing-bn', icon: AlertOctagon, label: 'Missing BN Queue', description: 'Review receipts missing GST numbers' },
-    { id: 'export-idea', icon: FileDown, label: 'Generate IDEA Export', description: 'Download CRA-compliant flat file' },
-    { id: 'toggle-role', icon: UserCog, label: 'Toggle Internal Role', description: 'Switch between Owner/Employee/Accountant testing roles' },
-  ];
-
-  const filteredItems = menuItems.filter(item => 
-    item.label.toLowerCase().includes(search.toLowerCase()) || 
-    item.description.toLowerCase().includes(search.toLowerCase())
+  const runCommand = useCallback(
+    (action: () => void) => {
+      close();
+      action();
+    },
+    [close],
   );
 
+  // Global ⌘K / Ctrl+K toggle. Ignored while typing in a field because the
+  // listener checks the active element before preventing the default.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key.toLowerCase() === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        lastFocused.current = document.activeElement as HTMLElement;
+        useAppStore.getState().toggleCommand();
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  // Per-open setup: lock body scroll and capture the focus target so it can
+  // be restored on close. (Search is reset in `close()` instead of here to
+  // avoid a synchronous setState inside the effect.)
+  useEffect(() => {
+    if (!open) return;
+    lastFocused.current = document.activeElement as HTMLElement;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open]);
+
+  const goToTab = (tab: Tab) => runCommand(() => onTabChange(tab));
+  const goToRoute = (href: string) => runCommand(() => router.push(href));
+  const toggleTheme = () =>
+    runCommand(() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark'));
+  const signOut = () => runCommand(() => void onSignOut());
+
   return (
-    <>
-      <AnimatePresence>
-        {open && (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-[12vh] sm:pt-[16vh]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              close();
+            }
+          }}
+        >
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={close}
+            aria-hidden="true"
+          />
+
+          {/* Panel */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[110] flex items-start justify-center pt-[15vh] bg-black/60 backdrop-blur-2xl"
-            onClick={() => setOpen(false)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Command palette"
+            initial={{ opacity: 0, scale: 0.97, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98, y: 8 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 28, mass: 0.8 }}
+            className="relative w-full max-w-xl overflow-hidden rounded-xl border border-glass-border bg-card shadow-2xl shadow-black/40"
           >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 10 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="flex w-full max-w-xl flex-col overflow-hidden rounded-[3rem] border border-glass-border bg-surface shadow-2xl backdrop-blur-3xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center gap-3 border-b border-glass-border px-4 py-4">
-                <Search className="h-5 w-5 text-champagne" />
-                <input
-                  type="text"
+            {/* Champagne top accent */}
+            <div className="absolute inset-x-0 top-0 h-0.5 bg-champagne/50" />
+
+            <Command label="Command palette" className="flex flex-col">
+              <div className="flex items-center gap-3 border-b border-glass-border px-4">
+                <Search className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                <Command.Input
                   autoFocus
-                  placeholder={`Search ${APP_NAME} — Type a command...`}
-                  aria-label="Search commands"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-transparent text-lg font-medium text-text-primary outline-none placeholder:text-text-muted"
+                  onValueChange={setSearch}
+                  placeholder="Search or jump to…"
+                  className="h-12 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 />
-                <div className="flex items-center gap-1 text-[10px] uppercase text-text-muted">
-                  <span className="rounded bg-surface-raised px-1.5 py-1 font-bold">Esc</span> to close
-                </div>
+                <kbd className="hidden rounded border border-glass-border bg-surface-raised px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline-block">
+                  ESC
+                </kbd>
               </div>
 
-              <div className="max-h-[60vh] overflow-y-auto p-2">
-                {filteredItems.length === 0 ? (
-                  <div className="py-10 text-center text-text-muted">
-                    <Command className="mx-auto mb-2 h-8 w-8 opacity-20" />
-                    <p className="text-sm">No actions found.</p>
-                  </div>
-                ) : (
-                  filteredItems.map((item) => (
-                    <motion.button
-                      key={item.id}
-                      type="button"
-                      {...navItemHover}
-                      onClick={() => handleAction(item.id)}
-                      className="flex w-full items-center gap-3 rounded-[2rem] px-3 py-3 text-left transition hover:bg-surface-raised"
-                    >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[2rem] bg-champagne/10 text-champagne">
-                        <item.icon className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-text-primary">{item.label}</p>
-                        <p className="text-xs text-text-secondary">{item.description}</p>
-                      </div>
-                    </motion.button>
-                  ))
-                )}
+              <Command.List className="max-h-[60vh] overflow-y-auto p-2">
+                <Command.Empty className="px-3 py-8 text-center text-sm text-muted-foreground">
+                  No results found.
+                </Command.Empty>
+
+                <Command.Group
+                  heading="Navigation"
+                  className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.14em] [&_[cmdk-group-heading]]:text-muted-foreground"
+                >
+                  <PaletteItem icon={LayoutDashboard} label="Dashboard" keywords={['home', 'overview']} onSelect={() => goToTab('dashboard')} />
+                  <PaletteItem icon={Camera} label="Scan a receipt" keywords={['camera', 'upload', 'photo']} onSelect={() => goToTab('scan')} />
+                  <PaletteItem icon={ReceiptText} label="Receipts" keywords={['records', 'expenses']} onSelect={() => goToTab('receipts')} />
+                  {isPrivileged && <PaletteItem icon={Route} label="Mileage" keywords={['vehicle', 'km']} onSelect={() => goToTab('mileage')} />}
+                  {isPrivileged && <PaletteItem icon={Clock} label="Time" keywords={['timesheet', 'hours']} onSelect={() => goToTab('time')} />}
+                  {isPrivileged && <PaletteItem icon={Building2} label="Projects" keywords={['jobs', 'clients']} onSelect={() => goToTab('projects')} />}
+                  <PaletteItem icon={Search} label="Smart Search" keywords={['find', 'query', 'filter']} onSelect={() => goToTab('smart-search')} />
+                  <PaletteItem icon={CalendarDays} label="Calendar" keywords={['dates']} onSelect={() => goToTab('receipt-calendar')} />
+                  <PaletteItem icon={History} label="Timeline" keywords={['history']} onSelect={() => goToTab('receipt-timeline')} />
+                  {isPrivileged && <PaletteItem icon={FileDown} label="Exports" keywords={['download', 'cra', 'csv']} onSelect={() => goToTab('export')} />}
+                  {isPrivileged && <PaletteItem icon={Landmark} label="Banking" keywords={['reconcile', 'transactions']} onSelect={() => goToTab('reconcile')} />}
+                  {isPrivileged && <PaletteItem icon={Wallet} label="Payables" keywords={['bills', 'vendors']} onSelect={() => goToTab('payables')} />}
+                  {isPrivileged && <PaletteItem icon={PiggyBank} label="Budgets" keywords={['limits', 'spend']} onSelect={() => goToTab('budgets')} />}
+                  {isPrivileged && <PaletteItem icon={Receipt} label="Tax" keywords={['cra', 'gst', 'hst']} onSelect={() => goToTab('tax-dashboard')} />}
+                  {isPrivileged && <PaletteItem icon={TrendingUp} label="Cash Flow" keywords={['forecast']} onSelect={() => goToTab('cashflow-forecast')} />}
+                  {isPrivileged && <PaletteItem icon={Store} label="Vendors" keywords={['suppliers']} onSelect={() => goToTab('vendor-analytics')} />}
+                  <PaletteItem icon={Tags} label="Tags & Labels" keywords={['categories']} onSelect={() => goToTab('receipt-tags')} />
+                  <PaletteItem icon={GitCompare} label="Compare" keywords={['receipt comparison']} onSelect={() => goToTab('receipt-comparison')} />
+                  <PaletteItem icon={Repeat} label="Recurring" keywords={['subscriptions', 'detector']} onSelect={() => goToTab('recurring-detector')} />
+                  {isPrivileged && <PaletteItem icon={Kanban} label="Kanban" keywords={['workflow', 'board']} onSelect={() => goToTab('kanban-workflow')} />}
+                  {isPrivileged && <PaletteItem icon={ScrollText} label="Audit" keywords={['trail', 'log']} onSelect={() => goToTab('audit')} />}
+                  {isPrivileged && <PaletteItem icon={Users} label="Approvals" keywords={['review', 'sign-off']} onSelect={() => goToTab('approvals')} />}
+                  {isPrivileged && <PaletteItem icon={AlertTriangle} label="Alerts" keywords={['risk', 'anomalies']} onSelect={() => goToTab('alerts')} />}
+                  {isPrivileged && <PaletteItem icon={BarChart3} label="Reports" keywords={['analytics']} onSelect={() => goToTab('reports')} />}
+                  {isPrivileged && <PaletteItem icon={ClipboardCheck} label="Readiness" keywords={['score', 'cra']} onSelect={() => goToTab('readiness-score')} />}
+                  {isPrivileged && <PaletteItem icon={Lightbulb} label="Insights" keywords={['spending']} onSelect={() => goToTab('spending-insights')} />}
+                  <PaletteItem icon={Share2} label="Share Receipt" keywords={['send']} onSelect={() => goToTab('share-receipt')} />
+                </Command.Group>
+
+                <Command.Group
+                  heading="Settings & Pages"
+                  className="mt-1 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.14em] [&_[cmdk-group-heading]]:text-muted-foreground"
+                >
+                  <PaletteItem icon={CreditCard} label="Billing" keywords={['plan', 'subscription', 'invoice']} onSelect={() => goToRoute('/settings/billing')} />
+                  <PaletteItem icon={Building} label="Organization" keywords={['org', 'company']} onSelect={() => goToRoute('/settings/org')} />
+                  <PaletteItem icon={Users} label="Team" keywords={['members', 'invite']} onSelect={() => goToRoute('/settings/team')} />
+                  <PaletteItem icon={ShieldCheck} label="Security" keywords={['mfa', 'password', '2fa']} onSelect={() => goToRoute('/settings/security')} />
+                  <PaletteItem icon={Sparkles} label="Feature Flags" keywords={['beta', 'toggles']} onSelect={() => goToRoute('/settings/features')} />
+                  <PaletteItem icon={Bell} label="Notifications" keywords={['alerts', 'digest']} onSelect={() => goToRoute('/notifications')} />
+                  <PaletteItem icon={FileText} label="Terms of Service" keywords={['legal', 'tos']} onSelect={() => goToRoute('/terms')} />
+                  <PaletteItem icon={Lock} label="Privacy Policy" keywords={['data', 'law 25']} onSelect={() => goToRoute('/privacy')} />
+                  <PaletteItem icon={Sparkles} label="Product Features" keywords={['marketing', 'overview']} onSelect={() => goToRoute('/features')} />
+                </Command.Group>
+
+                <Command.Group
+                  heading="Actions"
+                  className="mt-1 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.14em] [&_[cmdk-group-heading]]:text-muted-foreground"
+                >
+                  <PaletteItem
+                    icon={resolvedTheme === 'dark' ? Sun : Moon}
+                    label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                    keywords={['theme', 'appearance', 'dark', 'light']}
+                    onSelect={toggleTheme}
+                  />
+                  <PaletteItem icon={LogOut} label="Sign out" keywords={['logout', 'exit']} onSelect={signOut} />
+                </Command.Group>
+              </Command.List>
+
+              {/* Footer hints */}
+              <div className="flex items-center justify-between border-t border-glass-border px-4 py-2 text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-1">
+                    <kbd className="rounded border border-glass-border bg-surface-raised px-1.5 py-0.5 font-medium">↑</kbd>
+                    <kbd className="rounded border border-glass-border bg-surface-raised px-1.5 py-0.5 font-medium">↓</kbd>
+                    to navigate
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <kbd className="rounded border border-glass-border bg-surface-raised px-1.5 py-0.5 font-medium">↵</kbd>
+                    to select
+                  </span>
+                </div>
+                <span className="hidden items-center gap-1 sm:flex">
+                  <kbd className="rounded border border-glass-border bg-surface-raised px-1.5 py-0.5 font-medium">⌘</kbd>
+                  <kbd className="rounded border border-glass-border bg-surface-raised px-1.5 py-0.5 font-medium">K</kbd>
+                </span>
               </div>
-            </motion.div>
+            </Command>
           </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

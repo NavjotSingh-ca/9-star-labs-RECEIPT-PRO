@@ -15,6 +15,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import MobileNav from '@/components/layout/MobileNav';
 import TopBar from '@/components/layout/TopBar';
 import MoreSheet from '@/components/layout/MoreSheet';
+import CommandPalette from '@/components/CommandPalette';
 import type { UserRole } from '@/lib/types';
 import type { User } from '@supabase/supabase-js';
 import { getReceipts, getDashboardSummary, getDailySpend } from '@/lib/services/receipts';
@@ -215,6 +216,12 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
 
   return (
     <div className="flex min-h-screen bg-obsidian">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[200] focus:rounded-lg focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-foreground focus:shadow-modal focus:outline-none focus:ring-2 focus:ring-champagne/50"
+      >
+        Skip to content
+      </a>
       <ErrorBoundary componentName="Sidebar">
         <Sidebar
           activeTab={activeTab}
@@ -232,6 +239,7 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
         </TopBar>
 
         <div
+          id="main-content"
           className="flex-1 overflow-y-auto px-4 pb-[calc(4rem+env(safe-area-inset-bottom))] pt-16 sm:px-6 lg:pb-8 lg:pt-6 xl:px-8 relative max-w-full overflow-x-hidden"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
@@ -299,6 +307,12 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
       )}
 
       <OnboardingTour />
+
+      <CommandPalette
+        onTabChange={setTabWithUrl}
+        onSignOut={handleSignOut}
+        role={role}
+      />
     </div>
   );
 }

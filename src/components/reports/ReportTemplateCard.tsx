@@ -1,13 +1,13 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { FileText, Building2, PieChart, TrendingUp, Calendar, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { FileText, Building2, PieChart, TrendingUp, Calendar, FileSpreadsheet, Car, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { ReportTemplate } from '@/lib/services/reports';
 import { fadeUp, cardHoverSubtle } from '@/lib/animations';
 
 const ICON_MAP: Record<string, typeof FileText> = {
-  FileText, Building2, PieChart, TrendingUp, Calendar, FileSpreadsheet,
+  FileText, Building2, PieChart, TrendingUp, Calendar, FileSpreadsheet, Car,
 };
 
 interface Props {

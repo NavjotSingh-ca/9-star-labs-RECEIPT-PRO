@@ -705,6 +705,46 @@ export const bulkDeleteReceipts = async (receiptIds: string[], userId: string): 
 };
 
 /**
+ * Restore previously soft-deleted receipts (undo for bulk delete).
+ * Only receipts the caller is allowed to touch (org-scoped; employees additionally
+ * scoped to their own user) are restored.
+ *
+ * @param receiptIds - Array of receipt UUIDs to restore.
+ * @throws {Error} If the DB operation fails.
+ */
+export const undeleteReceipts = async (receiptIds: string[]): Promise<void> => {
+  if (!receiptIds.length) throw new Error('At least one receipt ID is required');
+
+  const orgId = await getOrgIdString();
+  if (!orgId) throw new Error('No organization found');
+
+  const userId = (await supabase.auth.getUser()).data.user?.id;
+  if (!userId) throw new Error('Not authenticated');
+
+  const role = await getUserRole(userId);
+
+  try {
+    let query = supabase
+      .from('receipts')
+      .update({ is_deleted: false, updated_at: new Date().toISOString() })
+      .in('id', receiptIds)
+      .eq('org_id', orgId);
+
+    if (role === 'Employee') {
+      query = query.eq('user_id', userId);
+    }
+
+    const { error } = await query;
+    if (error) throw error;
+
+    await createAuditLog(userId, 'bulk_receipt_restored', `Bulk restore: ${receiptIds.length} receipts by ${userId}`);
+  } catch (err) {
+    logError(err, { action: 'bulk_undelete_receipts' });
+    throw err;
+  }
+};
+
+/**
  * Fetch audit logs for the current user's organization.
  *
  * @param limit - Max number of logs to return (default 50).

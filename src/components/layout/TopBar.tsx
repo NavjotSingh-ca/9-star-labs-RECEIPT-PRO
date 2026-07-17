@@ -1,9 +1,12 @@
 'use client';
 
-import { ReceiptText, Crown } from 'lucide-react';
+import { ReceiptText, Crown, Search } from 'lucide-react';
 import { APP_NAME } from '@/lib/constants';
 import Link from 'next/link';
 import NotificationBell from '@/components/notifications/NotificationBell';
+import RealtimeStatus from '@/components/layout/RealtimeStatus';
+import { useAppStore } from '@/lib/store';
+import { useRealtime } from '@/providers/RealtimeProvider';
 
 /**
  * Props for the TopBar component.
@@ -25,6 +28,8 @@ interface TopBarProps {
  * Has a 2px champagne accent line at the top.
  */
 export default function TopBar({ planLabel, plan, planLoading, children }: TopBarProps) {
+  const setCommandOpen = useAppStore((s) => s.setCommandOpen);
+  const { isConnected } = useRealtime();
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-sidebar-border bg-sidebar-bg lg:hidden relative" role="banner">
       <div className="absolute inset-x-0 top-0 h-0.5 bg-sidebar-accent" />
@@ -42,7 +47,21 @@ export default function TopBar({ planLabel, plan, planLoading, children }: TopBa
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-3">
+          <button
+            type="button"
+            onClick={() => setCommandOpen(true)}
+            aria-label="Open command palette"
+            title="Open command palette (⌘K)"
+            className="flex h-9 w-9 items-center justify-center rounded-[2rem] bg-sidebar-surface text-sidebar-text-muted transition hover:bg-sidebar-active hover:text-sidebar-text sm:w-auto sm:gap-2 sm:px-3"
+          >
+            <Search className="h-4 w-4" />
+            <kbd className="hidden items-center gap-0.5 text-[10px] font-medium text-sidebar-text-muted sm:flex">
+              <span>⌘</span>
+              <span>K</span>
+            </kbd>
+          </button>
           <NotificationBell />
+          <RealtimeStatus connected={isConnected} />
           {children}
 
           <Link

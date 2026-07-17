@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Check, ChevronDown, Download, Loader2, Square, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import { fadeUp } from '@/lib/animations';
 import PageHeader from '@/components/layout/PageHeader';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +24,7 @@ import { formatCurrency, formatDate } from '@/lib/ui-utils';
 import { cn } from '@/lib/utils';
 import { logError } from '@/lib/logger';
 import type { ReceiptRow } from '@/lib/types';
-import { bulkDeleteReceipts } from '@/lib/services/receipts';
+import { bulkDeleteReceipts, undeleteReceipts } from '@/lib/services/receipts';
 
 const TAG_DEFS = [
   { value: 'important', label: 'Important' },
@@ -42,6 +43,23 @@ function tagNotes(notes: string | null | undefined, tag: string): string {
   const tags: string[] = Array.isArray(current?.tags) ? current.tags : [];
   if (tags.includes(tag)) return notes ?? '';
   return JSON.stringify({ ...current, tags: [...tags, tag] });
+}
+
+/**
+ * Process `items` in chunks, awaiting each chunk concurrently and reporting
+ * progress so large bulk edits can show a live counter instead of freezing.
+ */
+async function runChunked<T>(
+  items: T[],
+  worker: (item: T) => PromiseLike<unknown>,
+  onProgress: (done: number, total: number) => void,
+  chunkSize = 15,
+): Promise<void> {
+  for (let i = 0; i < items.length; i += chunkSize) {
+    const slice = items.slice(i, i + chunkSize);
+    await Promise.all(slice.map(worker));
+    onProgress(Math.min(i + chunkSize, items.length), items.length);
+  }
 }
 
 function exportCSV(receipts: ReceiptRow[]): void {
@@ -97,6 +115,7 @@ export default function BatchOperations() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
 
   const { data: orgId } = useQuery({
     queryKey: ['batch-org'],
@@ -147,57 +166,140 @@ export default function BatchOperations() {
 
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
-  const categoryMutation = useMutation({
-    mutationFn: async (category: string) => {
-      const updates = selectedReceipts.map((r) =>
+  /** Re-apply captured per-receipt values (used by Undo for category/tag edits). */
+  const restoreReceipts = useCallback(
+    async (patchMap: Map<string, { category?: string | null; notes?: string | null }>) => {
+      if (!orgId) return;
+      const updates = Array.from(patchMap.entries()).map(([id, patch]) =>
         supabase
           .from('receipts')
-          .update({ category, updated_at: new Date().toISOString() })
-          .eq('id', r.id)
+          .update({ ...patch, updated_at: new Date().toISOString() })
+          .eq('id', id)
           .eq('org_id', orgId)
       );
       await Promise.all(updates);
+      queryClient.invalidateQueries({ queryKey: ['batch-receipts'] });
     },
-    onSuccess: () => {
+    [orgId, queryClient]
+  );
+
+  const categoryMutation = useMutation({
+    mutationFn: async (category: string) => {
+      if (!orgId) throw new Error('No organization found');
+      const prev = new Map(selectedReceipts.map((r) => [r.id, { category: r.category }]));
+      await runChunked(
+        selectedReceipts,
+        (r) =>
+          supabase
+            .from('receipts')
+            .update({ category, updated_at: new Date().toISOString() })
+            .eq('id', r.id)
+            .eq('org_id', orgId),
+        (done, total) => setProgress({ current: done, total })
+      );
+      return prev;
+    },
+    onSuccess: (prev) => {
       queryClient.invalidateQueries({ queryKey: ['batch-receipts'] });
       setShowCategoryPicker(false);
+      setProgress(null);
+      const ids = selectedReceipts.map((r) => r.id);
       clearSelection();
+      toast.success(`Categorized ${ids.length} receipts`, {
+        action: { label: 'Undo', onClick: () => undoCategory(prev) },
+      });
     },
-    onError: (err) => logError(err, { action: 'batch_category_update' }),
+    onError: (err) => {
+      setProgress(null);
+      logError(err, { action: 'batch_category_update' });
+    },
   });
+
+  const undoCategory = useCallback(
+    async (prev: Map<string, { category?: string | null }>) => {
+      const patchMap = new Map<string, { category?: string | null }>();
+      prev.forEach((v, k) => patchMap.set(k, { category: v.category ?? null }));
+      await restoreReceipts(patchMap);
+      toast('Category change undone');
+    },
+    [restoreReceipts]
+  );
 
   const tagMutation = useMutation({
     mutationFn: async (tag: string) => {
-      const updates = selectedReceipts.map((r) => {
-        const newNotes = tagNotes(r.notes, tag);
-        return supabase
-          .from('receipts')
-          .update({ notes: newNotes, updated_at: new Date().toISOString() })
-          .eq('id', r.id)
-          .eq('org_id', orgId);
-      });
-      await Promise.all(updates);
+      if (!orgId) throw new Error('No organization found');
+      const prev = new Map(selectedReceipts.map((r) => [r.id, { notes: r.notes }]));
+      await runChunked(
+        selectedReceipts,
+        (r) =>
+          supabase
+            .from('receipts')
+            .update({ notes: tagNotes(r.notes, tag), updated_at: new Date().toISOString() })
+            .eq('id', r.id)
+            .eq('org_id', orgId),
+        (done, total) => setProgress({ current: done, total })
+      );
+      return prev;
     },
-    onSuccess: () => {
+    onSuccess: (prev) => {
       queryClient.invalidateQueries({ queryKey: ['batch-receipts'] });
       setShowTagPicker(false);
+      setProgress(null);
+      const ids = selectedReceipts.map((r) => r.id);
       clearSelection();
+      toast.success(`Tagged ${ids.length} receipts`, {
+        action: { label: 'Undo', onClick: () => undoTag(prev) },
+      });
     },
-    onError: (err) => logError(err, { action: 'batch_tag_update' }),
+    onError: (err) => {
+      setProgress(null);
+      logError(err, { action: 'batch_tag_update' });
+    },
   });
+
+  const undoTag = useCallback(
+    async (prev: Map<string, { notes?: string | null }>) => {
+      const patchMap = new Map<string, { notes?: string | null }>();
+      prev.forEach((v, k) => patchMap.set(k, { notes: v.notes ?? null }));
+      await restoreReceipts(patchMap);
+      toast('Tag change undone');
+    },
+    [restoreReceipts]
+  );
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
-      await bulkDeleteReceipts(Array.from(selectedIds), user.id);
+      const ids = Array.from(selectedIds);
+      await bulkDeleteReceipts(ids, user.id);
+      return ids;
     },
-    onSuccess: () => {
+    onSuccess: (ids) => {
       queryClient.invalidateQueries({ queryKey: ['batch-receipts'] });
       clearSelection();
+      toast(`Moved ${ids.length} receipts to trash`, {
+        description: 'You can undo this for 30 days.',
+        action: { label: 'Undo', onClick: () => undoDelete(ids) },
+        duration: 8000,
+      });
     },
     onError: (err) => logError(err, { action: 'batch_delete' }),
   });
+
+  const undoDelete = useCallback(
+    async (ids: string[]) => {
+      try {
+        await undeleteReceipts(ids);
+        queryClient.invalidateQueries({ queryKey: ['batch-receipts'] });
+        toast.success('Receipts restored');
+      } catch (err) {
+        logError(err, { action: 'undo_delete' });
+        toast.error('Could not restore receipts');
+      }
+    },
+    [queryClient]
+  );
 
   return (
     <motion.div
@@ -343,6 +445,12 @@ export default function BatchOperations() {
                 <span className="text-sm font-semibold text-text-primary whitespace-nowrap">
                   {selectedIds.size} selected
                 </span>
+                {progress && (
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-champagne whitespace-nowrap">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    {progress.current}/{progress.total}
+                  </span>
+                )}
                 <div className="h-5 w-px bg-glass-border" />
 
                 <div className="relative">
@@ -398,7 +506,8 @@ export default function BatchOperations() {
                 <button
                   type="button"
                   onClick={() => exportCSV(selectedReceipts)}
-                  className="flex items-center gap-1 rounded-xl bg-surface px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors border border-glass-border"
+                  disabled={progress !== null}
+                  className="flex items-center gap-1 rounded-xl bg-surface px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors border border-glass-border disabled:opacity-50"
                 >
                   <Download className="h-3 w-3" /> Export CSV
                 </button>
@@ -428,7 +537,7 @@ export default function BatchOperations() {
                         <button
                           type="button"
                           onClick={() => deleteMutation.mutate()}
-                          disabled={deleteMutation.isPending}
+                          disabled={deleteMutation.isPending || progress !== null}
                           className="rounded-xl bg-danger px-4 py-2 text-xs font-semibold text-white hover:bg-danger/80 transition-colors disabled:opacity-50"
                         >
                           {deleteMutation.isPending ? 'Deleting...' : 'Delete'}

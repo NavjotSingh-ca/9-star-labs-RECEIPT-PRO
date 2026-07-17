@@ -6,12 +6,12 @@ import { z } from 'zod';
 // ─── Zod schemas ───
 
 export const MetricSchema = z.enum([
-  'total_spend', 'receipt_count', 'avg_receipt', 'tax_total', 'max_receipt',
+  'total_spend', 'receipt_count', 'avg_receipt', 'tax_total', 'max_receipt', 'distance_km',
 ]);
 export type Metric = z.infer<typeof MetricSchema>;
 
 export const DimensionSchema = z.enum([
-  'category', 'vendor', 'project', 'business_unit', 'month', 'approval_status',
+  'category', 'vendor', 'project', 'business_unit', 'month', 'approval_status', 'vehicle',
 ]);
 export type Dimension = z.infer<typeof DimensionSchema>;
 
@@ -43,6 +43,8 @@ export interface ReportResult {
   rows: Record<string, number | string>[];
   totals: Record<string, number>;
   generatedAt: string;
+  /** Data source used to generate the report (mirrors ReportTemplate.source). */
+  source?: 'receipts' | 'mileage';
 }
 
 export interface ReportTemplate {
@@ -53,6 +55,8 @@ export interface ReportTemplate {
   type: 'builtin' | 'custom';
   config: ReportConfig;
   defaultExport: 'csv' | 'pdf';
+  /** Data source for generation. 'mileage' uses a client-side generator instead of the receipt RPC. */
+  source?: 'receipts' | 'mileage';
 }
 
 export class ReportError extends Error {
@@ -207,6 +211,25 @@ const BUILT_IN_TEMPLATES: ReportTemplate[] = [
       customDateRange: { start: `${new Date().getFullYear() - 1}-01-01`, end: `${new Date().getFullYear()}-12-31` },
     },
   },
+  {
+    id: 'tax-summary',
+    name: 'Tax Summary (YTD)',
+    description: 'Tax paid and spend by category for the current year',
+    icon: 'FileText',
+    type: 'builtin',
+    defaultExport: 'pdf',
+    config: { metrics: ['tax_total', 'total_spend', 'receipt_count'], groupBy: 'category', datePreset: 'this_year' },
+  },
+  {
+    id: 'mileage-by-vehicle',
+    name: 'Mileage by Vehicle',
+    description: 'Total distance driven per registered vehicle',
+    icon: 'Car',
+    type: 'builtin',
+    source: 'mileage',
+    defaultExport: 'csv',
+    config: { metrics: ['distance_km'], groupBy: 'vehicle', datePreset: 'this_year' },
+  },
 ];
 
 /**
@@ -216,6 +239,52 @@ const BUILT_IN_TEMPLATES: ReportTemplate[] = [
  */
 export function getPrebuiltTemplates(): ReportTemplate[] {
   return BUILT_IN_TEMPLATES;
+}
+
+// ─── Mileage report (client-side aggregation) ───
+
+/**
+ * Generate a "Mileage by Vehicle" report by aggregating distance per vehicle.
+ * Uses a client-side query (mileage_logs are not part of the receipt report RPC).
+ *
+ * @param orgIdOverride - Organization ID; falls back to the current org context.
+ * @returns ReportResult keyed by vehicle nickname with total distance.
+ * @throws {ReportError} If the query fails or the org is unresolved.
+ */
+export async function generateMileageByVehicleReport(orgIdOverride?: string): Promise<ReportResult> {
+  const orgId = orgIdOverride ?? (await getOrgIdString());
+  if (!orgId) throw new ReportError('Organization not found');
+
+  const { data, error } = await supabase
+    .from('mileage_logs')
+    .select('distance_km, vehicle_id, vehicles(nickname)')
+    .eq('org_id', orgId);
+
+  if (error) throw new ReportError(error.message);
+
+  const byVehicle = new Map<string, number>();
+  const rows = (data as Array<{ distance_km: number; vehicles?: { nickname?: string } | null }>) ?? [];
+  for (const row of rows) {
+    const key = row.vehicles?.nickname || 'Unassigned';
+    byVehicle.set(key, (byVehicle.get(key) ?? 0) + (Number(row.distance_km) || 0));
+  }
+
+  const reportRows = Array.from(byVehicle.entries()).map(([vehicle, distance]) => ({
+    vehicle,
+    distance_km: Math.round(distance * 10) / 10,
+  }));
+
+  const totals: Record<string, number> = {
+    distance_km: reportRows.reduce((sum, r) => sum + Number(r.distance_km), 0),
+  };
+
+  return {
+    config: { metrics: ['distance_km'], groupBy: 'vehicle', datePreset: 'this_year' },
+    rows: reportRows,
+    totals,
+    generatedAt: new Date().toISOString(),
+    source: 'mileage',
+  };
 }
 
 /**
@@ -331,6 +400,8 @@ export const METRIC_LABELS: Record<string, string> = {
   avg_receipt: 'Average Receipt',
   tax_total: 'Tax Total',
   max_receipt: 'Max Receipt',
+  distance_km: 'Distance (km)',
+  vehicle: 'Vehicle',
 };
 
 /**
@@ -343,6 +414,7 @@ export const METRIC_LABELS: Record<string, string> = {
  */
 export function formatMetricValue(metric: Metric, value: number): string {
   if (metric === 'receipt_count') return String(Math.round(value));
+  if (metric === 'distance_km') return `${Math.round(value * 10) / 10} km`;
   const fmt = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 2 });
   return fmt.format(value);
 }

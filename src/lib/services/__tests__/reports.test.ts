@@ -35,9 +35,25 @@ import {
 import type { ReportConfig } from '@/lib/services/reports';
 
 describe('getPrebuiltTemplates', () => {
-  it('returns 5 built-in templates', () => {
+  it('returns 7 built-in templates', () => {
     const templates = getPrebuiltTemplates();
-    expect(templates).toHaveLength(5);
+    expect(templates).toHaveLength(7);
+  });
+
+  it('includes Tax Summary and Mileage by Vehicle templates', () => {
+    const templates = getPrebuiltTemplates();
+    const ids = templates.map((t) => t.id);
+    expect(ids).toContain('tax-summary');
+    expect(ids).toContain('mileage-by-vehicle');
+
+    const tax = templates.find((t) => t.id === 'tax-summary');
+    expect(tax?.config.metrics).toContain('tax_total');
+    expect(tax?.config.datePreset).toBe('this_year');
+
+    const mileage = templates.find((t) => t.id === 'mileage-by-vehicle');
+    expect(mileage?.source).toBe('mileage');
+    expect(mileage?.config.groupBy).toBe('vehicle');
+    expect(mileage?.config.metrics).toContain('distance_km');
   });
 
   it('each template has required fields', () => {
@@ -133,7 +149,7 @@ describe('formatMetricValue', () => {
 
 describe('METRIC_LABELS', () => {
   it('contains labels for all valid metric keys', () => {
-    const validMetrics = ['total_spend', 'receipt_count', 'avg_receipt', 'tax_total', 'max_receipt'];
+    const validMetrics = ['total_spend', 'receipt_count', 'avg_receipt', 'tax_total', 'max_receipt', 'distance_km'];
     for (const m of validMetrics) {
       expect(METRIC_LABELS[m]).toBeTruthy();
     }
