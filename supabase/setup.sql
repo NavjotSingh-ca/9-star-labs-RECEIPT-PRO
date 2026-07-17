@@ -430,6 +430,21 @@ CREATE TABLE IF NOT EXISTS scan_attempts (
   attempted_at timestamptz DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS time_entries (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  clock_in_time timestamptz NOT NULL DEFAULT now(),
+  clock_out_time timestamptz,
+  notes text,
+  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed')),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+COMMENT ON TABLE time_entries IS 'Simple employee clock-in/out records';
+COMMENT ON COLUMN time_entries.status IS 'active = currently clocked in, completed = clocked out';
+
 
 -- ─── 2. Row Level Security (RLS) ───
 
@@ -452,6 +467,7 @@ ALTER TABLE report_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE report_schedules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE report_deliveries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE scan_attempts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE time_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fx_rate_cache ENABLE ROW LEVEL SECURITY;
 ALTER TABLE processed_webhook_events ENABLE ROW LEVEL SECURITY;
 
@@ -513,6 +529,12 @@ DO $$ BEGIN
   CREATE POLICY "report_deliveries_insert" ON report_deliveries FOR INSERT WITH CHECK (org_id = get_user_org());
 
   CREATE POLICY "scan_own" ON scan_attempts FOR ALL USING (user_id = auth.uid());
+
+  -- Time entries: users see and manage only their own entries
+  CREATE POLICY "time_entries_select" ON time_entries FOR SELECT USING (org_id = get_user_org() AND user_id = auth.uid());
+  CREATE POLICY "time_entries_insert" ON time_entries FOR INSERT WITH CHECK (org_id = get_user_org() AND user_id = auth.uid());
+  CREATE POLICY "time_entries_update" ON time_entries FOR UPDATE USING (org_id = get_user_org() AND user_id = auth.uid()) WITH CHECK (org_id = get_user_org() AND user_id = auth.uid());
+  CREATE POLICY "time_entries_delete" ON time_entries FOR DELETE USING (org_id = get_user_org() AND user_id = auth.uid());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
@@ -956,6 +978,11 @@ CREATE INDEX IF NOT EXISTS idx_bank_tx_org ON bank_transactions(org_id, matched_
 CREATE INDEX IF NOT EXISTS idx_bank_tx_date ON bank_transactions(org_id, date);
 CREATE INDEX IF NOT EXISTS idx_receipt_comments_receipt ON receipt_comments(receipt_id);
 CREATE INDEX IF NOT EXISTS idx_scan_attempts_user_time ON scan_attempts(user_id, attempted_at);
+CREATE INDEX IF NOT EXISTS idx_time_entries_org_id ON time_entries(org_id);
+CREATE INDEX IF NOT EXISTS idx_time_entries_user_id ON time_entries(user_id);
+CREATE INDEX IF NOT EXISTS idx_time_entries_status ON time_entries(status);
+CREATE INDEX IF NOT EXISTS idx_time_entries_clock_in ON time_entries(clock_in_time);
+CREATE INDEX IF NOT EXISTS idx_time_entries_org_user_date ON time_entries(org_id, user_id, clock_in_time);
 
 -- ─── 6. Post-migration safety constraints ───
 

@@ -21,8 +21,8 @@ const envSchema = z.object({
   QBO_CLIENT_SECRET: z.string().min(1).optional(),
   // Token encryption key for OAuth tokens at rest (32-byte hex string)
   TOKEN_ENCRYPTION_KEY: z.string().min(1).optional(),
-  // Site URL for redirects
-  NEXT_PUBLIC_SITE_URL: z.string().url().optional().default('http://localhost:3000'),
+  // Site URL for redirects (no default — falls back to window.location.origin)
+  NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
   // Sentry
   NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
   SENTRY_ORG: z.string().min(1).optional(),
@@ -130,13 +130,19 @@ export const env = parseEnv();
 /** Returns the canonical site URL for auth redirects.
  *  Uses the env var when set (production), falls back to window.location.origin on the client.
  *  This is a getter (not a cached value) so it works correctly in both SSR and client contexts. */
+/** Returns the canonical site URL for auth redirects.
+ *  1. If NEXT_PUBLIC_SITE_URL is explicitly configured, use it (production/staging).
+ *  2. On the client, use window.location.origin (always correct).
+ *  3. SSR fallback: localhost for development.
+ *  NOTE: This is deliberately NOT cached — it must reflect the current execution context. */
 export function getSiteUrl(): string {
-  if (env.NEXT_PUBLIC_SITE_URL && env.NEXT_PUBLIC_SITE_URL !== 'http://localhost:3000') {
+  if (env.NEXT_PUBLIC_SITE_URL) {
     return env.NEXT_PUBLIC_SITE_URL;
   }
   if (typeof window !== 'undefined') {
     return window.location.origin;
   }
+  // SSR fallback — local dev
   return 'http://localhost:3000';
 }
 

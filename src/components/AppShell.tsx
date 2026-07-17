@@ -238,10 +238,11 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
           aria-label="Main workspace"
           role="region"
         >
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-[600px] bg-gradient-to-b from-champagne/10 via-champagne/5 to-transparent" aria-hidden="true" />
-          <div className="pointer-events-none absolute -left-32 -top-32 h-64 w-64 rounded-full bg-champagne/8 blur-3xl" aria-hidden="true" />
-          <div className="pointer-events-none absolute -right-32 top-64 h-48 w-48 rounded-full bg-champagne/5 blur-3xl" aria-hidden="true" />
-          <div className="mx-auto max-w-6xl relative">
+          {/* Ambient gradients — hidden on small mobile to prevent overflow */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[300px] sm:h-[600px] bg-gradient-to-b from-champagne/10 via-champagne/5 to-transparent" aria-hidden="true" />
+          <div className="pointer-events-none absolute -left-16 -top-16 h-40 w-40 sm:-left-32 sm:-top-32 sm:h-64 sm:w-64 rounded-full bg-champagne/8 blur-3xl" aria-hidden="true" />
+          <div className="hidden sm:block pointer-events-none absolute -right-32 top-64 h-48 w-48 rounded-full bg-champagne/5 blur-3xl" aria-hidden="true" />
+          <div className="mx-auto w-full max-w-6xl relative">
             {!receiptsLoading && receipts.length > 0 && role !== 'Employee' && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}

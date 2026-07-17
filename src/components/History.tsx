@@ -361,7 +361,7 @@ export default function History({
             </div>
           </div>
         ) : (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700" aria-live="polite" aria-atomic="true">
+          <div data-tour-step="receipt-list" className="animate-in fade-in slide-in-from-bottom-4 duration-700" aria-live="polite" aria-atomic="true">
             <ProfessionalLedger 
               data={receipts} 
               onSelect={handleSelectReceipt}

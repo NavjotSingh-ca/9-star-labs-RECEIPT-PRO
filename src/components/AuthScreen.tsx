@@ -37,11 +37,11 @@ type SignUpData = z.infer<typeof signupSchema>;
 
 /* ─── Gradient orbs for ambient background ─── */
 const orbs = [
-  { size: 55, x: 20, y: 10, duration: 18, color: 'rgba(190,169,142,0.04)' },
-  { size: 40, x: 70, y: 20, duration: 22, color: 'rgba(139,115,85,0.06)' },
-  { size: 35, x: 10, y: 60, duration: 25, color: 'rgba(190,169,142,0.03)' },
-  { size: 50, x: 80, y: 70, duration: 20, color: 'rgba(120,100,180,0.03)' },
-  { size: 30, x: 45, y: 40, duration: 28, color: 'rgba(139,115,85,0.04)' },
+  { size: 55, x: 20, y: 10, duration: 18, color: 'rgba(190,169,142,0.10)' },
+  { size: 40, x: 70, y: 20, duration: 22, color: 'rgba(139,115,85,0.12)' },
+  { size: 35, x: 10, y: 60, duration: 25, color: 'rgba(190,169,142,0.08)' },
+  { size: 30, x: 80, y: 70, duration: 20, color: 'rgba(139,115,85,0.09)' },
+  { size: 50, x: 45, y: 40, duration: 28, color: 'rgba(190,169,142,0.07)' },
 ];
 
 /**
@@ -153,9 +153,17 @@ export default function AuthScreen({ onBackToLanding }: { onBackToLanding?: () =
 
   return (
     <div className="relative flex min-h-screen w-full overflow-hidden bg-[#08080a] selection:bg-champagne/20">
-      {/* Base gradient layers */}
-      <div className="absolute inset-0 bg-gradient-to-br from-champagne/[0.03] via-transparent to-[#08080a]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(190,169,142,0.08),transparent)]" />
+      {/* Base gradient layers with breathing animation */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-br from-champagne/[0.03] via-transparent to-[#08080a]"
+        animate={{ opacity: [0.8, 1, 0.8] }}
+        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(190,169,142,0.08),transparent)]"
+        animate={{ opacity: [0.6, 1, 0.6] }}
+        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+      />
 
       {/* Back to landing */}
       {onBackToLanding && (
@@ -177,7 +185,7 @@ export default function AuthScreen({ onBackToLanding }: { onBackToLanding?: () =
         }}
       />
 
-      {/* Floating ambient orbs */}
+      {/* Floating ambient orbs — champagne tones only, smooth easing */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {orbs.map((orb, i) => (
           <motion.div
@@ -186,25 +194,21 @@ export default function AuthScreen({ onBackToLanding }: { onBackToLanding?: () =
             style={{
               width: `${orb.size}vw`,
               height: `${orb.size}vw`,
+              left: `${orb.x}%`,
+              top: `${orb.y}%`,
+              transform: 'translate(-50%, -50%)',
               background: `radial-gradient(circle at center, ${orb.color} 0%, transparent 70%)`,
             }}
             animate={{
-              x: [
-                `${orb.x - 8 + Math.sin(i * 1.5) * 12}vw`,
-                `${orb.x + 8 + Math.cos(i * 1.2) * 12}vw`,
-                `${orb.x - 8 + Math.sin(i * 1.5) * 12}vw`,
-              ],
-              y: [
-                `${orb.y - 5 + Math.cos(i * 1.8) * 8}vw`,
-                `${orb.y + 5 + Math.sin(i * 1.3) * 8}vw`,
-                `${orb.y - 5 + Math.cos(i * 1.8) * 8}vw`,
-              ],
+              x: [0, i % 2 === 0 ? 40 : -40, 0],
+              y: [0, i % 2 === 0 ? -30 : 30, 0],
+              scale: [1, 1.15, 1],
             }}
             transition={{
               duration: orb.duration,
               repeat: Infinity,
               ease: 'easeInOut',
-              delay: i * 2,
+              delay: i * 2.5,
             }}
           />
         ))}
