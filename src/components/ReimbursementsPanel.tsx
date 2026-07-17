@@ -3,6 +3,7 @@
 import React, { useCallback } from 'react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fadeUp, springGentle } from '@/lib/animations';
 import { AlertCircle, AlertTriangle, CheckCircle2, DollarSign, Loader2, RefreshCw } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getReimbursementsPending, markReimbursementPaid } from '@/lib/services/receipts';
@@ -29,8 +30,9 @@ const ReimburseCard = React.memo(function ReimburseCard({
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
       exit={{ opacity: 0, x: 20 }}
       className="flex items-center gap-5 rounded-3xl border border-warning/15 bg-warning/[0.03] p-5"
     >
@@ -161,9 +163,10 @@ export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) 
           {[...Array(3)].map((_, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
+              variants={fadeUp}
+              initial="hidden"
+              animate="show"
+              transition={{ ...springGentle, delay: i * 0.08 }}
               className="flex items-center gap-5 rounded-3xl border border-warning/15 bg-warning/[0.03] p-5"
             >
               <Skeleton className="h-12 w-12 flex-shrink-0 rounded-[2rem]" />

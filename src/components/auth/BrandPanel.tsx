@@ -3,6 +3,14 @@
 import { motion } from 'framer-motion';
 import { ReceiptText, ShieldCheck, Fingerprint, TrendingUp } from 'lucide-react';
 import { APP_NAME } from '@/lib/constants';
+import {
+  fadeUp,
+  fadeUpFloaty,
+  fadeIn,
+  staggerSlow,
+  springGentle,
+  springFloaty,
+} from '@/lib/animations';
 
 const brandFeatures = [
   { icon: ShieldCheck, label: 'SHA-256 Integrity', desc: 'Tamper-evident audit chain' },
@@ -11,9 +19,9 @@ const brandFeatures = [
 ];
 
 /**
- * Brand panel with app logo, name, tagline, and animated gradient background.
+ * Brand panel with app logo, name, tagline, and antigravity floating entrance.
  * Shown on the left side of the auth screen (desktop) or hidden (mobile).
- * Always renders on dark gradient — uses white/champagne text.
+ * All animations use shared spring physics for a cohesive floaty feel.
  */
 export default function BrandPanel() {
   return (
@@ -27,15 +35,22 @@ export default function BrandPanel() {
         }}
       />
 
-      {/* Radial glow at bottom */}
-      <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full bg-champagne/5 blur-[120px] pointer-events-none" />
-
-      {/* Logo */}
+      {/* Floating radial glow at bottom — antigravity drift */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-        className="relative z-10 flex items-center gap-3"
+        className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full bg-champagne/5 blur-[120px] pointer-events-none antigravity-drift"
+        animate={{
+          y: [0, -10, 0],
+          scale: [1, 1.03, 1],
+        }}
+        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+      />
+
+      {/* Logo — floaty entrance */}
+      <motion.div
+        variants={fadeUpFloaty}
+        initial="hidden"
+        animate="show"
+        className="relative z-10 flex items-center gap-3 antigravity-float-slow"
       >
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-champagne/15 ring-1 ring-champagne/20 ring-inset shadow-[0_0_25px_-6px_rgba(190,169,142,0.2)]">
           <ReceiptText className="h-6 w-6 text-champagne" />
@@ -49,9 +64,10 @@ export default function BrandPanel() {
       {/* Hero content */}
       <div className="relative z-10 space-y-8">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
+          variants={fadeUpFloaty}
+          initial="hidden"
+          animate="show"
+          custom={0}
           className="space-y-4"
         >
           <h2 className="text-5xl xl:text-6xl font-bold tracking-tight text-white leading-[1.08]">
@@ -67,20 +83,18 @@ export default function BrandPanel() {
           </p>
         </motion.div>
 
-        {/* Feature cards */}
+        {/* Feature cards — staggered floating entrance */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.35, ease: 'easeOut' }}
+          variants={staggerSlow}
+          initial="hidden"
+          animate="show"
           className="grid gap-2.5"
         >
           {brandFeatures.map((f, i) => (
             <motion.div
               key={f.label}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.5 + i * 0.12, ease: 'easeOut' }}
-              className="group relative flex items-center gap-3.5 rounded-xl border border-white/[0.04] bg-white/[0.02] px-4 py-3 backdrop-blur-sm transition-all duration-300 hover:border-champagne/15 hover:bg-white/[0.04] hover:shadow-[0_0_30px_-8px_rgba(190,169,142,0.15)]"
+              variants={fadeUp}
+              className="group relative flex items-center gap-3.5 rounded-xl border border-white/[0.04] bg-white/[0.02] px-4 py-3 backdrop-blur-sm antigravity-card"
             >
               {/* Hover glow */}
               <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-champagne/0 via-champagne/[0.02] to-champagne/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
@@ -98,9 +112,9 @@ export default function BrandPanel() {
 
       {/* Footer */}
       <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.9 }}
+        variants={fadeIn}
+        initial="hidden"
+        animate="show"
         className="relative z-10 text-xs text-text-muted/50"
       >
         &copy; {new Date().getFullYear()} {APP_NAME}. All rights reserved.

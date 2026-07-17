@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { fadeUp, springGentle } from '@/lib/animations';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChartIcon } from 'lucide-react';
@@ -31,9 +32,10 @@ export function CategoryDonut({ data }: CategoryDonutProps) {
   if (!hasData) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: 'easeOut', delay: 0.05 }}
+        variants={fadeUp}
+        initial="hidden"
+        animate="show"
+        transition={{ ...springGentle, delay: 0.05 }}
       >
       <Card className="rounded-card border border-dashed border-glass-border bg-surface/30 p-6 shadow-card min-h-[300px] flex flex-col items-center justify-center text-center">
         <PieChartIcon className="h-10 w-10 text-text-muted/30 mb-3" />
@@ -46,9 +48,10 @@ export function CategoryDonut({ data }: CategoryDonutProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: 'easeOut', delay: 0.05 }}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
+      transition={{ ...springGentle, delay: 0.05 }}
     >
     <Card className="rounded-card border border-glass-border bg-surface/50 shadow-card overflow-hidden group">
       <CardHeader className="pb-2">

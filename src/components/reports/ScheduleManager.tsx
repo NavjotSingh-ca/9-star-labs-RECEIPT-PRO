@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fadeUp, springGentle } from '@/lib/animations';
 import { Plus, Clock, Bell, Trash2, Power, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,8 +57,9 @@ export function ScheduleManager({ orgId }: Props) {
               <motion.div
                 key={schedule.id}
                 layout
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
+                variants={fadeUp}
+                initial="hidden"
+                animate="show"
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="flex items-center justify-between p-3 rounded-lg border border-glass-border bg-card"
               >

@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { Camera, FileUp, Loader2, UploadCloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -106,8 +107,9 @@ export function EliteUpload({ onFileSelect, onCameraClick, isProcessing }: Elite
 
       {isProcessing && (
         <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
+          variants={fadeUp}
+          initial="hidden"
+          animate="show"
           className="flex items-center justify-center gap-3 rounded-[3rem] bg-surface-raised p-4 border border-glass-border"
           role="status"
           aria-live="polite"

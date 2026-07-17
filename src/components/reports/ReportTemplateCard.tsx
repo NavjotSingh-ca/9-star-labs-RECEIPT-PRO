@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { FileText, Building2, PieChart, TrendingUp, Calendar, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { ReportTemplate } from '@/lib/services/reports';
-import { springSnap } from '@/lib/animations';
+import { fadeUp, springSnap, cardHoverSubtle } from '@/lib/animations';
 
 const ICON_MAP: Record<string, React.ElementType> = {
   FileText, Building2, PieChart, TrendingUp, Calendar, FileSpreadsheet,
@@ -24,11 +24,10 @@ export function ReportTemplateCard({ template, onGenerate, isGenerating }: Props
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ ...springSnap }}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
+      {...cardHoverSubtle}
       className="group relative rounded-lg border border-glass-border bg-card p-4 shadow-sm transition-all hover:shadow-md hover:border-glass-border-hover cursor-pointer"
       onClick={onGenerate}
       role="button"

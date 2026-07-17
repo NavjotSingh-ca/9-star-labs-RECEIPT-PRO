@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, Loader2, TrendingUp, TrendingDown, DollarSign, Calendar, Store } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { fadeUp, springGentle } from '@/lib/animations';
 import PageHeader from '@/components/layout/PageHeader';
 import { supabase, getOrgIdString } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/ui-utils';
@@ -177,9 +178,10 @@ export default function SpendingInsights() {
           {insights.map((insight, i) => (
             <motion.div
               key={insight.title}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1, duration: 0.3 }}
+              variants={fadeUp}
+              initial="hidden"
+              animate="show"
+              transition={{ ...springGentle, delay: i * 0.1 }}
               className="flex gap-4 rounded-2xl border border-glass-border bg-card p-5 shadow-sm"
             >
               <div className={`mt-0.5 ${insight.color}`}>

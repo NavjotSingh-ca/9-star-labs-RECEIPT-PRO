@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Loader2, Tags, X } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { fadeUp, springGentle } from '@/lib/animations';
 import PageHeader from '@/components/layout/PageHeader';
 import { supabase, getOrgIdString } from '@/lib/supabase';
 import { formatCurrency, formatDate } from '@/lib/ui-utils';
@@ -181,9 +182,10 @@ export default function ReceiptTags() {
             {filtered.map((receipt, i) => (
               <motion.div
                 key={receipt.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.02, duration: 0.15 }}
+                variants={fadeUp}
+                initial="hidden"
+                animate="show"
+                transition={{ ...springGentle, delay: i * 0.02 }}
                 className="flex items-center justify-between rounded-xl border border-glass-border bg-card px-4 py-3 shadow-sm transition-colors hover:bg-surface/50"
               >
                 <div className="min-w-0 flex-1">

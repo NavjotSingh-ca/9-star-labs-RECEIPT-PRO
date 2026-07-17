@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, Check, Loader2, Share2, Mail, Copy, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fadeUp, springGentle } from '@/lib/animations';
 import { toast } from 'sonner';
 import PageHeader from '@/components/layout/PageHeader';
 import { supabase, getOrgIdString } from '@/lib/supabase';
@@ -171,9 +172,10 @@ export default function ShareReceipt() {
           {receipts.map((receipt, i) => (
             <motion.div
               key={receipt.id}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.015, duration: 0.15 }}
+              variants={fadeUp}
+              initial="hidden"
+              animate="show"
+              transition={{ ...springGentle, delay: i * 0.015 }}
               onClick={() => toggleReceipt(receipt.id)}
               className={cn(
                 'flex cursor-pointer items-center gap-4 rounded-xl border px-4 py-3 shadow-sm transition-all',
@@ -219,8 +221,9 @@ export default function ShareReceipt() {
               onClick={() => setDialogOpen(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
+              variants={fadeUp}
+              initial="hidden"
+              animate="show"
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-glass-border bg-card p-6 shadow-lg"
             >

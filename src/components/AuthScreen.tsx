@@ -13,6 +13,7 @@ import { bootstrapOrgAction } from '@/app/actions/bootstrap-org';
 import { usePasswordStrength } from '@/hooks/usePasswordStrength';
 import BrandPanel from '@/components/auth/BrandPanel';
 import AuthForm from '@/components/auth/AuthForm';
+import { floatDrift, breatheAnimation } from '@/lib/animations';
 
 const signinSchema = z.object({
   email: z.string().email('Enter a valid email address'),
@@ -153,16 +154,18 @@ export default function AuthScreen({ onBackToLanding }: { onBackToLanding?: () =
 
   return (
     <div className="relative flex min-h-screen w-full overflow-hidden bg-[#08080a] selection:bg-champagne/20">
-      {/* Base gradient layers with breathing animation */}
+      {/* Base gradient layers with antigravity breathing */}
       <motion.div
         className="absolute inset-0 bg-gradient-to-br from-champagne/[0.03] via-transparent to-[#08080a]"
-        animate={{ opacity: [0.8, 1, 0.8] }}
-        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+        animate={breatheAnimation}
       />
       <motion.div
         className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(190,169,142,0.08),transparent)]"
-        animate={{ opacity: [0.6, 1, 0.6] }}
-        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+        animate={{
+          opacity: [0.5, 0.9, 0.5],
+          scale: [1, 1.02, 1],
+        }}
+        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
       />
 
       {/* Back to landing */}
@@ -185,7 +188,7 @@ export default function AuthScreen({ onBackToLanding }: { onBackToLanding?: () =
         }}
       />
 
-      {/* Floating ambient orbs — champagne tones only, smooth easing */}
+      {/* Floating ambient orbs — ethereal antigravity drift */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {orbs.map((orb, i) => (
           <motion.div
@@ -200,15 +203,15 @@ export default function AuthScreen({ onBackToLanding }: { onBackToLanding?: () =
               background: `radial-gradient(circle at center, ${orb.color} 0%, transparent 70%)`,
             }}
             animate={{
-              x: [0, i % 2 === 0 ? 40 : -40, 0],
-              y: [0, i % 2 === 0 ? -30 : 30, 0],
-              scale: [1, 1.15, 1],
+              x: [0, (i % 2 === 0 ? 1 : -1) * (25 + i * 5), 0],
+              y: [0, (i % 2 === 0 ? -1 : 1) * (20 + i * 3), 0],
+              scale: [1, 1.08 - i * 0.01, 1],
             }}
             transition={{
               duration: orb.duration,
               repeat: Infinity,
               ease: 'easeInOut',
-              delay: i * 2.5,
+              delay: i * 3,
             }}
           />
         ))}

@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, ArrowLeft, Check, Loader2, Scale } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fadeUp, springGentle } from '@/lib/animations';
 import PageHeader from '@/components/layout/PageHeader';
 import { supabase, getOrgIdString, getReceiptImageUrl } from '@/lib/supabase';
 import { formatCurrency, formatDate } from '@/lib/ui-utils';
@@ -180,9 +181,10 @@ export default function ReceiptComparison() {
               return (
                 <motion.div
                   key={r.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.015, duration: 0.15 }}
+                  variants={fadeUp}
+                  initial="hidden"
+                  animate="show"
+                  transition={{ ...springGentle, delay: i * 0.015 }}
                   onClick={() => toggleSelection(r.id)}
                   className={cn(
                     'flex cursor-pointer items-center justify-between rounded-xl border px-4 py-3 shadow-sm transition-all',
@@ -225,10 +227,10 @@ export default function ReceiptComparison() {
         {compareIds && leftReceipt && rightReceipt && (
           <motion.div
             key="comparison-view"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
             exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.2 }}
           >
             <button
               type="button"

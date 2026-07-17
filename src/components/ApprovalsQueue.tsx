@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fadeUp, springGentle } from '@/lib/animations';
 import { toast } from 'sonner';
 import {
   AlertCircle,
@@ -66,8 +67,9 @@ const ApprovalCard = React.memo(function ApprovalCard({
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
       exit={{ opacity: 0, x: -20 }}
       className={[
         'group rounded-3xl border p-5 transition',
@@ -306,8 +308,9 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
       <AnimatePresence>
         {selected.size > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
             exit={{ opacity: 0, y: -8 }}
             className="flex items-center gap-3 rounded-[3rem] border border-glass-border bg-surface-raised px-4 py-3"
           >
@@ -371,9 +374,10 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
           {[...Array(3)].map((_, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
+              variants={fadeUp}
+              initial="hidden"
+              animate="show"
+              transition={{ ...springGentle, delay: i * 0.08 }}
               className="rounded-3xl border border-glass-border bg-surface p-5"
             >
               <div className="flex gap-4">

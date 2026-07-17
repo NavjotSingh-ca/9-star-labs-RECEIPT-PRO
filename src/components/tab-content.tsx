@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { Loader2, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { fadeUp, springGentle } from '@/lib/animations';
 
 import dynamic from 'next/dynamic';
 import {
@@ -112,17 +113,12 @@ const cad = new Intl.NumberFormat('en-CA', {
   maximumFractionDigits: 2,
 });
 
-export const tabTransition = {
-  type: 'spring' as const,
-  stiffness: 300,
-  damping: 28,
-  mass: 0.8,
-};
+export const tabTransition = springGentle;
 
 const tabVariants = {
   initial: { opacity: 0, y: 16, scale: 0.98 },
-  animate: { opacity: 1, y: 0, scale: 1 },
-  exit: { opacity: 0, y: -8, scale: 0.98 },
+  animate: { opacity: 1, y: 0, scale: 1, transition: springGentle },
+  exit: { opacity: 0, y: -8, scale: 0.98, transition: { duration: 0.15, ease: 'easeIn' as const } },
 };
 
 export function AuditHUD({ receipts }: { receipts: ReceiptRow[] }) {

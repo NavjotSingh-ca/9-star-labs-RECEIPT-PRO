@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { supabase } from '@/lib/supabase';
 import { Loader2, KeyRound, AlertCircle, CheckCircle2, ShieldOff } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -176,9 +177,9 @@ export default function SecuritySettings() {
             <div className="flex justify-center py-8" role="status" aria-live="polite" aria-atomic="true" aria-label="Loading security settings"><Loader2 className="h-8 w-8 animate-spin text-champagne" /></div>
           ) : (
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
+              variants={fadeUp}
+              initial="hidden"
+              animate="show"
               className="space-y-8"
             >
               

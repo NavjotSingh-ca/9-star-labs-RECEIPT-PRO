@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, Loader2, RefreshCw, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { toast } from 'sonner';
 import PageHeader from '@/components/layout/PageHeader';
 import { supabase, getOrgIdString } from '@/lib/supabase';
@@ -147,8 +148,9 @@ export default function DarkModeSync() {
 
       {!isLoading && !error && receipts.length > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
+          variants={fadeUp}
+          initial="hidden"
+          animate="show"
           className="grid gap-4 sm:grid-cols-2"
         >
           <div className="rounded-2xl border border-glass-border bg-card p-5 shadow-sm">

@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { fadeUp, springGentle } from '@/lib/animations';
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, RefreshCw, Check } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ReceiptRow } from '@/lib/types';
@@ -285,9 +286,10 @@ export default function BankReconciliation({ receipts }: BankReconciliationProps
             {matches.map((m, idx) => (
               <motion.div
                 key={m.bankRow.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.05 }}
+                variants={fadeUp}
+                initial="hidden"
+                animate="show"
+                transition={{ ...springGentle, delay: idx * 0.05 }}
                 className="rounded-[3rem] border border-glass-border bg-surface p-4 shadow-sm"
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

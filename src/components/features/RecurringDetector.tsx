@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { fadeUp, springGentle } from '@/lib/animations';
 import PageHeader from '@/components/layout/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { supabase, getOrgIdString } from '@/lib/supabase';
@@ -173,9 +174,10 @@ export default function RecurringDetector() {
             {recurring.map((vendor, i) => (
               <motion.div
                 key={vendor.vendor_name}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04, duration: 0.2 }}
+                variants={fadeUp}
+                initial="hidden"
+                animate="show"
+                transition={{ ...springGentle, delay: i * 0.04 }}
                 className="relative rounded-2xl border border-glass-border bg-card p-5 shadow-sm transition-all hover:shadow-md"
               >
                 <div className="flex items-start justify-between mb-3">

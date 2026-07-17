@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { supabase } from '@/lib/supabase';
 import { setUserRole } from '@/lib/services/roles';
 import {
@@ -120,9 +121,9 @@ export default function TeamSettings() {
   return (
     <ErrorBoundary componentName="TeamSettings">
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
       className="space-y-6"
     >
       <div>

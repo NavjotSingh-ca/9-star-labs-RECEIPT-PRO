@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { env } from '@/lib/env';
 import { motion } from 'framer-motion';
+import { fadeUp, springGentle } from '@/lib/animations';
 
 // ─── Plan Configuration ────────────────────────────────────────
 // Update these price IDs with your actual Stripe price IDs.
@@ -159,9 +160,10 @@ export function PricingTable() {
         {PLANS.map((plan, i) => (
           <motion.div
             key={plan.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.08, duration: 0.3 }}
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
+            transition={{ ...springGentle, delay: i * 0.08 }}
             className={`relative flex flex-col rounded-2xl border p-6 transition-all duration-200 ${
               plan.highlighted
                 ? 'border-champagne/40 bg-card shadow-lg shadow-champagne/5 scale-[1.02] z-10'

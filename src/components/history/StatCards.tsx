@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { Receipt, DollarSign } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { toNumber, formatCurrency } from '@/lib/ui-utils';
 import type { ReceiptRow } from '@/lib/types';
 
@@ -26,8 +27,9 @@ export function StatCards({ receipts }: StatCardsProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
       className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4"
     >
       {stats.map((stat) => (

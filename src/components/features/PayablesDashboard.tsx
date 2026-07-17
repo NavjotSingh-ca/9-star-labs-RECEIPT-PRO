@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, Loader2, Clock, DollarSign, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { fadeUp, springGentle } from '@/lib/animations';
 import PageHeader from '@/components/layout/PageHeader';
 import { supabase, getOrgIdString } from '@/lib/supabase';
 import { formatCurrency, formatDate } from '@/lib/ui-utils';
@@ -116,9 +117,10 @@ export default function PayablesDashboard() {
         <>
           <div className="grid gap-4 sm:grid-cols-3">
             <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0 }}
+              variants={fadeUp}
+              initial="hidden"
+              animate="show"
+              transition={{ ...springGentle, delay: 0 }}
               className="rounded-2xl border border-glass-border bg-card p-4 shadow-sm"
             >
               <div className="flex items-center gap-2 text-sm text-text-muted">
@@ -131,9 +133,10 @@ export default function PayablesDashboard() {
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 }}
+              variants={fadeUp}
+              initial="hidden"
+              animate="show"
+              transition={{ ...springGentle, delay: 0.05 }}
               className="rounded-2xl border border-glass-border bg-card p-4 shadow-sm"
             >
               <div className="flex items-center gap-2 text-sm text-text-muted">
@@ -146,9 +149,10 @@ export default function PayablesDashboard() {
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
+              variants={fadeUp}
+              initial="hidden"
+              animate="show"
+              transition={{ ...springGentle, delay: 0.1 }}
               className="rounded-2xl border border-glass-border bg-card p-4 shadow-sm"
             >
               <div className="flex items-center gap-2 text-sm text-text-muted">

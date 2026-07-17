@@ -6,6 +6,7 @@ import {
   AlertCircle, Loader2, Clock, CheckCircle2, XCircle, GripVertical,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { fadeUp, springGentle } from '@/lib/animations';
 import { toast } from 'sonner';
 import PageHeader from '@/components/layout/PageHeader';
 import { supabase, getOrgIdString } from '@/lib/supabase';
@@ -168,9 +169,10 @@ export default function KanbanWorkflow() {
                   {items.map((receipt, i) => (
                     <motion.div
                       key={receipt.id}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.015 }}
+                      variants={fadeUp}
+                      initial="hidden"
+                      animate="show"
+                      transition={{ ...springGentle, delay: i * 0.015 }}
                       draggable
                       onDragStart={() => handleDragStart(receipt.id)}
                       onDragEnd={handleDragEnd}

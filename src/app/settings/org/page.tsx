@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { supabase, getOrgIdString } from '@/lib/supabase';
 import { Loader2, Save, AlertCircle, CheckCircle2, Link2, RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
@@ -190,9 +191,9 @@ function OrgSettings() {
             <div className="flex justify-center py-12" role="status" aria-live="polite" aria-label="Loading organization settings"><Loader2 className="h-8 w-8 animate-spin text-champagne" /></div>
           ) : (
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
+              variants={fadeUp}
+              initial="hidden"
+              animate="show"
               className="space-y-8"
             >
               

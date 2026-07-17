@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { navItemHover } from '@/lib/animations';
 import {
   Search,
   ScanLine,
@@ -106,8 +107,7 @@ export default function CommandPalette({ onAction }: CommandPaletteProps) {
                     <motion.button
                       key={item.id}
                       type="button"
-                      whileHover={{ scale: 1.01, x: 4 }}
-                      whileTap={{ scale: 0.98 }}
+                      {...navItemHover}
                       onClick={() => handleAction(item.id)}
                       className="flex w-full items-center gap-3 rounded-[2rem] px-3 py-3 text-left transition hover:bg-surface-raised"
                     >

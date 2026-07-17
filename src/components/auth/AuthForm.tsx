@@ -8,6 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { APP_NAME } from '@/lib/constants';
 import { passwordRequirements } from '@/hooks/usePasswordStrength';
+import { fadeUp, springGentle } from '@/lib/animations';
 import type { UseFormReturn } from 'react-hook-form';
 
 interface SignInData { email: string; password: string; rememberMe?: boolean }
@@ -67,9 +68,9 @@ export default function AuthForm({
   return (
     <div className="flex w-full lg:w-1/2 min-h-screen items-center justify-center p-4 sm:p-8 lg:p-12 xl:p-16">
       <motion.div
-        initial={{ opacity: 0, x: 30 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5, delay: 0.15 }}
+        variants={fadeUp}
+        initial="hidden"
+        animate="show"
         className="w-full max-w-md"
       >
         {/* ── Mobile logo (visible only below lg) ── */}

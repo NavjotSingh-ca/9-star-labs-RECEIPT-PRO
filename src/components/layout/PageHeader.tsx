@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import type { ReactNode } from 'react';
 
 /**
@@ -22,9 +23,9 @@ interface PageHeaderProps {
 export default function PageHeader({ title, subtitle, action }: PageHeaderProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
       className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-6"
     >
       <div>

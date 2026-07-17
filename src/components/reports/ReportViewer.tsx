@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { Download, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { METRIC_LABELS, formatMetricValue } from '@/lib/services/reports';
@@ -34,8 +35,9 @@ export function ReportViewer({ result, templateName }: Props) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
       className="rounded-lg border border-glass-border bg-card overflow-hidden"
     >
       <div className="flex items-center justify-between px-4 py-3 border-b border-glass-border bg-surface/50">

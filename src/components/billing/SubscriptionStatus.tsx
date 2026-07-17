@@ -5,6 +5,7 @@ import { Loader2, CreditCard, CheckCircle2, AlertTriangle, XCircle, ExternalLink
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 
 type Plan = 'free' | 'starter' | 'pro' | 'business' | 'enterprise';
 type SubStatus = 'active' | 'trialing' | 'past_due' | 'canceled' | null;
@@ -157,9 +158,9 @@ export function SubscriptionStatus() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
       className="rounded-2xl border border-glass-border bg-card p-6"
     >
       <div className="flex items-center gap-3 mb-4">

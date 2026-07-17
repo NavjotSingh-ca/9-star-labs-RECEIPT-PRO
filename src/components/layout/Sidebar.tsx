@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { APP_NAME } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
+import { navItemHover } from '@/lib/animations';
 import { useAppStore } from '@/lib/store';
 import { useNotificationStore } from '@/lib/stores/notifications';
 import {
@@ -148,11 +149,12 @@ function NavLink({
   onClick: () => void;
 }) {
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onClick}
       aria-label={label}
       title={label}
+      {...navItemHover}
        className={`relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150 ${
          active
            ? 'bg-sidebar-active text-sidebar-text'
@@ -181,7 +183,7 @@ function NavLink({
       >
         {label}
       </span>
-    </button>
+    </motion.button>
   );
 }
 

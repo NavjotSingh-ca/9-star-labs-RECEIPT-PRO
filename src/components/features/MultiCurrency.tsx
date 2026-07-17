@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, Loader2, Globe } from 'lucide-react';
@@ -59,9 +60,9 @@ export default function MultiCurrency() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: 'easeOut' }}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
       className="space-y-5"
     >
       <PageHeader

@@ -264,8 +264,12 @@
   /* ─── Animations ─── */
   --animate-shimmer: shimmer 1.5s ease-in-out infinite;
   --animate-float: float 6s ease-in-out infinite;
+  --animate-float-slow: floatSlow 10s ease-in-out infinite;
+  --animate-float-wide: floatWide 12s ease-in-out infinite;
   --animate-pulse-soft: pulseSoft 3s ease-in-out infinite;
   --animate-aurora: aurora 60s linear infinite;
+  --animate-levitate: levitate 0.3s ease-out forwards;
+  --animate-drift: drift 8s ease-in-out infinite;
 }
 
 /* ─── Base Styles ─── */
@@ -355,9 +359,32 @@ body {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-4px); }
 }
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes floatWide {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  33% { transform: translateY(-6px) translateX(4px); }
+  66% { transform: translateY(-3px) translateX(-3px); }
+}
 @keyframes pulseSoft {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
+}
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(10px, -8px) scale(1.05); }
+  50% { transform: translate(-5px, -4px) scale(0.98); }
+  75% { transform: translate(8px, -10px) scale(1.02); }
+}
+@keyframes levitate {
+  0% { transform: translateY(0) scale(1); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  100% { transform: translateY(-6px) scale(1.01); box-shadow: 0 12px 28px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06); }
+}
+@keyframes fadeSlideUp {
+  0% { opacity: 0; transform: translateY(16px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 /* ─── Aceternity Aurora ─── */
@@ -416,6 +443,62 @@ body {
 /* ─── Tap feedback (subtle, no scale bounce) ─── */
 * {
   -webkit-tap-highlight-color: var(--champagne-glow);
+}
+
+/* ─── Antigravity hover for cards (CSS-only, no framer) ─── */
+.antigravity-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  will-change: transform, box-shadow;
+}
+.antigravity-card:hover {
+  transform: translateY(-4px) scale(1.005);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.04);
+}
+@media (prefers-reduced-motion: reduce) {
+  .antigravity-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+/* ─── Antigravity button hover ─── */
+.antigravity-btn {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  will-change: transform;
+}
+.antigravity-btn:hover {
+  transform: scale(1.03);
+}
+.antigravity-btn:active {
+  transform: scale(0.97);
+}
+
+/* ─── Floating element (background decoration) ─── */
+.antigravity-float {
+  animation: floatWide 8s ease-in-out infinite;
+}
+.antigravity-float-slow {
+  animation: floatWide 12s ease-in-out infinite;
+}
+.antigravity-drift {
+  animation: drift 10s ease-in-out infinite;
+}
+
+/* ─── Stagger entrance for list children (CSS-only) ─── */
+@for $i from 1 through 20 {
+  .stagger-enter > :nth-child($i) {
+    animation: fadeSlideUp 0.4s ease-out both;
+    animation-delay: calc($i * 30ms);
+  }
+}
+
+/* ─── Champagne glow pulse for active/selected items ─── */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 8px var(--champagne-glow); }
+  50% { box-shadow: 0 0 20px var(--champagne-glow-strong); }
+}
+.glow-pulse {
+  animation: glowPulse 2s ease-in-out infinite;
 }
 @media (hover: none) {
   button:active, a:active, [role="button"]:active {

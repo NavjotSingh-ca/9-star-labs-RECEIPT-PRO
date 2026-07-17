@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import type { BarShapeProps } from 'recharts';
 import { motion } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Receipt } from 'lucide-react';
 
@@ -48,9 +49,9 @@ export function DailySpendChart({ data }: DailySpendChartProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: 'easeOut' }}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
     >
     <Card className="rounded-2xl border border-glass-border bg-surface/50 backdrop-blur-xl shadow-2xl overflow-hidden group relative before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-champagne/40">
       <CardHeader className="pb-2">

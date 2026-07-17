@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, LayoutGroup } from 'framer-motion';
+import { fabHover } from '@/lib/animations';
 import {
   LayoutDashboard,
   Camera,
@@ -69,8 +70,7 @@ export default function MobileNav({ activeTab, onTabChange, noReceipts }: Mobile
                     onClick={() => onTabChange(item.id)}
                     aria-label={item.label}
                     aria-current={isActive ? 'page' : undefined}
-                    whileHover={{ scale: 1.06 }}
-                    whileTap={{ scale: 0.85 }}
+                    {...fabHover}
                     animate={noReceipts ? {
                       boxShadow: [
                         '0 4px 14px 0 rgba(16,185,129,0.2)',

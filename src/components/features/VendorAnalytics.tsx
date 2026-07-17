@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, ArrowUpDown, Loader2, Search } from 'lucide-react';
@@ -164,9 +165,9 @@ export default function VendorAnalytics() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: 'easeOut' }}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
       className="space-y-5"
     >
       <PageHeader title="Vendor Analytics" subtitle="Spend breakdown by vendor" />

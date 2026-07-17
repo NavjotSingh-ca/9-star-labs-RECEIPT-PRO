@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { fadeUp, springGentle } from '@/lib/animations';
 import {
   Area,
   AreaChart,
@@ -21,9 +22,10 @@ export function SpendingChart({ data }: SpendingChartProps) {
   if (data.length < 2) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: 'easeOut', delay: 0.1 }}
+        variants={fadeUp}
+        initial="hidden"
+        animate="show"
+        transition={{ ...springGentle, delay: 0.1 }}
       >
       <Card className="rounded-[3rem] border border-dashed border-glass-border bg-surface/30 p-6 shadow-sm min-h-[300px] flex flex-col items-center justify-center text-center">
         <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted/30 mb-3"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
@@ -36,9 +38,10 @@ export function SpendingChart({ data }: SpendingChartProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: 'easeOut', delay: 0.1 }}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
+      transition={{ ...springGentle, delay: 0.1 }}
     >
     <Card className="rounded-[3rem] border border-glass-border bg-surface/50 backdrop-blur-xl shadow-2xl overflow-hidden group">
       <CardHeader className="pb-2">

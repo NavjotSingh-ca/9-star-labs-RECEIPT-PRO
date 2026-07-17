@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { fadeUp, springGentle } from '@/lib/animations';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
@@ -21,9 +22,9 @@ function AdminFallback() {
 export default function AdminSettingsPage() {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: 'easeOut' }}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
       className="space-y-6"
     >
       <div className="mb-6">

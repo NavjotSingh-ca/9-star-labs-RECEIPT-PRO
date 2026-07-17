@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { fadeUp } from '@/lib/animations';
 import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useQueryState } from 'nuqs';
@@ -116,9 +117,9 @@ export default function SmartSearch() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: 'easeOut' }}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
       className="space-y-5"
     >
       <PageHeader title="Smart Search" subtitle="Find receipts by text, date, amount, or category" />

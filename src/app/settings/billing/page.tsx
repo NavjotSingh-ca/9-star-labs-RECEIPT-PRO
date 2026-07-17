@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { motion } from 'framer-motion';
+import { fadeUp, springGentle } from '@/lib/animations';
 import { Shield, ExternalLink } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SubscriptionStatus } from '@/components/billing/SubscriptionStatus';
@@ -14,9 +15,9 @@ import { PricingTable } from '@/components/billing/PricingTable';
 export default function BillingSettings() {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: 'easeOut', delay: 0.05 }}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
       className="space-y-8"
     >
       <div className="mb-6">
