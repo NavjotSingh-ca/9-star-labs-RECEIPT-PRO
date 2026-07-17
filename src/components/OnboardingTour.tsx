@@ -105,7 +105,7 @@ export function OnboardingTour() {
         setRun(false);
       }
     },
-    [],
+    [setRun],
   );
 
   const { Tour } = useJoyride({

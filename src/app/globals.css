@@ -552,6 +552,58 @@ body {
   }
 }
 
+/* ─── Landing page animations ─── */
+@keyframes orbit {
+  0% { transform: rotate(0deg) translateX(var(--orbit-radius, 100px)) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(var(--orbit-radius, 100px)) rotate(-360deg); }
+}
+@keyframes orbitReverse {
+  0% { transform: rotate(360deg) translateX(var(--orbit-radius, 80px)) rotate(-360deg); }
+  100% { transform: rotate(0deg) translateX(var(--orbit-radius, 80px)) rotate(0deg); }
+}
+@keyframes shimmerWide {
+  0% { background-position: -400% 0; }
+  100% { background-position: 400% 0; }
+}
+@keyframes float3d {
+  0%, 100% { transform: translateY(0) rotateX(0deg) rotateY(0deg); }
+  25% { transform: translateY(-12px) rotateX(2deg) rotateY(3deg); }
+  50% { transform: translateY(-6px) rotateX(-1deg) rotateY(-2deg); }
+  75% { transform: translateY(-18px) rotateX(1deg) rotateY(4deg); }
+}
+@keyframes glowPulseStrong {
+  0%, 100% { box-shadow: 0 0 20px var(--champagne-glow), 0 0 40px var(--champagne-glow); }
+  50% { box-shadow: 0 0 40px var(--champagne-glow-strong), 0 0 80px var(--champagne-glow); }
+}
+@keyframes fadeScaleIn {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Landing page utility classes */
+.landing-glow {
+  animation: glowPulseStrong 3s ease-in-out infinite;
+}
+.landing-float-3d {
+  animation: float3d 8s ease-in-out infinite;
+}
+.landing-orbit {
+  animation: orbit 12s linear infinite;
+}
+.landing-orbit-reverse {
+  animation: orbitReverse 15s linear infinite;
+}
+.landing-shimmer {
+  background: linear-gradient(110deg, var(--champagne-dim) 10%, var(--champagne) 45%, #e8d5c0 55%, var(--champagne-dim) 90%);
+  background-size: 400% 100%;
+  animation: shimmerWide 3s ease-in-out infinite;
+}
+.landing-glass {
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  background: rgba(12, 12, 12, 0.6);
+}
+
 /* ─── GPU acceleration via will-change ─── */
 /* Only applies to known animated classes — too broad a selector creates too many compositing layers */
 .antigravity-card,

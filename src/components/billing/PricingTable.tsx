@@ -10,15 +10,18 @@ import { motion } from 'framer-motion';
 import { fadeUp, springGentle } from '@/lib/animations';
 
 // ─── Plan Configuration ────────────────────────────────────────
-// Update these price IDs with your actual Stripe price IDs.
+// PricingTable.tsx — All plans currently on free trial until Apr 2027
+// To enable real billing, set NEXT_PUBLIC_STRIPE_PRICE_PRO and NEXT_PUBLIC_STRIPE_PRICE_BUSINESS
 // Create prices in Stripe Dashboard → Products → Add Product.
+
+const TRIAL_EXPIRY_DATE = 'April 2027';
 
 const PLANS = [
   {
     id: 'free' as const,
-    name: 'Free',
+    name: 'Free Trial',
     price: '$0',
-    description: 'Get started with basic receipt tracking',
+    description: 'Basic receipt tracking with generous limits (trial expires ' + TRIAL_EXPIRY_DATE + ')',
     priceId: '', // Free plan — no checkout
     features: [
       'Up to 50 receipts/month',
@@ -27,15 +30,16 @@ const PLANS = [
       'CSV export',
       'Manual categorization',
     ],
-    highlighted: false,
-    cta: 'Get Started Free',
+    highlighted: true,
+    cta: 'Current Plan',
+    locked: false,
   },
   {
     id: 'pro' as const,
     name: 'Pro',
     price: '$19',
     description: 'For professionals who need more power',
-    priceId: 'price_placeholder_pro', // TODO: Replace with your Stripe Pro price ID
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO || '',
     features: [
       'Unlimited receipts',
       'Up to 5 users',
@@ -46,15 +50,16 @@ const PLANS = [
       'All export formats (PDF, CSV, JSON)',
       'Email receipt forwarding',
     ],
-    highlighted: true,
-    cta: 'Start 14-Day Trial',
+    highlighted: false,
+    cta: 'Available Soon',
+    locked: true, // Locked until ' + TRIAL_EXPIRY_DATE
   },
   {
     id: 'business' as const,
     name: 'Business',
     price: '$49',
     description: 'For teams with advanced needs',
-    priceId: 'price_placeholder_business', // TODO: Replace with your Stripe Business price ID
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS || '',
     features: [
       'Everything in Pro',
       'Unlimited users',
@@ -66,7 +71,8 @@ const PLANS = [
       'Custom branding',
     ],
     highlighted: false,
-    cta: 'Start 14-Day Trial',
+    cta: 'Available Soon',
+    locked: true, // Locked until ' + TRIAL_EXPIRY_DATE
   },
   {
     id: 'enterprise' as const,
@@ -85,6 +91,7 @@ const PLANS = [
     ],
     highlighted: false,
     cta: 'Contact Sales',
+    locked: false,
   },
 ] as const;
 
@@ -99,7 +106,13 @@ export function PricingTable() {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<PlanId | null>(null);
 
-  async function handlePlanClick(plan: (typeof PLANS)[number]) {
+  async function handlePlanClick(plan: { id: PlanId; priceId: string; locked?: boolean }) {
+    // Handle locked plans (Pro/Business during trial period)
+    if (plan.locked) {
+      toast.info('Upgrade options become available in ' + TRIAL_EXPIRY_DATE + '. For early access, contact support.');
+      return;
+    }
+
     if (plan.id === 'enterprise') {
       window.location.href = 'mailto:sales@9starlabs.ca?subject=Enterprise%20Plan%20Inquiry';
       return;
@@ -111,7 +124,7 @@ export function PricingTable() {
       return;
     }
 
-    if (!plan.priceId || plan.priceId.startsWith('price_placeholder')) {
+    if (!plan.priceId) {
       toast.error('Stripe price ID not configured. Set price IDs in PricingTable.tsx');
       return;
     }

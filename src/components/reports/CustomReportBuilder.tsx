@@ -100,13 +100,13 @@ export function CustomReportBuilder({ orgId }: Props) {
     return '';
   }, [groupBy]);
 
-  // Set default template name on mount when groupBy is present
+  // Set default template name when groupBy changes
   useEffect(() => {
     if (!templateName && defaultTemplateName) {
       setTemplateName(defaultTemplateName);
     }
-  // Only run on mount / when groupBy changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Only need defaultTemplateName - setTemplateName is stable, templateName check prevents loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultTemplateName]);
 
   return (

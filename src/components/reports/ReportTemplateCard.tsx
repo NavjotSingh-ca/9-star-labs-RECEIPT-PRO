@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import type { ReportTemplate } from '@/lib/services/reports';
 import { fadeUp, cardHoverSubtle } from '@/lib/animations';
 
-const ICON_MAP: Record<string, React.ElementType> = {
+const ICON_MAP: Record<string, typeof FileText> = {
   FileText, Building2, PieChart, TrendingUp, Calendar, FileSpreadsheet,
 };
 
@@ -20,7 +20,7 @@ interface Props {
 }
 
 export function ReportTemplateCard({ template, onGenerate, isGenerating }: Props) {
-  const Icon = ICON_MAP[template.icon] || FileSpreadsheet;
+  const Icon = ICON_MAP[template.icon] ?? FileSpreadsheet;
 
   return (
     <motion.div

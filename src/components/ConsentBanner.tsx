@@ -10,11 +10,6 @@ import { supabase } from '@/lib/supabase';
 const STORAGE_KEY = '9sl-privacy-consent';
 
 /**
- * ConsentBanner — Privacy notice banner shown on first login (localStorage).
- * Records consent/decline in audit_logs (best-effort). Supports Escape to accept.
- * Discloses AI processing (Gemini) and US-based server storage.
- */
-/**
  * Privacy consent banner shown on first login (stored in localStorage).
  * Discloses AI/REST processing for receipt data, cross-border transfer,
  * and links to full Privacy Policy. User must accept or decline before proceeding.

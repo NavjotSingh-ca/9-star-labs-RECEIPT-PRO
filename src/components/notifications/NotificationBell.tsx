@@ -102,8 +102,7 @@ export default function NotificationBell({ collapsed }: NotificationBellProps) {
     }
     load();
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [notifications.length, addNotifications]);
 
   // Poll every 30 seconds for new unread count
   useEffect(() => {

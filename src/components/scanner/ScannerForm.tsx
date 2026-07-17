@@ -11,6 +11,7 @@ import { CATEGORIES, PAYMENT_METHODS, USAGE_TYPES } from './types';
 import { shouldGlow, computeLiveCRAScore } from '@/lib/ui-utils';
 import { receiptFormSchema, ReceiptFormValues } from '@/lib/validations';
 import { isMathMismatch } from '@/lib/finance-utils';
+import { cn } from '@/lib/utils';
 import { dinero, add, equal, CAD } from 'dinero.js';
 import { usePlan } from '@/hooks/use-plan';
 
@@ -399,7 +400,7 @@ export default function ScannerForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-muted">Vendor Name</label>
-              <input type="text" {...register('vendor_name')} className={`${errors.vendor_name ? errorInputCls : (glowActive ? inputCls + ' self-healing-glow' : inputCls)}`} placeholder="Supplier name" />
+              <input type="text" {...register('vendor_name')} className={cn(errors.vendor_name ? errorInputCls : inputCls, glowActive && 'self-healing-glow')} placeholder="Supplier name" />
               {errors.vendor_name && <p className="mt-1 text-xs text-danger">{errors.vendor_name.message}</p>}
             </div>
             <div className="sm:col-span-2">
@@ -530,7 +531,7 @@ export default function ScannerForm({
                   </span>
                 </span>
               </label>
-              <input type="number" step="0.01" min="0" {...register('total_amount', { valueAsNumber: true })} className={errors.total_amount ? errorInputCls : (glowActive ? inputCls + ' self-healing-glow' : inputCls)} />
+              <input type="number" step="0.01" min="0" {...register('total_amount', { valueAsNumber: true })} className={cn(errors.total_amount ? errorInputCls : inputCls, glowActive && 'self-healing-glow')} />
               {errors.total_amount && <p className="mt-1 text-xs text-danger">{errors.total_amount.message}</p>}
             </div>
             <div>

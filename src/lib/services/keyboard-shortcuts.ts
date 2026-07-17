@@ -3,7 +3,7 @@
  * Supports global shortcuts and context-aware actions
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 
 export interface Shortcut {
   key: string;
@@ -14,7 +14,7 @@ export interface Shortcut {
   description: string;
 }
 
-const shortcuts: Shortcut[] = [
+const defaultShortcuts: Shortcut[] = [
   { key: 's', ctrl: true, action: () => {}, description: 'Go to scanner' },
   { key: 'r', ctrl: true, action: () => {}, description: 'Go to receipts' },
   { key: 'b', ctrl: true, action: () => {}, description: 'Go to budgets' },
@@ -29,26 +29,23 @@ const shortcuts: Shortcut[] = [
  * Hook to register global keyboard shortcuts
  */
 export function useKeyboardShortcuts(customShortcuts: Shortcut[] = []) {
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- shortcuts are stable
-  const allShortcuts = [...shortcuts, ...customShortcuts];
+  // Combine default and custom shortcuts - memo to avoid unnecessary re-renders
+  const allShortcuts = useMemo(() => [...defaultShortcuts, ...customShortcuts], [customShortcuts]);
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      const matching = allShortcuts.find(s => {
-        const keyMatch = s.key.toLowerCase() === e.key.toLowerCase();
-        const ctrlMatch = (s.ctrl ?? false) === (e.ctrlKey || e.metaKey);
-        const shiftMatch = (s.shift ?? false) === e.shiftKey;
-        const altMatch = (s.alt ?? false) === e.altKey;
-        return keyMatch && ctrlMatch && shiftMatch && altMatch;
-      });
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    const matching = allShortcuts.find(s => {
+      const keyMatch = s.key.toLowerCase() === e.key.toLowerCase();
+      const ctrlMatch = (s.ctrl ?? false) === (e.ctrlKey || e.metaKey);
+      const shiftMatch = (s.shift ?? false) === e.shiftKey;
+      const altMatch = (s.alt ?? false) === e.altKey;
+      return keyMatch && ctrlMatch && shiftMatch && altMatch;
+    });
 
-      if (matching) {
-        e.preventDefault();
-        matching.action();
-      }
-    },
-    [allShortcuts]
-  );
+    if (matching) {
+      e.preventDefault();
+      matching.action();
+    }
+  }, [allShortcuts]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
