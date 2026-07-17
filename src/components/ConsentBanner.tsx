@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { getSupabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 const STORAGE_KEY = '9sl-privacy-consent';
 
@@ -35,7 +35,6 @@ export function ConsentBanner() {
     setVisible(false);
 
     try {
-      const supabase = await getSupabase();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase.from('audit_logs').insert({
@@ -54,7 +53,6 @@ export function ConsentBanner() {
     setVisible(false);
 
     try {
-      const supabase = await getSupabase();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase.from('audit_logs').insert({

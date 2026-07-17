@@ -8,7 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { APP_NAME } from '@/lib/constants';
 import { passwordRequirements } from '@/hooks/usePasswordStrength';
-import { fadeUp, springGentle } from '@/lib/animations';
+import { fadeUp } from '@/lib/animations';
 import type { UseFormReturn } from 'react-hook-form';
 
 interface SignInData { email: string; password: string; rememberMe?: boolean }

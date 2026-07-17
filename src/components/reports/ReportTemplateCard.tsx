@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { FileText, Building2, PieChart, TrendingUp, Calendar, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { ReportTemplate } from '@/lib/services/reports';
-import { fadeUp, springSnap, cardHoverSubtle } from '@/lib/animations';
+import { fadeUp, cardHoverSubtle } from '@/lib/animations';
 
 const ICON_MAP: Record<string, React.ElementType> = {
   FileText, Building2, PieChart, TrendingUp, Calendar, FileSpreadsheet,

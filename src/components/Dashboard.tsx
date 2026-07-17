@@ -15,7 +15,7 @@ import { supabase, getOrgIdString } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { getDashboardSummary } from '@/lib/services/receipts';
 import { toNumber, formatCurrency } from '@/lib/ui-utils';
-import { fadeUp, staggerMedium, springGentle, cardHoverSubtle } from '@/lib/animations';
+import { fadeUp, staggerMedium, cardHoverSubtle } from '@/lib/animations';
 
 interface DashboardProps {
   /** Navigate to scanner */
@@ -264,7 +264,7 @@ const EmptyState = React.memo(function EmptyState({ onScan, handleCopyEmail, for
           { icon: Sparkles, title: 'AI Extraction', desc: 'Auto-detects vendors, line items, taxes, and categories from any receipt photo.' },
           { icon: ShieldAlert, title: 'CRA Compliance', desc: 'Real-time scoring ensures every receipt meets Canadian audit requirements.' },
           { icon: TrendingUp, title: 'Financial Intel', desc: 'Dashboards, tax recovery estimates, and spend trends at a glance.' },
-        ].map((f, i) => (
+        ].map((f) => (
           <motion.div
             key={f.title}
             variants={fadeUp}

@@ -383,7 +383,7 @@ export default function MileageTracker() {
         </div>
       ) : (
         <div className="space-y-3">
-          {logs.map((log, idx) => (
+          {logs.map((log) => (
             <motion.div
               key={log.id}
               variants={fadeUp}

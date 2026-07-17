@@ -13,7 +13,7 @@ import { bootstrapOrgAction } from '@/app/actions/bootstrap-org';
 import { usePasswordStrength } from '@/hooks/usePasswordStrength';
 import BrandPanel from '@/components/auth/BrandPanel';
 import AuthForm from '@/components/auth/AuthForm';
-import { floatDrift, breatheAnimation } from '@/lib/animations';
+import { breatheAnimation } from '@/lib/animations';
 
 const signinSchema = z.object({
   email: z.string().email('Enter a valid email address'),

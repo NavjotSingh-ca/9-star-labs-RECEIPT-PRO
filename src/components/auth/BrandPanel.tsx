@@ -8,8 +8,6 @@ import {
   fadeUpFloaty,
   fadeIn,
   staggerSlow,
-  springGentle,
-  springFloaty,
 } from '@/lib/animations';
 
 const brandFeatures = [
@@ -90,7 +88,7 @@ export default function BrandPanel() {
           animate="show"
           className="grid gap-2.5"
         >
-          {brandFeatures.map((f, i) => (
+          {brandFeatures.map((f) => (
             <motion.div
               key={f.label}
               variants={fadeUp}

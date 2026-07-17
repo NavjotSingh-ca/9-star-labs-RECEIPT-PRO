@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { fadeUp, springGentle } from '@/lib/animations';
+import { fadeUp } from '@/lib/animations';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';

@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { Loader2, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { fadeUp, springGentle } from '@/lib/animations';
+import { springGentle } from '@/lib/animations';
 
 import dynamic from 'next/dynamic';
 import {
