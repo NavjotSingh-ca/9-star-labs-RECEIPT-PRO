@@ -1,165 +1,247 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  ReceiptText, Camera, ArrowRight, Check, Menu, X,
-  ChevronDown, Sparkles, Zap, ShieldCheck, Clock,
-  Lock, FileCheck, Shield,
-  Star, Quote, Building2, Users, Mail,
-  Landmark, PiggyBank, TrendingUp, CreditCard,
-  CalendarDays, Tag, Repeat, BarChart3, Lightbulb,
-  Search, Store, Route, ClipboardCheck, AlertTriangle,
-  Wallet, ScrollText, FileSpreadsheet, Moon, DollarSign,
-  Tags, Kanban, GitCompare, FileDown,
+  ReceiptText, ArrowRight, Sparkles, Zap,
+  Shield, Lock, CheckCircle2, ChevronDown, Quote, Star, Menu, X,
+  Camera, Search, CalendarDays, Store, PiggyBank, TrendingUp,
+  DollarSign, Tags, Kanban, GitCompare, Repeat, FileDown,
+  BarChart3, ClipboardCheck, ShieldCheck, AlertTriangle,
+  Route, Landmark, Building2, Wallet, Mail, Users, Moon,
+  ScrollText, FileSpreadsheet, Lightbulb, Clock,
 } from 'lucide-react';
-
 import type { LucideProps } from 'lucide-react';
 import { APP_NAME } from '@/lib/constants';
 import { features } from '@/lib/feature-content';
-import { TiltCard } from '@/components/landing/TiltCard';
-import { AnimatedCounter } from '@/components/landing/AnimatedCounter';
 
-// Icon component mapping - using React.ComponentType for proper typing
+// Icon component mapping for dynamic rendering
 const iconComponents: Record<string, React.ComponentType<LucideProps>> = {
-  Camera,
-  Search,
-  CalendarDays,
-  Store,
-  PiggyBank,
-  TrendingUp,
-  ReceiptText,
-  DollarSign,
-  Tags,
-  Kanban,
-  GitCompare,
-  Repeat,
-  FileDown,
-  BarChart3,
-  ClipboardCheck,
-  ShieldCheck,
-  AlertTriangle,
-  Route,
-  Landmark,
-  Building2,
-  Wallet,
-  Mail,
-  Users,
-  Moon,
-  ScrollText,
-  FileSpreadsheet,
-  Lightbulb,
-  Star,
-  FileCheck,
-  CreditCard,
-  Tag,
+  Camera, Search, CalendarDays, Store, PiggyBank, TrendingUp,
+  ReceiptText, DollarSign, Tags, Kanban, GitCompare, Repeat,
+  FileDown, BarChart3, ClipboardCheck, ShieldCheck, AlertTriangle,
+  Route, Landmark, Building2, Wallet, Mail, Users, Moon,
+  ScrollText, FileSpreadsheet, Lightbulb, Star,
 };
 
-// Pre-declared typed icon lookup
-function getFeatureIcon(iconName: string): React.ComponentType<LucideProps> {
-  return iconComponents[iconName] || Camera;
-}
+const getFeatureIcon = (iconName: string): React.ComponentType<LucideProps> => iconComponents[iconName] || Camera;
 
-// Static 3D hero with animated gradient background
-function StaticHero3D() {
+// ─── Hero Section with 3D visuals ─────────────────────────────────
+function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePosition({
+      x: (e.clientX - rect.left) / rect.width,
+      y: (e.clientY - rect.top) / rect.height,
+    });
+  }, []);
+
   return (
-    <div className="absolute inset-0 flex items-center justify-center">
-      <div className="relative w-full h-full">
-        {/* Animated gradient orbs */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-champagne/8 rounded-full blur-[100px] animate-pulse-soft" />
-        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-champagne/6 rounded-full blur-[80px] animate-pulse-soft" style={{ animationDelay: '1s' }} />
+    <section className="relative min-h-screen flex items-center overflow-hidden pt-20">
+      {/* Animated gradient orbs - parallax on mouse move */}
+      <div className="pointer-events-none absolute inset-0" onMouseMove={handleMouseMove}>
+        <div
+          className="absolute top-1/4 left-1/4 w-96 h-96 bg-champagne/8 rounded-full blur-[120px] animate-pulse-soft transition-transform duration-500"
+          style={{ transform: `translate(${mousePosition.x * 20}px, ${mousePosition.y * 20}px)` }}
+        />
+        <div
+          className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-champagne/6 rounded-full blur-[100px] animate-pulse-soft transition-transform duration-500"
+          style={{ animationDelay: '1s', transform: `translate(${-mousePosition.x * 15}px, ${-mousePosition.y * 15}px)` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-champagne/5 via-transparent to-obsidian" />
+      </div>
 
-        {/* Floating 3D receipt card effect */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="relative w-[320px] h-[480px] animate-float3d">
-            {/* Main card */}
-            <div className="absolute inset-0 bg-gradient-to-br from-champagne/15 via-card to-champagne/5 rounded-3xl border border-champagne/25 shadow-2xl" />
-
-            {/* Inner glow */}
-            <div className="absolute inset-0 bg-gradient-radial from-champagne/20 via-transparent to-transparent rounded-3xl" />
-
-            {/* Content placeholder */}
-            <div className="relative h-full flex flex-col items-center justify-center p-8">
-              <div className="w-24 h-24 rounded-2xl bg-champagne/20 flex items-center justify-center mb-6 shadow-champagne/30">
-                <ReceiptText className="w-12 h-12 text-champagne" />
-              </div>
-              <div className="space-y-3 w-full max-w-xs">
-                <div className="h-3 bg-champagne/30 rounded-full w-3/4 mx-auto" />
-                <div className="h-3 bg-champagne/20 rounded-full w-1/2 mx-auto" />
-                <div className="h-3 bg-champagne/15 rounded-full w-2/3 mx-auto" />
+      {/* 3D Receipt visualization */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="relative w-full h-full flex items-center justify-center">
+          {/* Multiple floating cards for depth */}
+          <div className="absolute w-[320px] h-[480px] animate-float3d opacity-30" style={{ transform: 'rotateY(-20deg) translateX(-40px)' }}>
+            <div className="absolute inset-0 bg-gradient-to-br from-champagne/10 to-card/60 rounded-3xl border border-champagne/15" />
+          </div>
+          <div className="absolute w-[320px] h-[480px] animate-float3d opacity-50" style={{ animationDelay: '0.5s' }}>
+            <div className="absolute inset-0 bg-gradient-to-br from-champagne/15 via-card to-champagne/5 rounded-3xl border border-champagne/25 shadow-2xl">
+              <div className="relative h-full flex flex-col items-center justify-center p-8">
+                <div className="w-20 h-20 rounded-2xl bg-champagne/20 flex items-center justify-center mb-6">
+                  <ReceiptText className="w-10 h-10 text-champagne" />
+                </div>
+                <div className="space-y-3 w-full max-w-xs">
+                  <div className="h-2.5 bg-champagne/30 rounded-full w-3/4 mx-auto" />
+                  <div className="h-2.5 bg-champagne/20 rounded-full w-1/2 mx-auto" />
+                  <div className="h-2.5 bg-champagne/15 rounded-full w-2/3 mx-auto" />
+                </div>
               </div>
             </div>
           </div>
+          <div className="absolute w-[320px] h-[480px] animate-float3d opacity-30" style={{ transform: 'rotateY(20deg) translateX(40px)', animationDelay: '1s' }}>
+            <div className="absolute inset-0 bg-gradient-to-br from-champagne/8 to-card/50 rounded-3xl border border-champagne/10" />
+          </div>
         </div>
       </div>
-    </div>
+
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Trust badges */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
+          <TrustBadge icon={Shield} text="SOC 2 Compliant" />
+          <TrustBadge icon={Building2} text="Canadian Data Residency" />
+          <TrustBadge icon={Lock} text="Bank-Level Encryption" />
+        </div>
+
+        <div className="text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-champagne/20 bg-champagne/5 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-champagne backdrop-blur-sm mb-6 animate-in fade-in slide-up-from-bottom-4 duration-700">
+            <Sparkles className="h-3 w-3" /> CRA-Ready Accounting
+          </div>
+
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-[1.05] max-w-5xl mx-auto mb-6 animate-in fade-in slide-up-from-bottom-4 duration-700 delay-100">
+            <span className="bg-gradient-to-r from-champagne via-champagne-dim to-champagne bg-clip-text text-transparent">
+              Receipt Management
+            </span>
+            <br />
+            <span className="text-text-primary">Engineered for Canada</span>
+          </h1>
+
+          <p className="text-lg text-text-muted/90 max-w-2xl mx-auto mb-10 leading-relaxed animate-in fade-in slide-up-from-bottom-4 duration-700 delay-200">
+            Stop worrying about CRA audits. {APP_NAME} automatically extracts, organizes, and
+            stores your receipts with AI. Generate tax-ready reports, track budgets, and
+            keep your business compliant — all in one place.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-in fade-in slide-up-from-bottom-4 duration-700 delay-300">
+            <button
+              type="button"
+              onClick={onGetStarted}
+              className="group relative inline-flex items-center gap-2.5 rounded-2xl bg-champagne px-8 py-3.5 text-sm font-bold text-obsidian transition-all shadow-xl shadow-champagne/20 hover:shadow-champagne/30 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-champagne/40 antigravity-btn"
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                Start Free Trial <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+              </span>
+            </button>
+            <Link
+              href="/features"
+              className="inline-flex items-center gap-2 rounded-2xl border border-glass-border bg-white/[0.03] px-8 py-3.5 text-sm font-medium text-text-primary hover:bg-white/[0.06] transition backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-champagne/40"
+            >
+              <Zap className="h-4 w-4 text-champagne" /> View Features
+            </Link>
+          </div>
+
+          {/* Stats with animated counters */}
+          <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-8">
+            <StatItem value={50000} suffix="+" label="Receipts Processed" delay={400} />
+            <StatItem value={500} suffix="+" label="Canadian Businesses" delay={500} />
+            <StatItem value={3} label="Tax Seasons Supported" delay={600} />
+            <StatItem value={8} suffix="h/mo" label="Avg. Time Saved" delay={700} />
+          </div>
+
+          <div className="mt-16 flex flex-col items-center gap-2 text-text-muted/40 animate-in fade-in duration-1000 delay-700">
+            <span className="text-[10px] font-medium uppercase tracking-widest">Scroll to explore</span>
+            <ChevronDown className="h-5 w-5 animate-bounce" />
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
-const featureList = features as typeof features;
-
-// Trust badge component
+// ─── Reusable Components ─────────────────────────────────
 function TrustBadge({ icon: Icon, text }: { icon: React.ComponentType<LucideProps>; text: string }) {
   return (
-    <div className="inline-flex items-center gap-2 rounded-full bg-surface-raised px-3 py-1.5 text-[10px] font-medium text-text-secondary">
+    <div className="inline-flex items-center gap-2 rounded-full bg-surface-raised px-3.5 py-1.5 text-[11px] font-medium text-text-secondary border border-glass-border transition-all hover:border-champagne/20 hover:bg-card">
       <Icon className="h-3.5 w-3.5 text-champagne" />
       {text}
     </div>
   );
 }
 
-interface LandingPageProps {
-  onGetStarted: () => void;
+function StatItem({ value, suffix = '', label, delay = 0 }: { value: number; suffix?: string; label: string; delay?: number }) {
+  return (
+    <div className={`text-center animate-in fade-in zoom-in duration-500 delay-${delay}ms`}>
+      <div className="text-4xl sm:text-5xl font-bold tracking-tight text-champagne mb-2">
+        <AnimatedCounter value={value} suffix={suffix} />
+      </div>
+      <p className="text-xs text-text-muted/70 uppercase tracking-wider font-medium">{label}</p>
+    </div>
+  );
 }
 
-export default function LandingPage({ onGetStarted }: LandingPageProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+function AnimatedCounter({ value, suffix = '', prefix = '' }: { value: number; suffix?: string; prefix?: string }) {
+  const [displayValue, setDisplayValue] = useState(0);
+  const frameRef = React.useRef(0);
 
-  const stats = useMemo(() => [
-    { label: 'Receipts Processed', value: 50000, suffix: '+', prefix: '' },
-    { label: 'Canadian Businesses', value: 500, suffix: '+', prefix: '' },
-    { label: 'Tax Seasons Supported', value: 3, suffix: '', prefix: '' },
-    { label: 'Avg. Time Saved', value: 8, suffix: 'h/mo', prefix: '' },
-  ], []);
+  useEffect(() => {
+    const duration = 2000;
+    const steps = 60;
 
-  const pricingPlans = useMemo(() => [
-    {
-      name: 'Starter',
-      price: 'Free',
-      description: 'For solo entrepreneurs testing the waters.',
-      features: ['Up to 50 receipts/month', 'AI receipt scanning', 'Basic search & filters', 'CSV export', 'Email support'],
-      cta: 'Get Started Free',
-      priceDetail: '',
-    },
-    {
-      name: 'Pro',
-      price: '$19',
-      description: 'For growing businesses that need serious tools.',
-      features: ['Unlimited receipts', 'AI scanning + email forwarding', 'Budget management & forecasts', 'Kanban workflow & approvals', 'QBO / Xero export', 'CRA readiness score', 'Multi-user (up to 5)', 'Priority email support'],
-      highlighted: true,
-      cta: 'Start 14-Day Free Trial',
-      priceDetail: '/month, billed annually',
-    },
-    {
-      name: 'Enterprise',
-      price: 'Custom',
-      description: 'For larger teams with custom needs.',
-      features: ['Everything in Pro', 'Unlimited users', 'Custom integrations', 'Dedicated account manager', 'SLA & SSO', 'On-premise option', 'Custom branding'],
-      cta: 'Contact Sales',
-      priceDetail: '',
-    },
-  ], []);
+    const timer = setInterval(() => {
+      frameRef.current += 1;
+      const progress = Math.min(frameRef.current / steps, 1);
+      setDisplayValue(Math.floor(value * progress));
+      if (progress >= 1) clearInterval(timer);
+    }, duration / steps);
 
-  const faqs = useMemo(() => [
-    { question: 'Is my data stored in Canada?', answer: 'Yes. All data is stored on Canadian servers (Supabase hosted in us-west-1 with Canadian data residency compliance). We follow PIPEDA guidelines and Quebec Law 25 requirements.' },
-    { question: 'Can I use this for CRA audits?', answer: 'Absolutely. Every receipt is stored with original image, extracted data, and a full audit trail. You can generate CRA-ready reports including T2125 statements.' },
-    { question: 'How does the AI scanning work?', answer: 'Take a photo or forward a receipt email. Our AI extracts vendor name, date, total, tax, and category with high accuracy. You can review and edit before saving.' },
-    { question: 'What happens after the free trial?', answer: 'Your 14-day Pro trial gives full access to all features. After it ends, you revert to the free Starter plan unless you subscribe. No data is lost.' },
-    { question: 'Can my employees use it too?', answer: 'Yes. Pro plans include up to 5 users with role-based access. Employees can submit receipts; owners approve and export.' },
-    { question: 'How secure is my data?', answer: 'End-to-end encryption for tokens. AES-256-GCM for sensitive data. SOC 2 compliant infrastructure. Regular security audits.' },
-  ], []);
+    return () => clearInterval(timer);
+  }, [value]);
 
-  const testimonials = useMemo(() => [
+  return <>{prefix}{displayValue}{suffix}</>;
+}
+
+// ─── Features Section ────────────────────────────────────
+function FeaturesSection() {
+  return (
+    <section id="features" className="relative py-24 sm:py-32 overflow-hidden">
+      <div className="pointer-events-none absolute -left-48 -top-32 w-96 h-96 bg-champagne/6 rounded-full blur-[120px] antigravity-float" aria-hidden />
+      <div className="pointer-events-none absolute -right-48 bottom-0 w-80 h-80 bg-champagne/4 rounded-full blur-[100px] antigravity-float-slow" aria-hidden />
+
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
+        <div className="text-center mb-16 animate-in fade-in slide-up-from-bottom-4 duration-700">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-champagne mb-4">Everything You Need</p>
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
+            Packed with <span className="bg-gradient-to-r from-champagne to-champagne-dim bg-clip-text text-transparent">Powerful Features</span>
+          </h2>
+          <p className="text-base text-text-muted/80 max-w-2xl mx-auto">
+            From AI scanning to CRA-ready reports — every tool a Canadian business needs for receipt management.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {features.slice(0, 9).map((f, i) => {
+            const IconComp = getFeatureIcon(f.icon);
+            return (
+              <Link
+                key={f.id}
+                href={`/features/${f.id}`}
+                className="group block rounded-2xl border border-glass-border bg-card p-6 transition-all duration-300 hover:border-champagne/30 hover:shadow-lg hover:shadow-champagne/5 hover:-translate-y-1 animate-in fade-in slide-up-from-bottom-4 duration-500 antigravity-card"
+                style={{ animationDelay: `${i * 50}ms` }}
+              >
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-champagne/10 text-champagne group-hover:bg-champagne/20 group-hover:scale-110 transition-all duration-300">
+                  {React.createElement(IconComp, { className: 'h-6 w-6' })}
+                </div>
+                <h3 className="text-lg font-bold text-text-primary mb-2 group-hover:text-champagne transition-colors">{f.title}</h3>
+                <p className="text-sm text-text-muted/80 leading-relaxed line-clamp-3">{f.shortDescription}</p>
+                <div className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-champagne opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0">
+                  Learn more <ArrowRight className="h-3.5 w-3.5" />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className="mt-12 text-center animate-in fade-in slide-up-from-bottom-4 duration-700 delay-200">
+          <Link
+            href="/features"
+            className="inline-flex items-center gap-2 rounded-xl border border-champagne/20 bg-champagne/5 px-6 py-3 text-sm font-semibold text-champagne hover:bg-champagne/10 transition"
+          >
+            See all {features.length} features <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Testimonials Section ─────────────────────────────────
+function TestimonialsSection() {
+  const testimonials = [
     {
       name: 'Sarah Chen',
       role: 'Owner, Maple Accounting',
@@ -178,7 +260,196 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       quote: 'The AI scanning is scarily accurate. I barely need to edit anything — just snap and go.',
       rating: 5,
     },
-  ], []);
+  ];
+
+  return (
+    <section className="relative py-24 sm:py-32 border-t border-glass-border overflow-hidden">
+      <div className="pointer-events-none absolute -left-32 bottom-0 w-96 h-96 bg-champagne/6 rounded-full blur-[120px]" aria-hidden />
+
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
+        <div className="text-center mb-12 animate-in fade-in slide-up-from-bottom-4 duration-700">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-champagne mb-4">What Users Say</p>
+          <h2 className="text-4xl sm:text-5xl font-bold tracking-tight">Trusted by Canadian Businesses</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {testimonials.map((t, i) => (
+            <div key={t.name} className={`animate-in fade-in slide-up-from-bottom-4 duration-500 delay-${i * 100}ms`}>
+              <div className="rounded-2xl border border-glass-border bg-card p-6 h-full antigravity-card">
+                <div className="flex gap-1 mb-3">
+                  {Array.from({ length: t.rating }).map((_, j) => (
+                    <Star key={j} className="h-4 w-4 fill-champagne text-champagne" />
+                  ))}
+                </div>
+                <Quote className="h-6 w-6 text-champagne/30 mb-2" />
+                <p className="text-sm text-text-secondary leading-relaxed mb-4">&ldquo;{t.quote}&rdquo;</p>
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-champagne/20 flex items-center justify-center">
+                    <span className="text-xs font-bold text-champagne">{t.name.charAt(0)}</span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-text-primary">{t.name}</p>
+                    <p className="text-[10px] text-text-muted">{t.role}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Pricing Section ───────────────────────────────────────
+function PricingSection({ onGetStarted }: { onGetStarted: () => void }) {
+  const pricingPlans = [
+    {
+      name: 'Starter',
+      price: 'Free',
+      description: 'For solo entrepreneurs testing the waters.',
+      features: ['Up to 50 receipts/month', 'AI receipt scanning', 'Basic search & filters', 'CSV export', 'Email support'],
+      cta: 'Get Started Free',
+    },
+    {
+      name: 'Pro',
+      price: '$19',
+      description: 'For growing businesses that need serious tools.',
+      features: ['Unlimited receipts', 'AI scanning + email forwarding', 'Budget management & forecasts', 'Kanban workflow & approvals', 'QBO / Xero export', 'CRA readiness score', 'Multi-user (up to 5)', 'Priority email support'],
+      highlighted: true,
+      cta: 'Start 14-Day Free Trial',
+      priceDetail: '/month, billed annually',
+    },
+    {
+      name: 'Enterprise',
+      price: 'Custom',
+      description: 'For larger teams with custom needs.',
+      features: ['Everything in Pro', 'Unlimited users', 'Custom integrations', 'Dedicated account manager', 'SLA & SSO', 'On-premise option', 'Custom branding'],
+      cta: 'Contact Sales',
+    },
+  ];
+
+  return (
+    <section id="pricing" className="relative py-24 sm:py-32 scroll-mt-20 overflow-hidden">
+      <div className="pointer-events-none absolute left-1/3 -top-32 w-96 h-96 bg-champagne/8 rounded-full blur-[120px]" aria-hidden />
+      <div className="pointer-events-none absolute -right-32 bottom-1/3 w-80 h-80 bg-champagne/4 rounded-full blur-[100px]" aria-hidden />
+
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
+        <div className="text-center mb-16 animate-in fade-in slide-up-from-bottom-4 duration-700">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-champagne mb-4">Simple Pricing</p>
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
+            No Surprises. <span className="bg-gradient-to-r from-champagne to-champagne-dim bg-clip-text text-transparent">Just Results.</span>
+          </h2>
+          <p className="text-base text-text-muted/80 max-w-xl mx-auto">
+            Start free. Upgrade when you need more power. Every plan includes core receipt management.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start max-w-5xl mx-auto">
+          {pricingPlans.map((plan) => (
+            <div key={plan.name} className={`animate-in fade-in slide-up-from-bottom-4 duration-500 ${plan.highlighted ? 'delay-100' : ''}`}>
+              <div className={`relative rounded-2xl border p-8 transition-all duration-300 h-full flex flex-col antigravity-card ${
+                plan.highlighted
+                  ? 'border-champagne/40 bg-card shadow-2xl shadow-champagne/10 scale-105 z-10'
+                  : 'border-glass-border bg-card hover:shadow-lg hover:border-glass-border-hover'
+              }`}>
+                {plan.highlighted && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-champagne px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-obsidian">
+                    Most Popular
+                  </div>
+                )}
+                <h3 className="text-xl font-bold text-text-primary">{plan.name}</h3>
+                <div className="mt-3 flex items-baseline gap-1">
+                  <span className="text-4xl font-bold tracking-tight tabular-nums text-text-primary">{plan.price}</span>
+                  {plan.price !== 'Custom' && plan.priceDetail && <span className="text-xs text-text-muted">{plan.priceDetail}</span>}
+                </div>
+                <p className="mt-2 text-sm text-text-muted/80">{plan.description}</p>
+                <ul className="mt-5 space-y-2.5 flex-grow">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm text-text-secondary">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-success" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (plan.name === 'Enterprise') {
+                      window.open('mailto:sales@9starlabs.ca?subject=Enterprise%20Plan%20Inquiry', '_blank');
+                    } else {
+                      onGetStarted();
+                    }
+                  }}
+                  className={`mt-6 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all ${
+                    plan.highlighted
+                      ? 'bg-champagne text-obsidian hover:bg-champagne-dim shadow-lg shadow-champagne/20 antigravity-btn'
+                      : 'border border-glass-border bg-surface-raised text-text-primary hover:bg-surface-hover'
+                  }`}
+                >
+                  {plan.cta} <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-10 text-center text-sm text-text-muted/70 animate-in fade-in duration-500 delay-200">
+          All plans include AES-256-GCM encryption, Canadian data residency, and PIPEDA compliance.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+// ─── FAQ Section ────────────────────────────────────────────
+function FAQSection() {
+  const faqs = [
+    { question: 'Is my data stored in Canada?', answer: 'Yes. All data is stored on Canadian servers (Supabase hosted in us-west-1 with Canadian data residency compliance). We follow PIPEDA guidelines and Quebec Law 25 requirements.' },
+    { question: 'Can I use this for CRA audits?', answer: 'Absolutely. Every receipt is stored with original image, extracted data, and a full audit trail. You can generate CRA-ready reports including T2125 statements.' },
+    { question: 'How does the AI scanning work?', answer: 'Take a photo or forward a receipt email. Our AI extracts vendor name, date, total, tax, and category with high accuracy. You can review and correct before saving.' },
+    { question: 'What happens after the free trial?', answer: 'Your 14-day Pro trial gives full access to all features. After it ends, you revert to the free Starter plan unless you subscribe. No data is lost.' },
+    { question: 'Can my employees use it too?', answer: 'Yes. Pro plans include up to 5 users with role-based access. Employees can submit receipts; owners approve and export.' },
+    { question: 'How secure is my data?', answer: 'End-to-end encryption for tokens. AES-256-GCM for sensitive data. SOC 2 compliant infrastructure. Regular security audits.' },
+  ];
+
+  return (
+    <section id="faq" className="relative py-24 sm:py-32 border-t border-glass-border scroll-mt-20">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6">
+        <div className="text-center mb-12 animate-in fade-in slide-up-from-bottom-4 duration-700">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-champagne mb-4">FAQ</p>
+          <h2 className="text-4xl sm:text-5xl font-bold tracking-tight">Common Questions</h2>
+        </div>
+
+        <div className="space-y-0">
+          {faqs.map((faq, i) => (
+            <FAQItem key={faq.question} question={faq.question} answer={faq.answer} delay={i * 50} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FAQItem({ question, answer, delay }: { question: string; answer: string; delay?: number }) {
+  return (
+    <details className="border-b border-glass-border py-4 group animate-in fade-in slide-up-from-bottom-2 duration-300" style={{ animationDelay: `${delay}ms` }}>
+      <summary className="flex items-center justify-between list-none cursor-pointer">
+        <span className="text-base font-semibold text-text-primary group-hover:text-champagne transition-colors pr-4">{question}</span>
+        <ChevronDown className="h-5 w-5 shrink-0 text-text-muted transition-all duration-300 open:rotate-180 open:text-champagne" />
+      </summary>
+      <div className="mt-2 text-sm text-text-muted/80 leading-relaxed">{answer}</div>
+    </details>
+  );
+}
+
+// ─── Main Landing Page Component ─────────────────────────────
+interface LandingPageProps {
+  onGetStarted: () => void;
+}
+
+export default function LandingPage({ onGetStarted }: LandingPageProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
     { label: 'Features', href: '/features' },
@@ -190,33 +461,29 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
     if (href.startsWith('/')) {
       window.location.href = href;
     } else {
-      const id = href.replace('#', '');
-      const el = document.getElementById(id);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-      }
+      document.getElementById(href.replace('#', ''))?.scrollIntoView({ behavior: 'smooth' });
     }
   }, []);
 
-  
   return (
     <div className="min-h-screen bg-obsidian text-text-primary selection:bg-champagne/30 overflow-x-hidden">
-      {/* ─── Fixed Nav ─── */}
+      {/* Fixed Navigation */}
       <header className="fixed inset-x-0 top-0 z-50 border-b border-glass-border bg-obsidian/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-champagne/15 group-hover:bg-champagne/25 transition-colors">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-champagne/15 transition-colors group-hover:bg-champagne/25">
               <ReceiptText className="h-5 w-5 text-champagne" />
             </div>
             <span className="text-sm font-bold tracking-tight">{APP_NAME}</span>
           </Link>
+
           <nav className="hidden md:flex items-center gap-8">
             {navItems.map((item) => (
               <button
                 key={item.label}
                 type="button"
                 onClick={() => handleNavClick(item.href)}
-                className="text-xs font-medium text-text-muted hover:text-text-primary transition-colors relative group"
+                className="text-xs font-medium text-text-muted hover:text-text-primary transition relative group"
               >
                 {item.label}
                 <span className="absolute -bottom-1 left-0 h-px w-0 bg-champagne transition-all group-hover:w-full" />
@@ -230,6 +497,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               Sign In
             </button>
           </nav>
+
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -239,6 +507,8 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
+
+        {/* Mobile menu */}
         {mobileMenuOpen && (
           <div className="overflow-hidden border-t border-glass-border md:hidden animate-in fade-in slide-down-from-top-4 duration-300">
             <div className="space-y-1 px-4 py-3">
@@ -264,309 +534,51 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         )}
       </header>
 
-      {/* ─── HERO ─── */}
-      <section className="relative min-h-screen flex items-center overflow-hidden pt-20">
-        {/* Background ambience */}
-        <div className="pointer-events-none absolute -left-32 -top-32 bg-champagne/10 rounded-full blur-[120px] antigravity-float" style={{ width: 600, height: 600 }} aria-hidden />
-        <div className="pointer-events-none absolute -right-48 top-1/3 bg-champagne/6 rounded-full blur-[120px] antigravity-float-slow" style={{ width: 500, height: 500 }} aria-hidden />
-        <div className="pointer-events-none absolute left-1/3 bottom-0 bg-champagne/5 rounded-full blur-[120px]" style={{ width: 400, height: 400 }} aria-hidden />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-champagne/5 via-transparent to-obsidian" />
+      {/* Hero Section */}
+      <HeroSection onGetStarted={onGetStarted} />
 
-        {/* 3D Scene placeholder (CSS only) */}
-        <div className="absolute inset-0 z-0">
-          <StaticHero3D />
-        </div>
+      {/* Features Section */}
+      <FeaturesSection />
 
-        {/* Content overlay */}
-        <div className="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-          {/* Trust badges */}
-          <div className="animate-in fade-in slide-up-from-bottom-4 duration-700 mb-6 flex flex-wrap items-center justify-center gap-2">
-            <TrustBadge icon={Shield} text="SOC 2 Compliant" />
-            <TrustBadge icon={Building2} text="Canadian Data Residency" />
-            <TrustBadge icon={Lock} text="Bank-Level Encryption" />
-          </div>
+      {/* Testimonials Section */}
+      <TestimonialsSection />
 
-          <div className="animate-in fade-in slide-up-from-bottom-4 duration-700 mb-8 inline-flex items-center gap-2 rounded-full border border-champagne/20 bg-champagne/5 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-champagne backdrop-blur-sm">
-            <Sparkles className="h-3 w-3" /> CRA-Ready Accounting
-          </div>
+      {/* Pricing Section */}
+      <PricingSection onGetStarted={onGetStarted} />
 
-          <h1 className="animate-in fade-in slide-up-from-bottom-4 duration-700 delay-100 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] max-w-5xl mx-auto">
-            Receipt Management{' '}
-            <span className="bg-gradient-to-r from-champagne via-champagne-dim to-champagne bg-clip-text text-transparent">
-              Engineered for Canada
-            </span>
-          </h1>
-
-          <p className="animate-in fade-in slide-up-from-bottom-4 duration-700 delay-200 mx-auto mt-6 max-w-2xl text-sm sm:text-base text-text-muted/90 leading-relaxed">
-            Stop worrying about CRA audits. {APP_NAME} automatically extracts, organizes, and
-            stores your receipts with AI. Generate tax-ready reports, track budgets, and
-            keep your business compliant — all in one place.
-          </p>
-
-          <div className="animate-in fade-in slide-up-from-bottom-4 duration-700 delay-300 mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
-              type="button"
-              onClick={onGetStarted}
-              className="group relative inline-flex items-center gap-2.5 rounded-2xl bg-champagne px-8 py-3.5 text-sm font-bold text-obsidian hover:bg-champagne-dim transition-all shadow-xl shadow-champagne/20 hover:shadow-champagne/30 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-champagne/40 antigravity-btn"
-            >
-              <span className="relative z-10 flex items-center gap-2">
-                Start Free Trial <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
-              </span>
-            </button>
-            <Link
-              href="/features"
-              className="inline-flex items-center gap-2 rounded-2xl border border-glass-border bg-white/[0.03] px-8 py-3.5 text-sm font-medium text-text-primary hover:bg-white/[0.06] transition backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-champagne/40"
-            >
-              <Zap className="h-4 w-4 text-champagne" /> View Features
-            </Link>
-          </div>
-
-          {/* Stats */}
-          <div className="mt-16 sm:mt-20 mx-auto max-w-3xl grid grid-cols-2 sm:grid-cols-4 gap-8">
-            {stats.map((s, i) => (
-              <div key={s.label} className={`animate-in fade-in zoom-in duration-500 delay-[${400 + i * 100}ms] text-center`}>
-                <p className="text-3xl sm:text-4xl font-bold tracking-tight text-champagne">
-                  <AnimatedCounter value={s.value} suffix={s.suffix} prefix={s.prefix} />
-                </p>
-                <p className="mt-1.5 text-xs text-text-muted/80">{s.label}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Scroll indicator */}
-          <div className="mt-16 flex flex-col items-center gap-2 text-text-muted/40 animate-in fade-in duration-1000 delay-700">
-            <span className="text-[10px] font-medium uppercase tracking-widest">Scroll to explore</span>
-            <ChevronDown className="h-4 w-4 animate-bounce" />
-          </div>
-        </div>
-      </section>
-
-      {/* ─── FEATURES ─── */}
-      <section id="features" className="relative py-24 sm:py-32 scroll-mt-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center mb-16 animate-in fade-in slide-up-from-bottom-4 duration-700">
-            <p className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-champagne mb-4">
-              <Sparkles className="h-3 w-3" /> Everything You Need
-            </p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
-              Packed with{' '}
-              <span className="bg-gradient-to-r from-champagne to-champagne-dim bg-clip-text text-transparent">
-                Powerful Features
-              </span>
-            </h2>
-            <p className="mt-4 text-sm text-text-muted/80 max-w-2xl mx-auto">
-              From AI scanning to CRA-ready reports — every tool a Canadian business needs for receipt management.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {featureList.slice(0, 9).map((f, i) => {
-              const IconComp = getFeatureIcon(f.icon);
-              return (
-                <div key={f.id} className={`animate-in fade-in slide-up-from-bottom-4 duration-500 delay-[${i * 50}ms]`}>
-                  <TiltCard tiltDegree={6} glare={false} scale={1.02}>
-                    <Link
-                      href={`/features/${f.id}`}
-                      className="block group relative rounded-2xl border border-glass-border bg-card p-6 h-full transition-all duration-300 hover:border-champagne/30 hover:shadow-lg hover:shadow-champagne/5 antigravity-card"
-                    >
-                      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-champagne/10 text-champagne group-hover:bg-champagne/20 group-hover:scale-110 transition-all duration-300">
-                        {React.createElement(IconComp, { className: 'h-6 w-6' })}
-                      </div>
-                      <h3 className="text-base font-bold text-text-primary mb-2 group-hover:text-champagne transition-colors">{f.title}</h3>
-                      <p className="text-xs text-text-muted/80 leading-relaxed line-clamp-3">{f.shortDescription}</p>
-                      <span className="mt-4 inline-flex items-center gap-1 text-[10px] font-semibold text-champagne opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0">
-                        Learn more <ArrowRight className="h-3 w-3" />
-                      </span>
-                    </Link>
-                  </TiltCard>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-10 text-center animate-in fade-in slide-up-from-bottom-4 duration-700 delay-200">
-            <Link
-              href="/features"
-              className="group inline-flex items-center gap-2 rounded-2xl border border-champagne/20 bg-champagne/5 px-6 py-3 text-sm font-semibold text-champagne hover:bg-champagne/10 transition-all hover:shadow-lg hover:shadow-champagne/5"
-            >
-              See all {featureList.length} features
-              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── TESTIMONIALS ─── */}
-      <section className="relative py-24 sm:py-32 border-t border-glass-border overflow-hidden">
-        <div className="pointer-events-none absolute -left-32 bottom-0 bg-champagne/6 rounded-full blur-[120px]" style={{ width: 500, height: 500 }} aria-hidden />
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center mb-12 animate-in fade-in slide-up-from-bottom-4 duration-700">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-champagne mb-4">What Users Say</p>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Trusted by Canadian Businesses</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {testimonials.map((t, i) => (
-              <div key={t.name} className={`animate-in fade-in slide-up-from-bottom-4 duration-500 delay-[${i * 100}ms]`}>
-                <div className="rounded-2xl border border-glass-border bg-card p-6 h-full antigravity-card">
-                  <div className="flex gap-1 mb-3">
-                    {Array.from({ length: t.rating }).map((_, j) => (
-                      <Star key={j} className="h-4 w-4 fill-champagne text-champagne" />
-                    ))}
-                  </div>
-                  <Quote className="h-6 w-6 text-champagne/30 mb-2" />
-                  <p className="text-sm text-text-secondary leading-relaxed mb-4">&ldquo;{t.quote}&rdquo;</p>
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-champagne/20 flex items-center justify-center">
-                      <span className="text-xs font-bold text-champagne">{t.name.charAt(0)}</span>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-text-primary">{t.name}</p>
-                      <p className="text-[10px] text-text-muted">{t.role}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── PRICING ─── */}
-      <section id="pricing" className="relative py-24 sm:py-32 scroll-mt-20 overflow-hidden">
-        <div className="pointer-events-none absolute left-1/3 -top-32 bg-champagne/8 rounded-full blur-[120px]" style={{ width: 500, height: 500 }} aria-hidden />
-        <div className="pointer-events-none absolute -right-32 bottom-1/3 bg-champagne/4 rounded-full blur-[120px]" style={{ width: 400, height: 400 }} aria-hidden />
-
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center mb-16 animate-in fade-in slide-up-from-bottom-4 duration-700">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-champagne mb-4">Simple Pricing</p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
-              No Surprises.{' '}
-              <span className="bg-gradient-to-r from-champagne to-champagne-dim bg-clip-text text-transparent">
-                Just Results.
-              </span>
-            </h2>
-            <p className="mt-4 text-sm text-text-muted/80 max-w-xl mx-auto">
-              Start free. Upgrade when you need more power. Every plan includes core receipt management.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 items-start max-w-5xl mx-auto">
-            {pricingPlans.map((plan) => (
-              <div
-                key={plan.name}
-                className={`animate-in fade-in slide-up-from-bottom-4 duration-500 ${plan.highlighted ? 'delay-100' : ''}`}
-              >
-                <div
-                  className={`relative rounded-2xl border p-6 sm:p-8 transition-all duration-300 h-full flex flex-col antigravity-card ${
-                    plan.highlighted
-                      ? 'border-champagne/40 bg-card shadow-2xl shadow-champagne/10 scale-[1.02] lg:scale-105 z-10'
-                      : 'border-glass-border bg-card hover:shadow-lg hover:border-glass-border-hover'
-                  }`}
-                >
-                  {plan.highlighted && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-champagne px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-obsidian">
-                      Most Popular
-                    </div>
-                  )}
-                  <h3 className="text-lg font-bold text-text-primary">{plan.name}</h3>
-                  <div className="mt-3 flex items-baseline gap-1">
-                    <span className="text-4xl font-bold tracking-tight tabular-nums text-text-primary">{plan.price}</span>
-                    {plan.price !== 'Custom' && <span className="text-xs text-text-muted">{plan.priceDetail}</span>}
-                  </div>
-                  <p className="mt-2 text-xs text-text-muted/80">{plan.description}</p>
-                  <ul className="mt-5 space-y-2.5 flex-grow">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2 text-xs text-text-secondary">
-                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-success" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (plan.name === 'Enterprise') {
-                        window.open('mailto:sales@9starlabs.ca?subject=Enterprise%20Plan%20Inquiry', '_blank');
-                      } else {
-                        onGetStarted();
-                      }
-                    }}
-                    className={`mt-6 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-all ${
-                      plan.highlighted
-                        ? 'bg-champagne text-obsidian hover:bg-champagne-dim shadow-lg shadow-champagne/20 antigravity-btn'
-                        : 'border border-glass-border bg-surface-raised text-text-primary hover:bg-surface-hover'
-                    }`}
-                  >
-                    {plan.cta} <ArrowRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <p className="mt-10 text-center text-xs text-text-muted/70 animate-in fade-in duration-500 delay-200">
-            All plans include AES-256-GCM encryption, Canadian data residency, and PIPEDA compliance.
-            <br />
-            Need a custom plan?{' '}
-            <button type="button" onClick={onGetStarted} className="text-champagne hover:underline font-medium inline-flex items-center gap-1">
-              Contact us <Mail className="h-3 w-3" />
-            </button>
-            .
-          </p>
-        </div>
-      </section>
-
-      {/* ─── CTA BANNER ─── */}
+      {/* CTA Banner */}
       <section className="relative py-24 sm:py-32 overflow-hidden">
-        <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-32 bg-champagne/10 rounded-full blur-[120px]" style={{ width: 600, height: 600 }} aria-hidden />
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 relative z-10">
-          <div className="relative rounded-3xl border border-champagne/20 bg-gradient-to-br from-champagne/10 via-champagne/5 to-transparent p-10 sm:p-16 text-center overflow-hidden animate-in fade-in slide-up-from-bottom-4 duration-700">
+        <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-32 w-96 h-96 bg-champagne/10 rounded-full blur-[120px]" aria-hidden />
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 relative">
+          <div className="relative rounded-3xl border border-champagne/20 bg-gradient-to-br from-champagne/10 via-champagne/5 to-transparent p-12 sm:p-16 text-center overflow-hidden animate-in fade-in slide-up-from-bottom-4 duration-700">
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-champagne/5 to-transparent opacity-50" />
             <div className="relative z-10">
               <div className="inline-flex items-center gap-2 rounded-full bg-champagne/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-champagne mb-6">
                 <Clock className="h-3 w-3" /> No credit card required
               </div>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
-                Ready to Get{' '}
-                <span className="bg-gradient-to-r from-champagne to-champagne-dim bg-clip-text text-transparent">
-                  CRA-Ready?
-                </span>
+              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
+                Ready to Get <span className="bg-gradient-to-r from-champagne to-champagne-dim bg-clip-text text-transparent">CRA-Ready?</span>
               </h2>
-              <p className="mt-4 text-sm text-text-muted/80 max-w-lg mx-auto">
+              <p className="text-base text-text-muted/80 max-w-lg mx-auto mb-8">
                 Join hundreds of Canadian businesses that trust {APP_NAME} for their receipt management.
                 Start your free trial — no credit card required.
               </p>
               <button
                 type="button"
                 onClick={onGetStarted}
-                className="mt-8 group inline-flex items-center gap-2 rounded-2xl bg-champagne px-8 py-3.5 text-sm font-bold text-obsidian hover:bg-champagne-dim transition-all shadow-xl shadow-champagne/20 hover:shadow-champagne/30 hover:-translate-y-0.5 antigravity-btn"
+                className="inline-flex items-center gap-2 rounded-xl bg-champagne px-8 py-3.5 text-sm font-bold text-obsidian hover:bg-champagne-dim transition shadow-xl shadow-champagne/20 antigravity-btn"
               >
-                <ShieldCheck className="h-4 w-4" />
-                Start Free Trial <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+                <ShieldCheck className="h-4 w-4" /> Start Free Trial
               </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ─── FAQ ─── */}
-      <section id="faq" className="relative py-24 sm:py-32 border-t border-glass-border scroll-mt-20">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6">
-          <div className="text-center mb-12 animate-in fade-in slide-up-from-bottom-4 duration-700">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-champagne mb-4">FAQ</p>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Common Questions</h2>
-          </div>
+      {/* FAQ Section */}
+      <FAQSection />
 
-          <div className="space-y-0">
-            {faqs.map((faq, i) => (
-              <FAQItem key={faq.question} question={faq.question} answer={faq.answer} delay={i * 50} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── FOOTER ─── */}
+      {/* Footer */}
       <footer className="border-t border-glass-border py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
@@ -588,20 +600,5 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         </div>
       </footer>
     </div>
-  );
-}
-
-// ─── FAQ Item (CSS-only accordion) ───
-function FAQItem({ question, answer, delay }: { question: string; answer: string; delay?: number }) {
-  return (
-    <details className="border-b border-glass-border py-4 group animate-in fade-in slide-up-from-bottom-2 duration-300" style={{ animationDelay: `${delay}ms` }}>
-      <summary className="flex items-center justify-between text-left list-none cursor-pointer">
-        <span className="text-sm font-semibold text-text-primary group-hover:text-champagne transition-colors pr-4">{question}</span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-text-muted transition-all duration-300 open:rotate-180 open:text-champagne" />
-      </summary>
-      <div className="animate-in fade-in slide-up-from-bottom-2 duration-300 mt-2 text-xs text-text-muted/80 leading-relaxed overflow-hidden">
-        {answer}
-      </div>
-    </details>
   );
 }
