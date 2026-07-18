@@ -1,7 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
-import { motion, useMotionValue, useSpring } from 'framer-motion';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 interface TiltCardProps {
@@ -19,75 +18,114 @@ export function TiltCard({
   glare = true,
   scale = 1.02,
 }: TiltCardProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  // Touch detection — evaluated once at render, never changes
+  const ref = useRef<HTMLDivElement | null>(null);
   const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
   const [glarePos, setGlarePos] = useState({ x: 50, y: 50, opacity: 0 });
+  const [transform, setTransform] = useState({ rotateX: 0, rotateY: 0, scale: 1 });
+  const rafRef = useRef<number | undefined>(undefined);
 
-  const rotateX = useMotionValue(0);
-  const rotateY = useMotionValue(0);
+  // Spring animation state
+  const springX = useRef(0);
+  const springY = useRef(0);
+  const springScale = useRef(1);
 
-  const springRotateX = useSpring(rotateX, { damping: 20, stiffness: 200 });
-  const springRotateY = useSpring(rotateY, { damping: 20, stiffness: 200 });
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (isTouch) return;
+    const el = ref.current;
+    if (!el) return;
 
-  const handlePointerMove = useCallback(
-    (e: React.PointerEvent) => {
-      if (isTouch) return;
-      const el = ref.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width;
-      const y = (e.clientY - rect.top) / rect.height;
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
 
-      rotateY.set((x - 0.5) * tiltDegree);
-      rotateX.set((0.5 - y) * tiltDegree);
+    // Target rotation
+    const targetRotateY = (x - 0.5) * tiltDegree;
+    const targetRotateX = (0.5 - y) * tiltDegree;
 
-      if (glare) {
-        setGlarePos({
-          x: x * 100,
-          y: y * 100,
-          opacity: 0.15,
-        });
-      }
-    },
-    [isTouch, tiltDegree, glare, rotateX, rotateY],
-  );
+    springX.current = targetRotateY;
+    springY.current = targetRotateX;
+
+    // Glare position
+    if (glare) {
+      setGlarePos({ x: x * 100, y: y * 100, opacity: 1 });
+    }
+  }, [isTouch, tiltDegree, glare]);
 
   const handlePointerLeave = useCallback(() => {
-    rotateX.set(0);
-    rotateY.set(0);
+    springX.current = 0;
+    springY.current = 0;
+    springScale.current = 1;
     if (glare) {
       setGlarePos((prev) => ({ ...prev, opacity: 0 }));
     }
-  }, [glare, rotateX, rotateY]);
+  }, [glare]);
+
+  const handlePointerEnter = useCallback(() => {
+    springScale.current = scale;
+  }, [scale]);
+
+  // Spring animation loop
+  useEffect(() => {
+    const currentX = 0;
+    let currentY = 0;
+    let currentScale = 1;
+
+    function animate() {
+      // Spring physics (critical damping)
+      const stiffness = 200;
+      const mass = 0.9;
+
+      // Y spring
+      const forceY = (springY.current - currentY) * stiffness;
+      currentY += forceY / mass * 0.016;
+
+      // Scale spring
+      const forceScale = (springScale.current - currentScale) * 300;
+      currentScale += forceScale / mass * 0.016;
+
+      // Apply if moving
+      if (Math.abs(currentX) > 0.01 || Math.abs(currentY) > 0.01 || Math.abs(currentScale - 1) > 0.01) {
+        setTransform({ rotateX: currentY, rotateY: currentX, scale: currentScale });
+      }
+
+      rafRef.current = requestAnimationFrame(animate);
+    }
+
+    rafRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (rafRef.current !== undefined) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
 
   return (
-    <motion.div
+    <div
       ref={ref}
+      className={cn('group relative rounded-2xl', className)}
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
+      onPointerEnter={handlePointerEnter}
       style={{
-        rotateX: springRotateX,
-        rotateY: springRotateY,
-        transformPerspective: 800,
+        transform: `perspective(1000px) rotateX(${transform.rotateX}deg) rotateY(${transform.rotateY}deg) scale(${transform.scale})`,
         transformStyle: 'preserve-3d',
+        willChange: 'transform',
       }}
-      whileHover={{ scale }}
-      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      className={cn('relative', className)}
     >
-      {children}
       {glare && (
         <div
-          className="pointer-events-none absolute inset-0 rounded-[inherit] transition-opacity duration-200"
+          className="pointer-events-none absolute inset-0 rounded-2xl overflow-hidden"
           style={{
-            background: `radial-gradient(circle at ${glarePos.x}% ${glarePos.y}%, rgba(255,255,255,0.3) 0%, transparent 60%)`,
+            background: `radial-gradient(ellipse at ${glarePos.x}% ${glarePos.y}%, rgba(190,169,142,${glarePos.opacity * 0.15}) 0%, transparent 70%)`,
+            transition: 'opacity 300ms ease-out',
             opacity: glarePos.opacity,
           }}
-          aria-hidden
         />
       )}
-    </motion.div>
+      <div className="relative z-10" style={{ transform: 'translateZ(20px)' }}>
+        {children}
+      </div>
+    </div>
   );
 }
 
