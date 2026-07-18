@@ -845,3 +845,6 @@ export const featureIconMap: Record<string, string> = {
   Lightbulb: 'Lightbulb',
   Star: 'Star',
 };
+
+// Export the icon map as default feature icons for dynamic rendering
+export const defaultFeatureIcons = featureIconMap;
