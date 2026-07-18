@@ -1,7 +1,5 @@
-﻿'use client';
+'use client';
 
-import { motion } from 'framer-motion';
-import { fadeUp } from '@/lib/animations';
 import { Shield, ExternalLink } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SubscriptionStatus } from '@/components/billing/SubscriptionStatus';
@@ -14,14 +12,11 @@ import { PricingTable } from '@/components/billing/PricingTable';
  */
 export default function BillingSettings() {
   return (
-    <motion.div
-      variants={fadeUp}
-      initial="hidden"
-      animate="show"
-      className="space-y-8"
-    >
+    <div className="space-y-8 animate-in fade-in slide-up-from-bottom-4 duration-700">
       <div className="mb-6">
-        <h1 className="text-xl font-bold tracking-tight text-text-primary">Billing & Plans</h1>
+        <h1 className="text-xl font-bold tracking-tight text-text-primary flex items-center gap-2">
+          <Shield className="h-5 w-5 text-champagne" /> Billing & Plans
+        </h1>
         <p className="mt-1 text-sm text-text-secondary">
           Choose a plan that fits your needs, or manage your existing subscription.
         </p>
@@ -39,7 +34,7 @@ export default function BillingSettings() {
           </section>
 
           {/* License Info */}
-          <div className="rounded-2xl border border-glass-border bg-surface-raised p-5">
+          <div className="rounded-2xl border border-glass-border bg-surface-raised p-5 animate-in fade-in slide-up-from-bottom-4 duration-700 delay-200">
             <div className="flex items-center gap-3 mb-3">
               <Shield className="h-5 w-5 text-champagne" />
               <h3 className="font-bold text-text-primary">License & Legal</h3>
@@ -61,6 +56,6 @@ export default function BillingSettings() {
           </div>
         </div>
       </ErrorBoundary>
-    </motion.div>
+    </div>
   );
 }

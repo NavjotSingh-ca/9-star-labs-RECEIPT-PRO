@@ -1,11 +1,29 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Search, ArrowRight, ArrowLeft, Sparkles,
+  Camera, CalendarDays, Store, PiggyBank, TrendingUp, ReceiptText,
+  DollarSign, Tags, Kanban, GitCompare, Repeat, FileDown, BarChart3,
+  ClipboardCheck, ShieldCheck, AlertTriangle, Route, Landmark, Building2,
+  Wallet, Mail, Users, Moon, ScrollText, FileSpreadsheet, Lightbulb, Star,
 } from 'lucide-react';
 import { features } from '@/lib/feature-content';
+import type { LucideProps } from 'lucide-react';
+
+// Icon component mapping matching LandingPage's pattern
+const iconComponents: Record<string, React.ComponentType<LucideProps>> = {
+  Camera, Search, CalendarDays, Store, PiggyBank, TrendingUp,
+  ReceiptText, DollarSign, Tags, Kanban, GitCompare, Repeat,
+  FileDown, BarChart3, ClipboardCheck, ShieldCheck, AlertTriangle,
+  Route, Landmark, Building2, Wallet, Mail, Users, Moon,
+  ScrollText, FileSpreadsheet, Lightbulb, Star,
+};
+
+function getFeatureIcon(iconName: string): React.ComponentType<LucideProps> {
+  return iconComponents[iconName] || Search;
+}
 
 const CATEGORIES = [
   'All',
@@ -130,34 +148,37 @@ export default function FeaturesPage() {
 
           {/* Feature Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-            {filtered.map((f, i) => (
-              <Link
-                key={f.id}
-                href={`/features/${f.id}`}
-                className="group block relative rounded-2xl border border-glass-border bg-card p-5 h-full transition-all duration-500 hover:border-champagne/30 hover:shadow-xl hover:shadow-champagne/5 hover:-translate-y-1 animate-in fade-in slide-up-from-bottom-4 duration-500"
-                style={{ animationDelay: `${i * 30}ms` }}
-              >
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-champagne/10 text-champagne group-hover:bg-champagne/20 group-hover:scale-110 transition-all duration-400">
-                  <Sparkles className="h-5 w-5" />
-                </div>
-                <h3 className="text-sm font-bold text-text-primary mb-1.5 group-hover:text-champagne transition-colors duration-300">
-                  {f.title}
-                </h3>
-                <p className="text-xs text-text-muted/80 leading-relaxed line-clamp-2">
-                  {f.shortDescription}
-                </p>
-                <div className="mt-3 flex items-center gap-1.5">
-                  <span className="text-[10px] font-medium text-champagne opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0 inline-flex items-center gap-0.5">
-                    Learn more <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
-                  </span>
-                  {featureCategory[f.id] && (
-                    <span className="ml-auto text-[9px] text-text-muted/40 uppercase tracking-wider">
-                      {featureCategory[f.id]}
+            {filtered.map((f, i) => {
+              const IconComp = getFeatureIcon(f.icon);
+              return (
+                <Link
+                  key={f.id}
+                  href={`/features/${f.id}`}
+                  className="group block relative rounded-2xl border border-glass-border bg-card p-5 h-full transition-all duration-500 hover:border-champagne/30 hover:shadow-xl hover:shadow-champagne/5 hover:-translate-y-1 animate-in fade-in slide-up-from-bottom-4 duration-500"
+                  style={{ animationDelay: `${i * 30}ms` }}
+                >
+                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-champagne/10 text-champagne group-hover:bg-champagne/20 group-hover:scale-110 transition-all duration-400">
+                    {React.createElement(IconComp, { className: 'h-5 w-5' })}
+                  </div>
+                  <h3 className="text-sm font-bold text-text-primary mb-1.5 group-hover:text-champagne transition-colors duration-300">
+                    {f.title}
+                  </h3>
+                  <p className="text-xs text-text-muted/80 leading-relaxed line-clamp-2">
+                    {f.shortDescription}
+                  </p>
+                  <div className="mt-3 flex items-center gap-1.5">
+                    <span className="text-[10px] font-medium text-champagne opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0 inline-flex items-center gap-0.5">
+                      Learn more <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
                     </span>
-                  )}
-                </div>
-              </Link>
-            ))}
+                    {featureCategory[f.id] && (
+                      <span className="ml-auto text-[9px] text-text-muted/40 uppercase tracking-wider">
+                        {featureCategory[f.id]}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
 
           {filtered.length === 0 && (

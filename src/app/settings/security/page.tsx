@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
-import { fadeUp } from '@/lib/animations';
 import { supabase } from '@/lib/supabase';
 import { Loader2, KeyRound, AlertCircle, CheckCircle2, ShieldOff } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -154,34 +152,33 @@ export default function SecuritySettings() {
   return (
     <ErrorBoundary componentName="SecuritySettings">
     <>
-      <div className="mb-6">
-        <h1 className="text-xl font-bold tracking-tight text-text-primary">Security Settings</h1>
+      <div className="mb-6 animate-in fade-in slide-up-from-bottom-4 duration-700">
+        <h1 className="text-xl font-bold tracking-tight text-text-primary flex items-center gap-2">
+          <ShieldOff className="h-5 w-5 text-champagne" /> Security Settings
+        </h1>
         <p className="mt-1 text-sm text-text-secondary">Manage Multi-Factor Authentication (MFA)</p>
       </div>
 
           {error && (
-            <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-danger/10 px-4 py-3 text-sm text-danger border border-danger/20" role="alert">
+            <div className="mb-6 flex items-center gap-2 rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger border border-danger/20 animate-in fade-in slide-up-from-bottom-2 duration-500" role="alert">
               <AlertCircle className="h-4 w-4" />
               <span>{error}</span>
             </div>
           )}
 
           {success && (
-            <div className="mb-6 flex items-center gap-2 rounded-[2rem] bg-emerald-success/10 px-4 py-3 text-sm text-emerald-light border border-emerald-success/20" role="status" aria-live="polite">
+            <div className="mb-6 flex items-center gap-2 rounded-xl bg-emerald-success/10 px-4 py-3 text-sm text-emerald-light border border-emerald-success/20 animate-in fade-in slide-up-from-bottom-2 duration-500" role="status" aria-live="polite">
               <CheckCircle2 className="h-4 w-4" />
               <span>{success}</span>
             </div>
           )}
 
           {loading && !isEnrolling ? (
-            <div className="flex justify-center py-8" role="status" aria-live="polite" aria-atomic="true" aria-label="Loading security settings"><Loader2 className="h-8 w-8 animate-spin text-champagne" /></div>
+            <div className="flex justify-center py-8 animate-in fade-in duration-500" role="status" aria-live="polite">
+              <Loader2 className="h-8 w-8 animate-spin text-champagne" />
+            </div>
           ) : (
-            <motion.div
-              variants={fadeUp}
-              initial="hidden"
-              animate="show"
-              className="space-y-8"
-            >
+            <div className="space-y-8 animate-in fade-in slide-up-from-bottom-4 duration-700">
               
               <div className="rounded-2xl border border-glass-border bg-surface-raised p-6">
                 <h2 className="text-lg font-semibold tracking-tight text-text-primary mb-4">Authenticator App (TOTP)</h2>
@@ -266,7 +263,7 @@ export default function SecuritySettings() {
                 )}
               </div>
 
-            </motion.div>
+            </div>
           )}
       <AlertDialog open={!!unenrollTarget} onOpenChange={(open) => { if (!open) cancelUnenroll(); }}>
         <AlertDialogContent>

@@ -1,7 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { fadeUp } from '@/lib/animations';
 import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useQueryState } from 'nuqs';
@@ -116,15 +114,10 @@ export default function SmartSearch() {
   const filterCount = [searchText, fromDate, toDate, minAmount, maxAmount, category].filter(Boolean).length;
 
   return (
-    <motion.div
-      variants={fadeUp}
-      initial="hidden"
-      animate="show"
-      className="space-y-5"
-    >
+    <div className="space-y-5 animate-in fade-in slide-up-from-bottom-4 duration-700">
       <PageHeader title="Smart Search" subtitle="Find receipts by text, date, amount, or category" />
 
-      <div className="rounded-2xl border border-glass-border bg-card p-4 space-y-4 shadow-sm">
+      <div className="rounded-2xl border border-glass-border bg-card p-4 space-y-4 shadow-sm animate-in fade-in slide-up-from-bottom-4 duration-700 delay-100">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
           <input
@@ -147,7 +140,7 @@ export default function SmartSearch() {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          <div>
+          <div className="animate-in fade-in slide-up-from-bottom-2 duration-500 delay-150">
             <label htmlFor="smart-search-from" className="mb-1 block text-xs font-semibold text-text-muted">From Date</label>
             <input
               id="smart-search-from"
@@ -158,7 +151,7 @@ export default function SmartSearch() {
               className="w-full rounded-xl border border-glass-border bg-surface px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-champagne"
             />
           </div>
-          <div>
+          <div className="animate-in fade-in slide-up-from-bottom-2 duration-500 delay-200">
             <label htmlFor="smart-search-to" className="mb-1 block text-xs font-semibold text-text-muted">To Date</label>
             <input
               id="smart-search-to"
@@ -170,7 +163,7 @@ export default function SmartSearch() {
               className="w-full rounded-xl border border-glass-border bg-surface px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-champagne"
             />
           </div>
-          <div>
+          <div className="animate-in fade-in slide-up-from-bottom-2 duration-500 delay-250">
             <label htmlFor="smart-search-min" className="mb-1 block text-xs font-semibold text-text-muted">Min Amount ($)</label>
             <input
               id="smart-search-min"
@@ -183,7 +176,7 @@ export default function SmartSearch() {
               className="w-full rounded-xl border border-glass-border bg-surface px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-champagne"
             />
           </div>
-          <div>
+          <div className="animate-in fade-in slide-up-from-bottom-2 duration-500 delay-300">
             <label htmlFor="smart-search-max" className="mb-1 block text-xs font-semibold text-text-muted">Max Amount ($)</label>
             <input
               id="smart-search-max"
@@ -196,7 +189,7 @@ export default function SmartSearch() {
               className="w-full rounded-xl border border-glass-border bg-surface px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-champagne"
             />
           </div>
-          <div>
+          <div className="animate-in fade-in slide-up-from-bottom-2 duration-500 delay-350">
             <label htmlFor="smart-search-category" className="mb-1 block text-xs font-semibold text-text-muted">Category</label>
             <select
               id="smart-search-category"
@@ -217,7 +210,7 @@ export default function SmartSearch() {
         </div>
 
         {hasFilters && (
-          <div className="flex items-center justify-between border-t border-glass-border pt-3">
+          <div className="flex items-center justify-between border-t border-glass-border pt-3 animate-in fade-in duration-500">
             <p className="text-xs text-text-muted">
               {filterCount} filter{filterCount !== 1 ? 's' : ''} active
               {!isLoading && ` · ${results.length} result${results.length !== 1 ? 's' : ''}`}
@@ -234,20 +227,20 @@ export default function SmartSearch() {
       </div>
 
       {isLoading && (
-        <div className="flex justify-center p-8">
+        <div className="flex justify-center p-8" role="status" aria-live="polite">
           <Loader2 className="h-8 w-8 animate-spin text-champagne" />
         </div>
       )}
 
       {error && (
-        <div className="rounded-[2rem] bg-danger/10 p-4 text-sm text-danger border border-danger/20">
+        <div className="rounded-[2rem] bg-danger/10 p-4 text-sm text-danger border border-danger/20 animate-in fade-in slide-up-from-bottom-2 duration-500">
           <AlertCircle className="inline h-4 w-4 mr-2" />
           {error.message}
         </div>
       )}
 
       {!isLoading && !error && results.length === 0 && (
-        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-glass-border bg-surface/30 py-16 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-glass-border bg-surface/30 py-16 text-center animate-in fade-in slide-up-from-bottom-4 duration-700">
           <Search className="h-10 w-10 text-text-muted/50" />
           <p className="text-sm text-text-muted">
             {hasFilters ? 'No receipts match your search.' : 'Start typing or apply filters to search receipts.'}
@@ -257,12 +250,13 @@ export default function SmartSearch() {
 
       {!isLoading && !error && results.length > 0 && (
         <div className="space-y-2">
-          {results.map((receipt) => {
+          {results.map((receipt, idx) => {
             const badge = approvalBadge(receipt.approval_status);
             return (
               <div
                 key={receipt.id}
-                className="flex items-center justify-between rounded-xl border border-glass-border bg-card px-4 py-3 shadow-sm transition-colors hover:bg-surface/50"
+                className="flex items-center justify-between rounded-xl border border-glass-border bg-card px-4 py-3 shadow-sm transition-colors hover:bg-surface/50 animate-in fade-in slide-up-from-bottom-2 duration-500"
+                style={{ animationDelay: `${idx * 25}ms` }}
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-text-primary">
@@ -290,6 +284,6 @@ export default function SmartSearch() {
           })}
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }
