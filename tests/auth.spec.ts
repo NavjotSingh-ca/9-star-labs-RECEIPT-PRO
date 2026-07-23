@@ -6,7 +6,7 @@ test.describe('Auth page', () => {
   });
 
   test('shows landing page with app branding', async ({ page }) => {
-    await expect(page.getByText('Leduc Receipt Pro')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Receipt Pro')).toBeVisible({ timeout: 10000 });
     await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
   });
 

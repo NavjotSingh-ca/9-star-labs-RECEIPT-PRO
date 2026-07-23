@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { logError } from '@/lib/logger';
 import { env } from '@/lib/env';
 import type { AuditLogRow } from '@/lib/types';
-import { createHmac } from 'crypto';
+import { createHmac, randomBytes } from 'crypto';
 
 const HMAC_SECRET: string = (() => {
   const configured = env.AUDIT_HMAC_SECRET;
@@ -17,7 +17,7 @@ const HMAC_SECRET: string = (() => {
       'Set AUDIT_HMAC_SECRET in production for persistent tamper-evident audit chains.'
     );
   }
-  return require('crypto').randomBytes(32).toString('hex');
+  return randomBytes(32).toString('hex');
 })();
 
 /**

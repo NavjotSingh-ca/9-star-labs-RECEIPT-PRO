@@ -3,8 +3,15 @@
  * All magic numbers, timeouts, and configuration values should be defined here.
  */
 
-/** Application identity */
-export const APP_NAME = 'Leduc Receipt Pro';
+/**
+ * Application identity.
+ * Production: "9 Star Labs Receipt Pro"
+ * Local/dev:  "Leduc Receipt Pro" (set NEXT_PUBLIC_APP_NAME in .env.local)
+ *
+ * Uses NEXT_PUBLIC_* so it's available to both server and client components.
+ * Next.js inlines NEXT_PUBLIC_* env vars at build time via string replacement.
+ */
+export const APP_NAME: string = (process.env.NEXT_PUBLIC_APP_NAME as string) || '9 Star Labs Receipt Pro';
 export const APP_TAGLINE = 'Gold Standard Receipt Intelligence';
 export const APP_DESCRIPTION = 'Enterprise-grade receipt management with AI-powered extraction, CRA-compliant tax exports, and real-time financial insights.';
 

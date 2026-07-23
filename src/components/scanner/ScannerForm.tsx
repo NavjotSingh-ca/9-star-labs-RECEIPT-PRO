@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, CheckCircle2, DollarSign, FileText, Hash, Plus, Trash2, Info, Loader2, Gauge, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
-import type { ReceiptForm, ReceiptLineItem, ScannerFormProps } from './types';
+import type { ReceiptForm, ScannerFormProps } from './types';
 import { CATEGORIES, PAYMENT_METHODS, USAGE_TYPES } from './types';
 import { calculateCompletenessScore } from '@/lib/receipt-scoring';
 import { shouldGlow } from '@/lib/ui-utils';
@@ -160,11 +160,11 @@ export default function ScannerForm({
   const needsVehicleId = formData.category?.toLowerCase().includes('fuel') && !formData.vehicle_id?.trim();
   const isOutOfProvince = Boolean(formData.vendor_address) && !/Alberta|AB\b/i.test(formData.vendor_address ?? '');
 
-  const performSave = (data: ReceiptFormValues) => {
+  const performSave = useCallback((data: ReceiptFormValues) => {
     const finalData = { ...data, high_audit_risk: mathMismatch } as unknown as ReceiptForm;
     setFormData(finalData);
     onSave(finalData);
-  };
+  }, [mathMismatch, onSave, setFormData]);
 
   const isMathValid = useMemo(() => {
     try {

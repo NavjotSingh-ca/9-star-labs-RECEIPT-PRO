@@ -413,8 +413,9 @@ CREATE TABLE IF NOT EXISTS vehicles (
   created_at    timestamptz DEFAULT now()
 );
 
--- ── mileage_entries ───────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS mileage_entries (
+-- ── mileage_logs ─────────────────────────────────────────────
+DROP VIEW IF EXISTS mileage_logs CASCADE;
+CREATE TABLE IF NOT EXISTS mileage_logs (
   id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id           uuid REFERENCES organizations(id) ON DELETE CASCADE,
   user_id          uuid REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -433,6 +434,20 @@ CREATE TABLE IF NOT EXISTS mileage_entries (
   created_at       timestamptz DEFAULT now(),
   updated_at       timestamptz DEFAULT now()
 );
+
+-- Add legacy columns used by materialized view and old code paths
+DO $$ BEGIN
+  ALTER TABLE mileage_logs ADD COLUMN IF NOT EXISTS distance_km numeric;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE mileage_logs ADD COLUMN IF NOT EXISTS rate_per_km numeric DEFAULT 0.70;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE mileage_logs ADD COLUMN IF NOT EXISTS total_amount numeric GENERATED ALWAYS AS (COALESCE(total_km, trip_claim_amount, 0)) STORED;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
 -- ============================================================
 -- 8. FEATURE FLAGS & TIME TRACKING
@@ -829,14 +844,14 @@ END $$;
 
 -- Helper: Drop all existing policies on a table, then recreate.
 -- This avoids duplicate_object errors when running repeatedly.
-CREATE OR REPLACE FUNCTION _drop_all_policies(tablename text) RETURNS void
+CREATE OR REPLACE FUNCTION _drop_all_policies(p_tablename text) RETURNS void
 LANGUAGE plpgsql AS $$
 DECLARE
   pol record;
 BEGIN
-  FOR pol IN SELECT policyname FROM pg_policies WHERE schemaname = 'public' AND tablename = $1
+  FOR pol IN SELECT policyname FROM pg_policies WHERE schemaname = 'public' AND tablename = p_tablename
   LOOP
-    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol.policyname, $1);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol.policyname, p_tablename);
   END LOOP;
 END;
 $$;
@@ -1062,6 +1077,7 @@ AS $$
 $$;
 
 -- ── get_user_org_ids (used by old feature flag RLS policies) ─
+DROP FUNCTION IF EXISTS get_user_org_ids();
 CREATE OR REPLACE FUNCTION get_user_org_ids()
 RETURNS TABLE (org_id uuid, role text)
 LANGUAGE sql
@@ -1288,6 +1304,7 @@ END;
 $$;
 
 -- ── bulk_approve_receipts ───────────────────────────────────
+DROP FUNCTION IF EXISTS bulk_approve_receipts(uuid[],text,uuid);
 CREATE OR REPLACE FUNCTION bulk_approve_receipts(
   p_receipt_ids uuid[], p_status text, p_user_id uuid
 ) RETURNS integer
@@ -1317,6 +1334,8 @@ $$;
 -- ============================================================
 
 -- ── generate_report ─────────────────────────────────────────
+DROP FUNCTION IF EXISTS generate_report(p_config jsonb);
+DROP FUNCTION IF EXISTS generate_report(p_org_id uuid, p_metrics text[], p_group_by text, p_date_from date, p_date_to date, p_categories text[], p_vendors text[], p_projects uuid[], p_business_units uuid[], p_approval_status text[], p_min_amount numeric, p_max_amount numeric);
 CREATE OR REPLACE FUNCTION generate_report(
   p_org_id UUID, p_metrics TEXT[], p_group_by TEXT DEFAULT NULL,
   p_date_from DATE DEFAULT NULL, p_date_to DATE DEFAULT NULL,
@@ -1502,6 +1521,7 @@ $$;
 -- 23. COMPLIANCE FUNCTIONS (called by TypeScript code)
 -- ============================================================
 
+DROP FUNCTION IF EXISTS check_access_logging(p_org_id uuid);
 CREATE OR REPLACE FUNCTION check_access_logging(p_org_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -1586,6 +1606,8 @@ $$;
 -- 25. ATOMIC RECEIPT SAVE (with Merkle chain audit)
 -- ============================================================
 
+DROP FUNCTION IF EXISTS save_receipt_atomic(p_receipt jsonb);
+DROP FUNCTION IF EXISTS save_receipt_atomic(p_payload jsonb, p_user_id uuid);
 CREATE OR REPLACE FUNCTION save_receipt_atomic(p_payload jsonb, p_user_id uuid)
 RETURNS uuid
 LANGUAGE plpgsql
@@ -1818,8 +1840,14 @@ DROP TRIGGER IF EXISTS update_user_tax_calculations_updated_at ON user_tax_calcu
 CREATE TRIGGER update_user_tax_calculations_updated_at BEFORE UPDATE ON user_tax_calculations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Add realtime publications (safe to run multiple times)
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS org_features;
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS time_entries;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE org_features;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE time_entries;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ============================================================
 -- 28. INDEXES
@@ -1983,20 +2011,14 @@ INSERT INTO business_units (id, org_id, name) VALUES
   ('10000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000001', 'Office/Admin')
 ON CONFLICT (id) DO NOTHING;
 
--- Projects
+-- Projects (user_id set to NULL — no fake users exist in auth.users)
 INSERT INTO projects (id, org_id, user_id, name, budget_amount) VALUES
-  ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'Maple Ridge Townhomes', 250000.00),
-  ('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'West Side Renovation', 75000.00)
+  ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', NULL, 'Maple Ridge Townhomes', 250000.00),
+  ('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', NULL, 'West Side Renovation', 75000.00)
 ON CONFLICT (id) DO NOTHING;
 
--- Sample receipts
-INSERT INTO receipts (id, org_id, user_id, vendor_name, transaction_date, total_amount, subtotal, tax_amount, category, approval_status, cra_readiness_score) VALUES
-  ('30000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'Home Depot', '2026-06-01', 342.17, 300.00, 42.17, 'Job Materials', 'approved', 85),
-  ('30000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'Rona', '2026-06-03', 89.50, 78.50, 11.00, 'Job Materials', 'approved', 78),
-  ('30000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'Esso', '2026-06-05', 65.00, 57.02, 7.98, 'Site Fuel', 'submitted', 62),
-  ('30000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'United Rentals', '2026-06-08', 1200.00, 1200.00, 0.00, 'Equipment Rental', 'submitted', 55),
-  ('30000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'Staples', '2026-06-10', 45.99, 40.34, 5.65, 'Office/Admin', 'approved', 90)
-ON CONFLICT (id) DO NOTHING;
+-- Sample receipts (SKIPPED: receipts.user_id has SET NOT NULL, no real users exist in auth.users;
+-- insert after first user signs up via bootstrap_first_user_org)
 
 -- Org settings
 INSERT INTO organization_settings (org_id) VALUES ('00000000-0000-0000-0000-000000000001')
@@ -2007,34 +2029,38 @@ INSERT INTO subscriptions (org_id, plan, status)
 VALUES ('00000000-0000-0000-0000-000000000001', 'free', 'active')
 ON CONFLICT (org_id) DO NOTHING;
 
--- Insert CRA tax form mappings
-INSERT INTO tax_form_mappings (form_type, expense_category, cra_line_number, cra_line_description) VALUES
-  ('T2125', 'Advertising', '8521', 'Advertising'),
-  ('T2125', 'Meals and Entertainment', '8523', 'Meals and entertainment'),
-  ('T2125', 'Bad debts', '8590', 'Bad debts'),
-  ('T2125', 'Insurance', '8690', 'Insurance'),
-  ('T2125', 'Interest and bank charges', '8710', 'Interest and bank charges'),
-  ('T2125', 'Business taxes, licences, memberships', '8760', 'Business taxes, licences, memberships'),
-  ('T2125', 'Office expenses', '9200', 'Office expenses'),
-  ('T2125', 'Office stationery and supplies', '9201', 'Office stationery and supplies'),
-  ('T2125', 'Rent', '9220', 'Rent'),
-  ('T2125', 'Maintenance and repairs', '9270', 'Maintenance and repairs'),
-  ('T2125', 'Salaries, wages, and benefits', '9060', 'Salaries, wages, and benefits'),
-  ('T2125', 'Property taxes', '9180', 'Property taxes'),
-  ('T2125', 'Travel', '9200', 'Travel'),
-  ('T2125', 'Utilities', '9220', 'Utilities'),
-  ('T2125', 'Fuel costs', '9224', 'Fuel costs'),
-  ('T2125', 'Delivery, freight, and express', '9275', 'Delivery, freight, and express'),
-  ('T2125', 'Accounting and legal fees', '8860', 'Accounting and legal fees'),
-  ('T2125', 'Professional fees', '8860', 'Professional fees'),
-  ('T2125', 'Management and administration fees', '8871', 'Management and administration fees'),
-  ('T2125', 'Other professional fees', '8872', 'Other professional fees'),
-  ('T2125', 'Private health services plans', '8873', 'Private health services plans'),
-  ('T2125', 'Other expenses', '9270', 'Other expenses'),
-  ('T777', 'Home office', '9130', 'Home office expenses'),
-  ('T777', 'Supplies', '9130', 'Supplies'),
-  ('T777', 'Other expenses', '9130', 'Other expenses')
-ON CONFLICT (form_type, expense_category) DO NOTHING;
+-- Insert CRA tax form mappings (wrapped: actual DB may have different column names)
+DO $$ BEGIN
+  INSERT INTO tax_form_mappings (form_type, expense_category, cra_line_number, cra_line_description) VALUES
+    ('T2125', 'Advertising', '8521', 'Advertising'),
+    ('T2125', 'Meals and Entertainment', '8523', 'Meals and entertainment'),
+    ('T2125', 'Bad debts', '8590', 'Bad debts'),
+    ('T2125', 'Insurance', '8690', 'Insurance'),
+    ('T2125', 'Interest and bank charges', '8710', 'Interest and bank charges'),
+    ('T2125', 'Business taxes, licences, memberships', '8760', 'Business taxes, licences, memberships'),
+    ('T2125', 'Office expenses', '9200', 'Office expenses'),
+    ('T2125', 'Office stationery and supplies', '9201', 'Office stationery and supplies'),
+    ('T2125', 'Rent', '9220', 'Rent'),
+    ('T2125', 'Maintenance and repairs', '9270', 'Maintenance and repairs'),
+    ('T2125', 'Salaries, wages, and benefits', '9060', 'Salaries, wages, and benefits'),
+    ('T2125', 'Property taxes', '9180', 'Property taxes'),
+    ('T2125', 'Travel', '9200', 'Travel'),
+    ('T2125', 'Utilities', '9220', 'Utilities'),
+    ('T2125', 'Fuel costs', '9224', 'Fuel costs'),
+    ('T2125', 'Delivery, freight, and express', '9275', 'Delivery, freight, and express'),
+    ('T2125', 'Accounting and legal fees', '8860', 'Accounting and legal fees'),
+    ('T2125', 'Professional fees', '8860', 'Professional fees'),
+    ('T2125', 'Management and administration fees', '8871', 'Management and administration fees'),
+    ('T2125', 'Other professional fees', '8872', 'Other professional fees'),
+    ('T2125', 'Private health services plans', '8873', 'Private health services plans'),
+    ('T2125', 'Other expenses', '9270', 'Other expenses'),
+    ('T777', 'Home office', '9130', 'Home office expenses'),
+    ('T777', 'Supplies', '9130', 'Supplies'),
+    ('T777', 'Other expenses', '9130', 'Other expenses')
+  ON CONFLICT (form_type, expense_category) DO NOTHING;
+EXCEPTION WHEN undefined_column THEN
+  RAISE NOTICE 'tax_form_mappings INSERT skipped — column schema mismatch (expected: form_type, expense_category, cra_line_number, cra_line_description)';
+END $$;
 
 -- Grant permissions
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
@@ -2049,23 +2075,44 @@ NOTIFY pgrst, 'reload schema';
 -- DONE. The schema is now fully synchronized.
 -- ============================================================
 --
--- NOTES (from live verification on ferczwlaphittvksrjhq):
+-- NOTES (from live verification on ferczwlaphittvksrjhq, 2026-07-22):
 --
--- 1. bank_transactions.receipt_id was added via ALTER TABLE
+-- POSTGRESQL 17 COMPATIBILITY FIXES:
+--
+-- 1. _drop_all_policies function: parameter named `tablename` caused
+--    42702 "column reference is ambiguous" in PostgreSQL 17 because
+--    pg_policies.tablename column created a naming collision.
+--    Renamed parameter to `p_tablename`. (line ~1052)
+--
+-- 2. Function overload conflicts (42P13 in PG17):
+--    - get_user_org_ids() — RETURNS TABLE replaces older scalar version
+--    - check_access_logging(uuid) — returns boolean replaces void version
+--    - generate_report(jsonb) and 12-param overload — different return types
+--    - save_receipt_atomic(jsonb,uuid) — different return type
+--    All resolved via explicit DROP FUNCTION IF EXISTS (...) before
+--    CREATE OR REPLACE. (lines ~1265-1280)
+--
+-- 3. Indexes on columns that may not exist in the live DB are wrapped
+--    in DO $$ BEGIN ... EXCEPTION WHEN undefined_column THEN NULL; END $$;
+--    Affected indexes: time_entries(status,clock_in_time), receipt_tags
+--    (receipt_id,tag), invoices(user_id), tax_form_mappings(form_type),
+--    user_tax_calculations(form_type). (lines ~1900-1992)
+--
+-- SCHEMA RECONCILIATION NOTES:
+--
+-- 4. bank_transactions.receipt_id was added via ALTER TABLE
 --    because the existing table had matched_receipt_id instead.
 --    The CREATE TABLE in this file now uses receipt_id.
 --    Run once on existing DBs: ALTER TABLE bank_transactions
 --    ADD COLUMN IF NOT EXISTS receipt_id uuid REFERENCES
 --    receipts(id) ON DELETE SET NULL;
 --
--- 2. receipt_tags was DROP/RECREATED because the old schema
+-- 5. receipt_tags was DROP/RECREATED because the old schema
 --    had (org_id, receipt_id, tag, created_by) — the new schema
 --    is a tag dictionary (org_id, name, color) with a separate
---    receipt_tag_assignments junction table. Run once on an
---    existing DB: DROP TABLE IF EXISTS receipt_tags CASCADE;
---    then let this file recreate it.
+--    receipt_tag_assignments junction table.
 --
--- 3. The following tables existed from old migrations with different
+-- 6. The following tables existed from old migrations with different
 --    column schemas than what this file defines. CREATE TABLE IF
 --    NOT EXISTS preserves the old columns, so run
 --    DROP TABLE IF EXISTS ... CASCADE first if you want a clean
@@ -2073,4 +2120,12 @@ NOTIFY pgrst, 'reload schema';
 --    vendor_defaults, fx_rate_cache, receipt_comments.
 --    These tables are NOT used by the current TypeScript codebase
 --    but are harmless to keep.
+--
+-- 7. Seed data: projects.user_id is NULL (not a fake UUID) because
+--    the FK constraint requires a real auth.users entry. Receipt
+--    seed data is commented out entirely (receipts.user_id has
+--    SET NOT NULL, and no users exist until bootstrap_first_user_org
+--    runs during first sign-in). tax_form_mappings INSERT is wrapped
+--    in DO block because the existing DB may have different column
+--    names (e.g., category instead of expense_category).
 -- ============================================================

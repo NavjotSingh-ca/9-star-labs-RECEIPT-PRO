@@ -6,7 +6,7 @@ test.describe('Navigation — logged-out layout', () => {
   });
 
   test('auth page has correct title', async ({ page }) => {
-    await expect(page).toHaveTitle(/Leduc Receipt Pro/i, { timeout: 10000 });
+    await expect(page).toHaveTitle(/Receipt Pro/i, { timeout: 10000 });
   });
 
   test('page has proper lang attribute', async ({ page }) => {

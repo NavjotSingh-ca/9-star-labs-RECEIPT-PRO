@@ -36,7 +36,7 @@ const envSchema = z.object({
   // Supabase Pooler
   USE_POOLER: z.string().optional().default('false'),
   // App identity
-  APP_NAME: z.string().min(1).optional().default('Leduc Receipt Pro'),
+  APP_NAME: z.string().min(1).optional().default('9 Star Labs Receipt Pro'),
   APP_TAGLINE: z.string().min(1).optional().default('Gold Standard Receipt Intelligence'),
   APP_DESCRIPTION: z.string().min(1).optional().default('Enterprise-grade receipt management with AI-powered extraction, CRA-compliant mileage, and audit-grade audit trails.'),
   // Audit HMAC secret (optional — for tamper-evident audit log verification)
@@ -114,7 +114,7 @@ function parseEnv(): EnvVar {
     NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
     NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
     USE_POOLER: process.env.USE_POOLER || 'false',
-    APP_NAME: process.env.APP_NAME || 'Leduc Receipt Pro',
+    APP_NAME: process.env.APP_NAME || process.env.NEXT_PUBLIC_APP_NAME || '9 Star Labs Receipt Pro',
     APP_TAGLINE: process.env.APP_TAGLINE || 'Gold Standard Receipt Intelligence',
     APP_DESCRIPTION: process.env.APP_DESCRIPTION || 'Enterprise-grade receipt management with AI-powered extraction, CRA-compliant mileage, and audit-grade audit trails.',
     // Audit HMAC secret

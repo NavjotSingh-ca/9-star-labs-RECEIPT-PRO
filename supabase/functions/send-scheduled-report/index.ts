@@ -178,7 +178,7 @@ async function processSchedule(
       await client.send({
         from: smtpUser,
         to: email,
-        subject: `[Leduc Receipt Pro] ${schedule.report_name} — ${new Date().toLocaleDateString("en-CA")}`,
+        subject: `[9 Star Labs Receipt Pro] ${schedule.report_name} — ${new Date().toLocaleDateString("en-CA")}`,
         content: htmlBody,
         html: htmlBody,
       });
@@ -285,7 +285,7 @@ function buildEmailHtml(name: string, rows: any[], format: string): string {
       <tbody>${tableRows}</tbody>
     </table>
     <p style="color: #71717a; font-size: 10px; margin-top: 16px;">
-      Sent by Leduc Receipt Pro. Configure delivery in Settings.
+      Sent by 9 Star Labs Receipt Pro. Configure delivery in Settings.
     </p>
   `;
 }

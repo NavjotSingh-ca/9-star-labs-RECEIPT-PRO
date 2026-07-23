@@ -74,7 +74,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://js.stripe.com" />
         <link rel="preconnect" href="https://generativelanguage.googleapis.com" />
         <link rel="dns-prefetch" href="https://*.supabase.co" />
-        <link rel="preload" as="font" type="font/woff2" href="/fonts/Geist-Variable.woff2" crossOrigin="anonymous" />
+        {/* Geist font preload is handled by next/font/local with preload: true */}
         <link rel="prefetch" href="/features" />
         <noscript>
           <div style={{

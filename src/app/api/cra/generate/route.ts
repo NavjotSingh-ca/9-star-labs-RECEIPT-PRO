@@ -116,7 +116,7 @@ async function handler(request: Request) {
     doc.setFontSize(8);
     doc.setTextColor(80, 80, 80);
     doc.setFont('helvetica', 'normal');
-    doc.text('Prepared by Leduc Receipt Pro — for accountant review only, not an official CRA filing.', margin, 275);
+    doc.text('Prepared by 9 Star Labs Receipt Pro — for accountant review only, not an official CRA filing.', margin, 275);
 
     // Quebec Law 25 compliance note (if applicable)
     const orgProvince = (orgRow as { province?: string }).province || '';
@@ -291,7 +291,7 @@ async function handler(request: Request) {
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(150, 150, 150);
       doc.text(
-        `Prepared by Leduc Receipt Pro — for accountant review only, not an official CRA filing. Page ${i} of ${pageCount}`,
+        `Prepared by 9 Star Labs Receipt Pro — for accountant review only, not an official CRA filing. Page ${i} of ${pageCount}`,
         margin,
         272
       );

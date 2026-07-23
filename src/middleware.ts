@@ -199,6 +199,9 @@ export async function middleware(request: NextRequest) {
   supabaseResponse.headers.set('x-csrf-token', csrfToken);
   supabaseResponse.headers.set('x-request-id', requestId);
 
+  // Remove any existing CSP (Next.js server may set one automatically) before
+  // applying ours — prevents duplicate CSP headers and double-quoting bugs on Vercel Edge.
+  supabaseResponse.headers.delete('Content-Security-Policy');
   const csp = buildCSP();
   supabaseResponse.headers.set('Content-Security-Policy', csp);
 

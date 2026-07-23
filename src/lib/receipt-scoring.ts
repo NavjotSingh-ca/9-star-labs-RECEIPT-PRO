@@ -26,11 +26,6 @@ interface ReceiptForScoring {
   total_amount?: number | null
 }
 
-interface LineItemWithTax {
-  tax_rate?: number
-  [key: string]: unknown
-}
-
 export function calculateCompletenessScore(receipt: ReceiptForScoring): ScoreResult {
   const criteria: Record<string, BreakdownEntry> = {
     business_number: {
