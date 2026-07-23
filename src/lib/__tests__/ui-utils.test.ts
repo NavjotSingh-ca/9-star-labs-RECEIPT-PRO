@@ -134,49 +134,62 @@ describe('shouldGlow', () => {
 });
 
 describe('computeLiveCRAScore', () => {
-  it('returns 7 for empty form (only tax_amount >= 0 adds points)', () => {
+  it('returns 15 for empty form (math balance 0+0+0≈0 adds 15)', () => {
     const score = computeLiveCRAScore({
-      vendor_name: '',
+      business_number: '',
+      line_items: [],
+      confidence_score: 0,
+      transaction_date: '',
       total_amount: 0,
       subtotal: 0,
       tax_amount: 0,
       pst_amount: 0,
     });
-    expect(score).toBe(7);
+    // 0 (BN) + 0 (lines) + 0 (tax) + 0 (date) + 0 (confidence) + 15 (math|0+0+0-0|<0.02)
+    expect(score).toBe(15);
   });
 
   it('scores high when all fields present', () => {
     const score = computeLiveCRAScore({
-      vendor_name: 'Walmart',
-      vendor_address: '123 Main St',
       business_number: '123456789RT0001',
       transaction_date: '2026-06-01',
       total_amount: 100,
       subtotal: 90,
       tax_amount: 10,
       pst_amount: 0,
-      payment_method: 'Credit Card',
-      notes: 'a b c d e f g h i j k l',
-      line_items: [{ description: 'item', amount: 90 }],
+      confidence_score: 80,
+      line_items: [{ description: 'item', quantity: 1, unit_price: 90, tax_rate: 0, tax_amount: 0, category: '', line_total: 90 }],
     });
     expect(score).toBeGreaterThanOrEqual(80);
   });
 
   it('penalises math mismatch', () => {
+    // Both receipts have same BN, lines, date, confidence, and tax (none).
+    // The difference is only in math balance.
     const score = computeLiveCRAScore({
-      vendor_name: 'Walmart',
+      business_number: '',
+      line_items: [],
+      confidence_score: 0,
+      transaction_date: '',
       total_amount: 100,
       subtotal: 100,
       tax_amount: 0,
       pst_amount: 0,
     });
     const badScore = computeLiveCRAScore({
-      vendor_name: 'Walmart',
+      business_number: '',
+      line_items: [],
+      confidence_score: 0,
+      transaction_date: '',
       total_amount: 100,
       subtotal: 50,
-      tax_amount: 10,
+      tax_amount: 0,
       pst_amount: 0,
     });
+    // Good: 0+0+0+0+0+15(math balanced) = 15
+    // Bad: 0+0+0+0+0+0(math off by 50) = 0
     expect(badScore).toBeLessThan(score);
+    expect(badScore).toBe(0);
+    expect(score).toBe(15);
   });
 });

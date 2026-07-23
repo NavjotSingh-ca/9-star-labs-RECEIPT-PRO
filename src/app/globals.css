@@ -635,8 +635,113 @@ body {
   }
 }
 
+/* ─── Reduced Motion Fallbacks ─── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  /* Disable CSS animate-in polyfill */
+  .animate-in,
+  .fade-in,
+  .slide-up-from-bottom-4,
+  .slide-down-from-top-4,
+  .zoom-in-95,
+  .zoom-in-90 {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ─── Content Visibility for Below-Fold Sections ─── */
+section:not(:first-of-type),
+#features,
+#pricing,
+#faq,
+footer {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 1000px;
+}
+
+/* ─── CLS Prevention: Reserve Space for Dynamic Content ─── */
+details > div {
+  min-height: 0; /* Allow natural height but prevent collapse */
+}
+
+/* FAQ accordion - reserve minimum space */
+#faq details {
+  min-height: 48px; /* Accommodates summary line */
+}
+
+/* Animated counters - reserve space */
+.tabular-nums {
+  display: inline-block;
+  min-width: 3ch;
+}
+
+/* Skeleton placeholder for feature cards */
+.skeleton-card {
+  @apply animate-pulse bg-surface-raised rounded-2xl border border-glass-border p-5 h-full;
+}
+.skeleton-card .skeleton-icon {
+  @apply mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-champagne/10;
+}
+.skeleton-card .skeleton-title {
+  @apply h-4 w-3/4 rounded bg-surface-hover mb-2;
+}
+.skeleton-card .skeleton-text {
+  @apply h-3 w-full rounded bg-surface-hover mb-1;
+}
+.skeleton-card .skeleton-text.short {
+  @apply w-1/2;
+}
+
+/* ─── Static Hero 3D Fallback Animation (zero-JS) ─── */
+@keyframes floatGentle {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(1deg); }
+}
+
+.static-hero-3d .floating-card {
+  animation: floatGentle 6s ease-in-out infinite;
+}
+
+@keyframes shimmerSweep {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer-sweep {
+  background: linear-gradient(90deg, transparent, rgba(190,169,142,0.15), transparent);
+  background-size: 200% 100%;
+  animation: shimmerSweep 3s ease-in-out infinite;
+}
+
+/* ─── GPU Acceleration for Animated Elements ─── */
+.animate-in,
+.fade-in,
+.slide-up-from-bottom-4,
+.antigravity-card,
+.antigravity-btn,
+.static-hero-3d .floating-card {
+  will-change: transform, opacity;
+}
+
 /* ─── Focus Visible ─── */
 *:focus-visible {
   outline: 2px solid var(--champagne);
   outline-offset: 2px;
+}
+
+/* ─── Native Smooth Scroll (replaces Lenis) ─── */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }

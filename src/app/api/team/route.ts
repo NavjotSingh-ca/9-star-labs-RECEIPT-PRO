@@ -1,17 +1,15 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { requireAuth } from '@/lib/auth-helpers';
 import { logError } from '@/lib/logger';
 import { withRateLimit } from '@/lib/rate-limiter';
 import { z } from 'zod';
 
 export const GET = withRateLimit(async (request: Request) => {
   try {
-    const authHeader = request.headers.get('authorization') || '';
-    const token = authHeader.replace('Bearer ', '');
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireAuth(request);
+    if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user } = auth;
 
     const { data: callerRole } = await supabaseAdmin
       .from('user_roles')
@@ -56,12 +54,9 @@ export const GET = withRateLimit(async (request: Request) => {
 
 export const DELETE = withRateLimit(async (request: Request) => {
   try {
-    const authHeader = request.headers.get('authorization') || '';
-    const token = authHeader.replace('Bearer ', '');
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireAuth(request);
+    if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user } = auth;
 
     const { data: callerRole } = await supabaseAdmin
       .from('user_roles')

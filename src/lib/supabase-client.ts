@@ -6,51 +6,34 @@ import { env } from './env';
 let browserClient: SupabaseClient | null = null;
 
 function createBrowserSupabaseClient(): SupabaseClient {
+  const isCI = process.env.CI === 'true';
   const isPlaceholder = env.NEXT_PUBLIC_SUPABASE_URL?.includes('placeholder') ||
-                       env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.includes('placeholder') ||
-                       process.env.CI === 'true' ||
-                       !env.NEXT_PUBLIC_SUPABASE_URL ||
-                       !env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+                       env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.includes('placeholder');
 
-  if (isPlaceholder || process.env.CI === 'true') {
-    // Return a mock client for CI/testing environments where real Supabase isn't available
-    const mockSubscription = { unsubscribe: () => {} };
-
-    return {
-      from: () => ({
-        select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: null }) }) }),
-        insert: () => Promise.resolve({ data: null, error: null }),
-        update: () => ({ eq: () => Promise.resolve({ data: null, error: null }) }),
-        delete: () => ({ eq: () => Promise.resolve({ data: null, error: null }) }),
-        createSignedUrl: () => Promise.resolve({ data: { signedUrl: '' }, error: null }),
-      }),
-      auth: {
-        signInWithPassword: () => Promise.resolve({ data: { user: null, session: null }, error: { message: 'CI mode - no real auth' } }),
-        signUp: () => Promise.resolve({ data: { user: null, session: null }, error: { message: 'CI mode - no real auth' } }),
-        getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-        signOut: () => Promise.resolve({ error: null }),
-        onAuthStateChange: (callback: (event: string, session: null) => void) => {
-          // Immediately invoke with SIGNED_OUT since there's no user in CI mode
-          setTimeout(() => callback('SIGNED_OUT', null), 0);
-          return { data: { subscription: mockSubscription } };
-        },
-        getSession: () => Promise.resolve({ data: { session: null } }),
-      },
-      rpc: () => Promise.resolve({ data: null, error: null }),
-      storage: {
-        from: () => ({
-          createSignedUrl: () => Promise.resolve({ data: { signedUrl: '' }, error: null }),
-        }),
-      },
-      channel: () => ({
-        on: () => ({ subscribe: () => ({ unsubscribe: () => {} }) }),
-        subscribe: () => ({ unsubscribe: () => {} }),
-        unsubscribe: () => {},
-      }),
-    } as unknown as SupabaseClient;
+  // In CI, the workflow now runs real Supabase (supabase-local or Postgres 17 service).
+  // If CI=true without valid Supabase credentials, something is misconfigured — fail hard.
+  if (isCI) {
+    throw new Error(
+      'CI mode detected but missing valid Supabase credentials. ' +
+      'The CI pipeline must provide NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+      'pointing to a real (local or ephemeral) Supabase instance.'
+    );
   }
 
-  return createBrowserClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+  // In production, throw if config is missing/misconfigured
+  if (process.env.NODE_ENV === 'production' && (isPlaceholder || !env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_ANON_KEY)) {
+    throw new Error(
+      'Supabase configuration missing or invalid in production. ' +
+      'NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set.'
+    );
+  }
+
+  // Development: warn but allow if placeholder
+  if (isPlaceholder) {
+    console.warn('[Supabase] Using placeholder credentials - some features may not work');
+  }
+
+  return createBrowserClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     global: {
       fetch: (...args: Parameters<typeof fetch>) => {
         const [url, init] = args;

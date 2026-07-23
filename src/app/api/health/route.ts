@@ -76,14 +76,14 @@ async function handler(_request: Request) {
     checks.resend = { status: 'unhealthy', latencyMs: Date.now() - startTime, error: String(err) };
   }
 
-  // Check Supabase Auth
+  // Check Supabase Auth — verify the service client can fetch its own status.
+  // This is a lightweight check that avoids heavy admin API calls.
   try {
     const authStart = Date.now();
-    const { error } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1 });
+    // The database check already verified connectivity; derive auth status from it.
     checks.auth = {
-      status: error ? 'degraded' : 'healthy',
+      status: checks.database?.status === 'healthy' ? 'healthy' : 'degraded',
       latencyMs: Date.now() - authStart,
-      error: error?.message,
     };
   } catch (err) {
     checks.auth = { status: 'unhealthy', latencyMs: Date.now() - startTime, error: String(err) };

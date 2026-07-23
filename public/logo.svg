@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="64" viewBox="0 0 256 64">
+  <defs>
+    <style>
+      .logo-accent { fill: #bea98e; }
+      .logo-text { fill: #09090b; font-family: system-ui, -apple-system, sans-serif; font-weight: 700; font-size: 24px; letter-spacing: -0.02em; }
+      .logo-tagline { fill: #bea98e; font-family: system-ui, -apple-system, sans-serif; font-weight: 600; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; }
+      @media (prefers-color-scheme: dark) {
+        .logo-text { fill: #ffffff; }
+      }
+    </style>
+  </defs>
+  <!-- Brand mark -->
+  <rect x="4" y="12" width="40" height="40" rx="8" fill="none" stroke="#bea98e" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M28 12 L28 20 Q28 26 34 26 L44 26" fill="none" stroke="#bea98e" stroke-width="3" stroke-linejoin="round"/>
+  <line x1="14" y1="30" x2="34" y2="30" stroke="#bea98e" stroke-width="2" stroke-linecap="round"/>
+  <line x1="14" y1="36" x2="30" y2="36" stroke="#bea98e" stroke-width="2" stroke-linecap="round"/>
+  <path d="M32 44 L36 48 L42 38" fill="none" stroke="#bea98e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Logo text -->
+  <text x="56" y="38" class="logo-text">Leduc Receipt</text>
+  <text x="56" y="52" class="logo-tagline">CRA-Ready Records</text>
+</svg>

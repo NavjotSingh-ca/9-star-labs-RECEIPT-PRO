@@ -13,6 +13,10 @@ export default defineConfig({
         branches: 50,
       },
     },
+    env: {
+      NEXT_PUBLIC_SUPABASE_URL: 'https://placeholder-test.supabase.co',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: 'placeholder-test-key',
+    },
   },
   resolve: {
     alias: {

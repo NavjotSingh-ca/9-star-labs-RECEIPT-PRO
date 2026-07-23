@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { env } from '@/lib/env';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { requireAuth } from '@/lib/auth-helpers';
 import { logError } from '@/lib/logger';
 import { decryptToken, encryptToken } from '@/lib/encryption';
 import { withRateLimit } from '@/lib/rate-limiter';
@@ -24,16 +25,9 @@ async function handler(request: Request) {
       return NextResponse.json({ error: 'QBO not configured' }, { status: 503 });
     }
 
-    const authHeader = request.headers.get('authorization') || '';
-    if (!authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const token = authHeader.slice(7);
-
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAuth(request);
+    if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user } = auth;
 
     const { data: roleData } = await supabaseAdmin
       .from('user_roles')
@@ -79,6 +73,19 @@ async function handler(request: Request) {
     }
 
     const tokenData = await tokenResponse.json();
+    // Handle revoked or expired token
+    if (tokenData?.error === 'invalid_grant') {
+      await supabaseAdmin
+        .from('organization_settings')
+        .update({
+          qbo_access_token: null,
+          qbo_refresh_token: null,
+          qbo_token_expires_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('org_id', orgId);
+      return NextResponse.json({ error: 'Token revoked – re-auth required' }, { status: 401 });
+    }
     const { access_token, refresh_token: newRefreshToken, expires_in } = tokenData;
 
     await supabaseAdmin

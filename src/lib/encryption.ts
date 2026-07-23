@@ -2,10 +2,36 @@ import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 import { env } from '@/lib/env';
 
 const ENCRYPTION_KEY = env.TOKEN_ENCRYPTION_KEY || '';
-const KEY_MIN_LENGTH = 32;
 const IV_LENGTH = 16;
 const AUTH_TAG_LENGTH = 16;
 const FORMAT_PREFIX = 'enc:';
+
+function getEncryptionKey(): Buffer {
+  if (!ENCRYPTION_KEY) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        'TOKEN_ENCRYPTION_KEY is required in production. ' +
+        'Generate one with: openssl rand -hex 32'
+      );
+    }
+    // Development fallback - use a deterministic key for local dev only
+    return Buffer.from('dev-key-not-for-production-use-32b', 'utf-8');
+  }
+
+  // Decode the full 64-char hex string to 32 raw bytes
+  if (ENCRYPTION_KEY.length !== 64) {
+    throw new Error(
+      'TOKEN_ENCRYPTION_KEY must be a 64-character hex string (32 bytes). ' +
+      'Generate one with: openssl rand -hex 32'
+    );
+  }
+
+  const key = Buffer.from(ENCRYPTION_KEY, 'hex');
+  if (key.length !== 32) {
+    throw new Error('TOKEN_ENCRYPTION_KEY must decode to exactly 32 bytes');
+  }
+  return key;
+}
 
 /**
  * Encrypts a plaintext string using AES-256-GCM.
@@ -13,16 +39,10 @@ const FORMAT_PREFIX = 'enc:';
  *
  * @param plaintext - The string to encrypt.
  * @returns The encrypted token in format `enc:iv:authTag:ciphertext`.
- * @throws {Error} If TOKEN_ENCRYPTION_KEY is not set or is shorter than 32 characters.
+ * @throws {Error} If TOKEN_ENCRYPTION_KEY is not configured in production.
  */
 export function encryptToken(plaintext: string): string {
-  if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length < KEY_MIN_LENGTH) {
-    throw new Error(
-      'TOKEN_ENCRYPTION_KEY must be at least 32 characters for AES-256-GCM encryption. ' +
-      'Generate one with: openssl rand -hex 32'
-    );
-  }
-  const key = Buffer.from(ENCRYPTION_KEY.slice(0, KEY_MIN_LENGTH), 'utf-8');
+  const key = getEncryptionKey();
   const iv = randomBytes(IV_LENGTH);
   const cipher = createCipheriv('aes-256-gcm', key, iv);
   let encrypted = cipher.update(plaintext, 'utf8', 'hex');
@@ -34,10 +54,9 @@ export function encryptToken(plaintext: string): string {
 /**
  * Decrypts a token previously encrypted with {@link encryptToken}.
  *
- * Security note: When TOKEN_ENCRYPTION_KEY is not configured, this function
- * returns the input unchanged (plaintext passthrough). This is intentional
- * to support development environments where encryption setup is deferred.
- * Never use this fallback in production.
+ * Security note: In production, TOKEN_ENCRYPTION_KEY must be configured.
+ * In development, if the key is missing, this returns the input unchanged
+ * to support local development without encryption setup.
  *
  * @param encrypted - The encrypted token in format `enc:iv:authTag:ciphertext`.
  * @returns The decrypted plaintext string.
@@ -45,8 +64,24 @@ export function encryptToken(plaintext: string): string {
  */
 export function decryptToken(encrypted: string): string {
   if (!encrypted.startsWith(FORMAT_PREFIX)) return encrypted;
-  if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length < KEY_MIN_LENGTH) return encrypted;
 
+  // In production, encryption key is mandatory
+  if (process.env.NODE_ENV === 'production') {
+    const key = getEncryptionKey();
+    return decryptWithKey(encrypted, key);
+  }
+
+  // Development: graceful fallback if key not set
+  try {
+    const key = getEncryptionKey();
+    return decryptWithKey(encrypted, key);
+  } catch {
+    // Return plaintext for local dev without key configured
+    return encrypted;
+  }
+}
+
+function decryptWithKey(encrypted: string, key: Buffer): string {
   const parts = encrypted.split(':');
   if (parts.length < 4) {
     throw new Error(
@@ -66,7 +101,6 @@ export function decryptToken(encrypted: string): string {
     throw new Error(`Invalid auth tag length: expected ${AUTH_TAG_LENGTH * 2} hex chars, got ${authTagHex.length}`);
   }
 
-  const key = Buffer.from(ENCRYPTION_KEY.slice(0, KEY_MIN_LENGTH), 'utf-8');
   const iv = Buffer.from(ivHex, 'hex');
   const authTag = Buffer.from(authTagHex, 'hex');
   const decipher = createDecipheriv('aes-256-gcm', key, iv);
@@ -75,3 +109,5 @@ export function decryptToken(encrypted: string): string {
   decrypted += decipher.final('utf8');
   return decrypted;
 }
+
+

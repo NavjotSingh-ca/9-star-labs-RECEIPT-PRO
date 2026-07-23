@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { env } from '@/lib/env';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { requireAuth } from '@/lib/auth-helpers';
 import { logError } from '@/lib/logger';
 import { withRateLimit } from '@/lib/rate-limiter';
 
@@ -24,16 +25,9 @@ async function handler(request: Request) {
       return NextResponse.json({ error: 'Stripe is not configured. Set STRIPE_SECRET_KEY in env.' }, { status: 503 });
     }
 
-    const authHeader = request.headers.get('authorization') || '';
-    if (!authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const token = authHeader.slice(7);
-
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAuth(request);
+    if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user } = auth;
 
     const { data: roleData } = await supabaseAdmin
       .from('user_roles')

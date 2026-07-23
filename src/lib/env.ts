@@ -10,6 +10,9 @@ const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().min(1).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  // Stripe price IDs (optional — for checkout links)
+  NEXT_PUBLIC_STRIPE_PRICE_PRO: z.string().min(1).optional(),
+  NEXT_PUBLIC_STRIPE_PRICE_BUSINESS: z.string().min(1).optional(),
   // Resend (optional — app works without until account created)
   RESEND_API_KEY: z.string().min(1).optional(),
   RESEND_WEBHOOK_SECRET: z.string().min(1).optional(),
@@ -36,6 +39,11 @@ const envSchema = z.object({
   APP_NAME: z.string().min(1).optional().default('Leduc Receipt Pro'),
   APP_TAGLINE: z.string().min(1).optional().default('Gold Standard Receipt Intelligence'),
   APP_DESCRIPTION: z.string().min(1).optional().default('Enterprise-grade receipt management with AI-powered extraction, CRA-compliant mileage, and audit-grade audit trails.'),
+  // Audit HMAC secret (optional — for tamper-evident audit log verification)
+  AUDIT_HMAC_SECRET: z.string().min(1).optional(),
+  // Upstash Redis (optional — rate limiting)
+  UPSTASH_REDIS_URL: z.string().url().optional(),
+  UPSTASH_REDIS_TOKEN: z.string().min(1).optional(),
   // OpenTelemetry
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
   OTEL_EXPORTER_OTLP_HEADERS: z.string().optional(),
@@ -90,6 +98,8 @@ function parseEnv(): EnvVar {
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+    NEXT_PUBLIC_STRIPE_PRICE_PRO: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO,
+    NEXT_PUBLIC_STRIPE_PRICE_BUSINESS: process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     RESEND_WEBHOOK_SECRET: process.env.RESEND_WEBHOOK_SECRET,
     RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
@@ -107,6 +117,11 @@ function parseEnv(): EnvVar {
     APP_NAME: process.env.APP_NAME || 'Leduc Receipt Pro',
     APP_TAGLINE: process.env.APP_TAGLINE || 'Gold Standard Receipt Intelligence',
     APP_DESCRIPTION: process.env.APP_DESCRIPTION || 'Enterprise-grade receipt management with AI-powered extraction, CRA-compliant mileage, and audit-grade audit trails.',
+    // Audit HMAC secret
+    AUDIT_HMAC_SECRET: process.env.AUDIT_HMAC_SECRET,
+    // Upstash Redis
+    UPSTASH_REDIS_URL: process.env.UPSTASH_REDIS_URL,
+    UPSTASH_REDIS_TOKEN: process.env.UPSTASH_REDIS_TOKEN,
     // OpenTelemetry
     OTEL_EXPORTER_OTLP_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
     OTEL_EXPORTER_OTLP_HEADERS: process.env.OTEL_EXPORTER_OTLP_HEADERS,

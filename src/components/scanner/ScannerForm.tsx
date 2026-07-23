@@ -5,10 +5,12 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, CheckCircle2, DollarSign, FileText, Hash, Plus, Trash2, Info, Loader2, Gauge, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 
 import type { ReceiptForm, ReceiptLineItem, ScannerFormProps } from './types';
 import { CATEGORIES, PAYMENT_METHODS, USAGE_TYPES } from './types';
-import { shouldGlow, computeLiveCRAScore } from '@/lib/ui-utils';
+import { calculateCompletenessScore } from '@/lib/receipt-scoring';
+import { shouldGlow } from '@/lib/ui-utils';
 import { receiptFormSchema, ReceiptFormValues } from '@/lib/validations';
 import { isMathMismatch } from '@/lib/finance-utils';
 import { cn } from '@/lib/utils';
@@ -136,20 +138,18 @@ export default function ScannerForm({
   const fraudSuspicion = Boolean(formData.fraud_suspicion);
   const fraudReason = formData.fraud_reason || 'AI detected a potential anomaly or policy violation in this receipt.';
 
-  /* ─── Real-Time CRA Score ─── */
-  const liveCRAScore = useMemo(() => computeLiveCRAScore({
-    vendor_name: formData.vendor_name ?? '',
-    vendor_address: formData.vendor_address ?? '',
+  /* ─── Real-Time Receipt Completeness Score ─── */
+  const liveCRAScore = useMemo(() => calculateCompletenessScore({
     business_number: formData.business_number ?? '',
+    line_items: lineItems as unknown as Array<{ tax_rate?: number }>,
+    tax_breakdown: (formData as { tax_breakdown?: { rates?: unknown[] } | Array<unknown> }).tax_breakdown,
     transaction_date: formData.transaction_date ?? '',
-    total_amount: safeNumber(formData.total_amount),
+    image_quality_score: safeNumber((formData as { image_quality_score?: unknown }).image_quality_score),
     subtotal: safeNumber(formData.subtotal),
     tax_amount: safeNumber(formData.tax_amount),
     pst_amount: safeNumber(formData.pst_amount),
-    payment_method: formData.payment_method ?? '',
-    notes: formData.notes ?? '',
-    line_items: lineItems as ReceiptLineItem[],
-  }), [formData, lineItems]);
+    total_amount: safeNumber(formData.total_amount),
+  }).score, [formData, lineItems]);
 
   const lowReadiness = liveCRAScore < 70;
   const glowActive = shouldGlow(safeNumber(formData.confidence_score));
@@ -181,6 +181,29 @@ export default function ScannerForm({
   }, [formData.subtotal, formData.tax_amount, formData.pst_amount, formData.total_amount]);
 
   const canSave = hasAnalyzed && isConfirmed && !saving;
+
+  /* ─── Confidence-Based Auto-Save ─── */
+  const confidenceScore = safeNumber(formData.confidence_score);
+  const isHighConfidence = confidenceScore >= 80;
+  const isLowConfidence = confidenceScore < 60 && hasAnalyzed;
+  const autoSaveTriggeredRef = useRef(false);
+
+  useEffect(() => {
+    if (hasAnalyzed && isHighConfidence && !saving && !autoSaveTriggeredRef.current && !isConfirmed) {
+      autoSaveTriggeredRef.current = true;
+      toast('High confidence detection — auto-saving', {
+        description: 'Confidence score ' + confidenceScore + '. Receipt will save automatically in 1.5s.',
+        duration: 5000,
+      });
+      const timer = setTimeout(() => {
+        if (!saving && hasAnalyzed && isHighConfidence) {
+          setIsConfirmed(true);
+          handleSubmit(performSave)();
+        }
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [hasAnalyzed, isHighConfidence, saving, isConfirmed, setIsConfirmed, handleSubmit, performSave, confidenceScore]);
 
   // Handle keyboard shortcuts
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -382,6 +405,19 @@ export default function ScannerForm({
                   <p className="text-sm font-bold text-warning">Low CRA readiness</p>
                   <p className="mt-1 text-xs leading-relaxed text-warning/80">
                     The extracted record may be incomplete. Double check vendor, taxes, and dates.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          {isLowConfidence && (
+            <div className="rounded-lg border border-danger/20 bg-danger/[0.06] px-3.5 py-2.5">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-danger" />
+                <div>
+                  <p className="text-sm font-bold text-danger">Low AI confidence (<span className="font-mono">{confidenceScore}</span>)</p>
+                  <p className="mt-1 text-xs leading-relaxed text-danger/80">
+                    Extraction confidence is below 60. Please review all fields carefully before saving.
                   </p>
                 </div>
               </div>
@@ -658,9 +694,21 @@ export default function ScannerForm({
         <div className="rounded-xl border border-glass-border bg-surface-raised px-4 py-3.5">
           <div className="flex items-center gap-2 text-text-muted">
             <Hash className="h-4 w-4" />
-            <span className="text-xs font-semibold uppercase tracking-wide">AI confidence</span>
+            <span className="text-xs font-semibold uppercase tracking-wide">Gemini Extraction Confidence</span>
           </div>
-          <p className="mt-1.5 text-2xl font-bold tabular-nums text-text-primary">{safeNumber(formData.confidence_score)}</p>
+          <p className="mt-1.5 text-2xl font-bold tabular-nums">
+            <span className={
+              confidenceScore >= 80 ? 'text-emerald-light' :
+              confidenceScore >= 60 ? 'text-champagne' :
+              'text-danger'
+            }>{confidenceScore}</span>
+          </p>
+          <div className="mt-2 h-1 rounded-full bg-obsidian overflow-hidden">
+            <div
+              className={`h-full rounded-full ${confidenceScore >= 80 ? 'bg-emerald-success' : confidenceScore >= 60 ? 'bg-champagne' : 'bg-danger'}`}
+              style={{ width: `${confidenceScore}%` }}
+            />
+          </div>
         </div>
         <div className="rounded-xl border border-glass-border bg-surface-raised px-4 py-3.5">
           <div className="flex items-center gap-2 text-text-muted">

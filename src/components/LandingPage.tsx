@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
   ReceiptText, ArrowRight, Sparkles, Zap,
-  Shield, Lock, CheckCircle2, ChevronDown, Quote, Star, Menu, X,
+  Lock, CheckCircle2, ChevronDown, Quote, Star, Menu, X,
   Camera, Search, CalendarDays, Store, PiggyBank, TrendingUp,
   DollarSign, Tags, Kanban, GitCompare, Repeat, FileDown,
   BarChart3, ClipboardCheck, ShieldCheck, AlertTriangle,
@@ -21,14 +21,15 @@ const iconComponents: Record<string, React.ComponentType<LucideProps>> = {
   ReceiptText, DollarSign, Tags, Kanban, GitCompare, Repeat,
   FileDown, BarChart3, ClipboardCheck, ShieldCheck, AlertTriangle,
   Route, Landmark, Building2, Wallet, Mail, Users, Moon,
-  ScrollText, FileSpreadsheet, Lightbulb, Star,
+  ScrollText, FileSpreadsheet, Lightbulb, Star, Sparkles,
 };
 
-const getFeatureIcon = (iconName: string): React.ComponentType<LucideProps> => iconComponents[iconName] || Camera;
+const getFeatureIcon = (iconName: string): React.ComponentType<LucideProps> =>
+  iconComponents[iconName] || Camera;
 
-// ─── Hero Section with 3D visuals ─────────────────────────────────
+// ===== HERO SECTION WITH 3D VISUALIZATION =====
 function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [mousePosition, setMousePosition] = useState({ x: 0.5, y: 0.5 });
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -38,17 +39,51 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
     });
   }, []);
 
+  // Feature highlights for the hero - focusing on autonomous capabilities
+  const autonomousFeatures = [
+    {
+      icon: 'Camera',
+      title: 'AI Receipt Scanning',
+      description: 'Snap, forward, or drag — AI extracts data in <2s with confidence scoring',
+      benefit: '95%+ accuracy on Canadian receipts',
+    },
+    {
+      icon: 'BarChart3',
+      title: 'Spend Intelligence',
+      description: 'AI analyzes patterns, predicts cash flow, and flags anomalies',
+      benefit: 'See trends before they become problems',
+    },
+    {
+      icon: 'ShieldCheck',
+      title: 'CRA Audit Ready',
+      description: 'Every receipt scored 0-100 for deduction readiness',
+      benefit: 'Know exactly what\'s missing before tax season',
+    },
+    {
+      icon: 'Users',
+      title: 'Team Workflows',
+      description: 'Role-based access with approval chains and audit trails',
+      benefit: 'Collaborate securely with your accountant or team',
+    },
+  ];
+
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden pt-20">
-      {/* Animated gradient orbs - parallax on mouse move */}
-      <div className="pointer-events-none absolute inset-0" onMouseMove={handleMouseMove}>
+      {/* 3D Background Elements */}
+      <div className="pointer-events-none absolute inset-0" onMouseMove={handleMouseMove} aria-hidden="true">
+        {/* Animated gradient orbs - parallax on mouse move */}
         <div
-          className="absolute top-1/4 left-1/4 w-96 h-96 bg-champagne/8 rounded-full blur-[120px] animate-pulse-soft transition-transform duration-500"
-          style={{ transform: `translate(${mousePosition.x * 20}px, ${mousePosition.y * 20}px)` }}
+          className="absolute top-1/4 left-1/4 w-[96px] h-[96px] rounded-full bg-champagne/8 blur-[120px] animate-pulse-soft transition-transform duration-5000"
+          style={{
+            transform: `translate(${(mousePosition.x - 0.5) * 100}px, ${(mousePosition.y - 0.5) * 100}px)`,
+          }}
         />
         <div
-          className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-champagne/6 rounded-full blur-[100px] animate-pulse-soft transition-transform duration-500"
-          style={{ animationDelay: '1s', transform: `translate(${-mousePosition.x * 15}px, ${-mousePosition.y * 15}px)` }}
+          className="absolute bottom-1/3 right-1/4 w-[80px] h-[80px] rounded-full bg-champagne/6 blur-[100px] animate-pulse-soft transition-transform duration-6000"
+          style={{
+            animationDelay: '1s',
+            transform: `translate(${(0.5 - mousePosition.x) * 80}px, ${(mousePosition.y - 0.5) * 60}px)`,
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-champagne/5 via-transparent to-obsidian" />
       </div>
@@ -57,13 +92,15 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
       <div className="absolute inset-0 pointer-events-none">
         <div className="relative w-full h-full flex items-center justify-center">
           {/* Multiple floating cards for depth */}
-          <div className="absolute w-[320px] h-[480px] animate-float3d opacity-30" style={{ transform: 'rotateY(-20deg) translateX(-40px)' }}>
-            <div className="absolute inset-0 bg-gradient-to-br from-champagne/10 to-card/60 rounded-3xl border border-champagne/15" />
+          <div className="absolute w-[320px] h-[480px] rounded-2xl overflow-hidden shadow-2xl animate-float3d"
+               style={{ transform: 'rotateY(-20deg) translateX(-40px)', opacity: '0.3' }}>
+            <div className="absolute inset-0 bg-gradient-to-br from-champagne/10 to-card/60 rounded-xl border border-champagne/15" />
           </div>
-          <div className="absolute w-[320px] h-[480px] animate-float3d opacity-50" style={{ animationDelay: '0.5s' }}>
-            <div className="absolute inset-0 bg-gradient-to-br from-champagne/15 via-card to-champagne/5 rounded-3xl border border-champagne/25 shadow-2xl">
+          <div className="absolute w-[320px] h-[480px] rounded-2xl overflow-hidden shadow-2xl animate-float3d"
+               style={{ animationDelay: '0.5s', opacity: '0.5' }}>
+            <div className="absolute inset-0 bg-gradient-to-br from-champagne/15 via-card to-champagne/5 rounded-xl border border-champagne/25 shadow-2xl">
               <div className="relative h-full flex flex-col items-center justify-center p-8">
-                <div className="w-20 h-20 rounded-2xl bg-champagne/20 flex items-center justify-center mb-6">
+                <div className="w-20 h-20 rounded-xl bg-champagne/20 flex items-center justify-center mb-6">
                   <ReceiptText className="w-10 h-10 text-champagne" />
                 </div>
                 <div className="space-y-3 w-full max-w-xs">
@@ -74,25 +111,28 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
               </div>
             </div>
           </div>
-          <div className="absolute w-[320px] h-[480px] animate-float3d opacity-30" style={{ transform: 'rotateY(20deg) translateX(40px)', animationDelay: '1s' }}>
-            <div className="absolute inset-0 bg-gradient-to-br from-champagne/8 to-card/50 rounded-3xl border border-champagne/10" />
+          <div className="absolute w-[320px] h-[480px] rounded-2xl overflow-hidden shadow-2xl animate-float3d"
+               style={{ transform: 'rotateY(20deg) translateX(40px)', animationDelay: '1s', opacity: '0.3' }}>
+            <div className="absolute inset-0 bg-gradient-to-br from-champagne/8 to-card/50 rounded-xl border border-champagne/10" />
           </div>
         </div>
       </div>
 
+      {/* Content */}
       <div className="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Trust badges */}
         <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
-          <TrustBadge icon={Shield} text="SOC 2 Compliant" />
           <TrustBadge icon={Building2} text="Canadian Data Residency" />
           <TrustBadge icon={Lock} text="Bank-Level Encryption" />
         </div>
 
         <div className="text-center">
+          {/* Category badge */}
           <div className="inline-flex items-center gap-2 rounded-full border border-champagne/20 bg-champagne/5 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-champagne backdrop-blur-sm mb-6 animate-in fade-in slide-up-from-bottom-4 duration-700">
             <Sparkles className="h-3 w-3" /> CRA-Ready Accounting
           </div>
 
+          {/* Main headline */}
           <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-[1.05] max-w-5xl mx-auto mb-6 animate-in fade-in slide-up-from-bottom-4 duration-700 delay-100">
             <span className="bg-gradient-to-r from-champagne via-champagne-dim to-champagne bg-clip-text text-transparent">
               Receipt Management
@@ -101,13 +141,29 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
             <span className="text-text-primary">Engineered for Canada</span>
           </h1>
 
+          {/* Subheadline */}
           <p className="text-lg text-text-muted/90 max-w-2xl mx-auto mb-10 leading-relaxed animate-in fade-in slide-up-from-bottom-4 duration-700 delay-200">
-            Stop worrying about CRA audits. {APP_NAME} automatically extracts, organizes, and
+            Stop worrying about CRA audits. <strong>{APP_NAME}</strong> automatically extracts, organizes, and
             stores your receipts with AI. Generate tax-ready reports, track budgets, and
             keep your business compliant — all in one place.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-in fade-in slide-up-from-bottom-4 duration-700 delay-300">
+          {/* Feature highlights with hover effects */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 animate-in fade-in slide-up-from-bottom-4 duration-700 delay-300">
+            {autonomousFeatures.map((feat, index) => (
+              <FeatureHighlight
+                key={feat.icon}
+                icon={getFeatureIcon(feat.icon)}
+                title={feat.title}
+                description={feat.description}
+                benefit={feat.benefit}
+                delay={index * 100}
+              />
+            ))}
+          </div>
+
+          {/* Call to action */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-in fade-in slide-up-from-bottom-4 duration-700 delay-400">
             <button
               type="button"
               onClick={onGetStarted}
@@ -127,13 +183,14 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
 
           {/* Stats with animated counters */}
           <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-8">
-            <StatItem value={50000} suffix="+" label="Receipts Processed" delay={400} />
-            <StatItem value={500} suffix="+" label="Canadian Businesses" delay={500} />
-            <StatItem value={3} label="Tax Seasons Supported" delay={600} />
-            <StatItem value={8} suffix="h/mo" label="Avg. Time Saved" delay={700} />
+            <StatItem value={50000} suffix="+" label="Receipts Processed" delay={500} />
+            <StatItem value={500} suffix="+" label="Canadian Businesses" delay={600} />
+            <StatItem value={3} label="Tax Seasons Supported" delay={700} />
+            <StatItem value={8} suffix="h/mo" label="Avg. Time Saved" delay={800} />
           </div>
 
-          <div className="mt-16 flex flex-col items-center gap-2 text-text-muted/40 animate-in fade-in duration-1000 delay-700">
+          {/* Scroll indicator */}
+          <div className="mt-16 flex flex-col items-center gap-2 text-text-muted/40 animate-in fade-in duration-1000 delay-900">
             <span className="text-[10px] font-medium uppercase tracking-widest">Scroll to explore</span>
             <ChevronDown className="h-5 w-5 animate-bounce" />
           </div>
@@ -143,12 +200,33 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
   );
 }
 
-// ─── Reusable Components ─────────────────────────────────
+// ===== REUSABLE COMPONENTS =====
 function TrustBadge({ icon: Icon, text }: { icon: React.ComponentType<LucideProps>; text: string }) {
   return (
     <div className="inline-flex items-center gap-2 rounded-full bg-surface-raised px-3.5 py-1.5 text-[11px] font-medium text-text-secondary border border-glass-border transition-all hover:border-champagne/20 hover:bg-card">
       <Icon className="h-3.5 w-3.5 text-champagne" />
       {text}
+    </div>
+  );
+}
+
+function FeatureHighlight({ icon, title, description, benefit, delay }: {
+  icon: React.ComponentType<LucideProps>;
+  title: string;
+  description: string;
+  benefit: string;
+  delay?: number;
+}) {
+  return (
+    <div
+      className={`text-center animate-in fade-in slide-up-from-bottom-4 duration-500 ${delay ? `delay-${delay}ms` : ''}`}
+    >
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-champagne/10 text-champagne transition-all duration-300 hover:bg-champagne/20 hover:scale-105">
+        {React.createElement(icon, { className: 'h-6 w-6' })}
+      </div>
+      <h3 className="text-lg font-bold text-text-primary mb-2 transition-colors hover:text-champagne">{title}</h3>
+      <p className="text-sm text-text-muted/80 leading-relaxed">{description}</p>
+      <div className="mt-2 text-xs font-semibold text-champagne">{benefit}</div>
     </div>
   );
 }
@@ -168,7 +246,7 @@ function AnimatedCounter({ value, suffix = '', prefix = '' }: { value: number; s
   const [displayValue, setDisplayValue] = useState(0);
   const frameRef = React.useRef(0);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const duration = 2000;
     const steps = 60;
 
@@ -185,10 +263,11 @@ function AnimatedCounter({ value, suffix = '', prefix = '' }: { value: number; s
   return <>{prefix}{displayValue}{suffix}</>;
 }
 
-// ─── Features Section ────────────────────────────────────
+// ===== FEATURES SECTION =====
 function FeaturesSection() {
   return (
     <section id="features" className="relative py-24 sm:py-32 overflow-hidden">
+      {/* Animated background elements */}
       <div className="pointer-events-none absolute -left-48 -top-32 w-96 h-96 bg-champagne/6 rounded-full blur-[120px] antigravity-float" aria-hidden />
       <div className="pointer-events-none absolute -right-48 bottom-0 w-80 h-80 bg-champagne/4 rounded-full blur-[100px] antigravity-float-slow" aria-hidden />
 
@@ -203,7 +282,7 @@ function FeaturesSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 scroll-mt-20">
           {features.slice(0, 9).map((f, i) => {
             const IconComp = getFeatureIcon(f.icon);
             return (
@@ -213,10 +292,10 @@ function FeaturesSection() {
                 className="group block rounded-2xl border border-glass-border bg-card p-6 transition-all duration-300 hover:border-champagne/30 hover:shadow-lg hover:shadow-champagne/5 hover:-translate-y-1 animate-in fade-in slide-up-from-bottom-4 duration-500 antigravity-card"
                 style={{ animationDelay: `${i * 50}ms` }}
               >
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-champagne/10 text-champagne group-hover:bg-champagne/20 group-hover:scale-110 transition-all duration-300">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-champagne/10 text-champagne transition-all duration-300 group-hover:bg-champagne/20 group-hover:scale-110">
                   {React.createElement(IconComp, { className: 'h-6 w-6' })}
                 </div>
-                <h3 className="text-lg font-bold text-text-primary mb-2 group-hover:text-champagne transition-colors">{f.title}</h3>
+                <h3 className="text-lg font-bold text-text-primary mb-2 transition-colors group-hover:text-champagne">{f.title}</h3>
                 <p className="text-sm text-text-muted/80 leading-relaxed line-clamp-3">{f.shortDescription}</p>
                 <div className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-champagne opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0">
                   Learn more <ArrowRight className="h-3.5 w-3.5" />
@@ -239,7 +318,7 @@ function FeaturesSection() {
   );
 }
 
-// ─── Testimonials Section ─────────────────────────────────
+// ===== TESTIMONIALS SECTION =====
 function TestimonialsSection() {
   const testimonials = [
     {
@@ -301,7 +380,7 @@ function TestimonialsSection() {
   );
 }
 
-// ─── Pricing Section ───────────────────────────────────────
+// ===== PRICING SECTION =====
 function PricingSection({ onGetStarted }: { onGetStarted: () => void }) {
   const pricingPlans = [
     {
@@ -402,7 +481,7 @@ function PricingSection({ onGetStarted }: { onGetStarted: () => void }) {
   );
 }
 
-// ─── FAQ Section ────────────────────────────────────────────
+// ===== FAQ SECTION =====
 function FAQSection() {
   const faqs = [
     { question: 'Is my data stored in Canada?', answer: 'Yes. All data is stored on Canadian servers (Supabase hosted in us-west-1 with Canadian data residency compliance). We follow PIPEDA guidelines and Quebec Law 25 requirements.' },
@@ -410,7 +489,7 @@ function FAQSection() {
     { question: 'How does the AI scanning work?', answer: 'Take a photo or forward a receipt email. Our AI extracts vendor name, date, total, tax, and category with high accuracy. You can review and correct before saving.' },
     { question: 'What happens after the free trial?', answer: 'Your 14-day Pro trial gives full access to all features. After it ends, you revert to the free Starter plan unless you subscribe. No data is lost.' },
     { question: 'Can my employees use it too?', answer: 'Yes. Pro plans include up to 5 users with role-based access. Employees can submit receipts; owners approve and export.' },
-    { question: 'How secure is my data?', answer: 'End-to-end encryption for tokens. AES-256-GCM for sensitive data. SOC 2 compliant infrastructure. Regular security audits.' },
+    { question: 'How secure is my data?', answer: 'End-to-end encryption for tokens. AES-256-GCM for sensitive data. We implement SOC 2-style controls including access logging, data retention policies, and regular internal security reviews.' },
   ];
 
   return (
@@ -443,7 +522,66 @@ function FAQItem({ question, answer, delay }: { question: string; answer: string
   );
 }
 
-// ─── Main Landing Page Component ─────────────────────────────
+// ===== CTA BANNER =====
+function CtaBanner({ onGetStarted }: { onGetStarted: () => void }) {
+  return (
+    <section className="relative py-24 sm:py-32 overflow-hidden">
+      <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-32 w-96 h-96 bg-champagne/10 rounded-full blur-[120px]" aria-hidden />
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 relative">
+        <div className="relative rounded-3xl border border-champagne/20 bg-gradient-to-br from-champagne/10 via-champagne/5 to-transparent p-12 sm:p-16 text-center overflow-hidden animate-in fade-in slide-up-from-bottom-4 duration-700">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-champagne/5 to-transparent opacity-50" />
+          <div className="relative z-10">
+            <div className="inline-flex items-center gap-2 rounded-full bg-champagne/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-champagne mb-6">
+              <Clock className="h-3 w-3" /> No credit card required
+            </div>
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
+              Ready to Get <span className="bg-gradient-to-r from-champagne to-champagne-dim bg-clip-text text-transparent">CRA-Ready?</span>
+            </h2>
+            <p className="text-base text-text-muted/80 max-w-lg mx-auto mb-8">
+              Join hundreds of Canadian businesses that trust {APP_NAME} for their receipt management.
+              Start your free trial — no credit card required.
+            </p>
+            <button
+              type="button"
+              onClick={onGetStarted}
+              className="inline-flex items-center gap-2 rounded-xl bg-champagne px-8 py-3.5 text-sm font-bold text-obsidian hover:bg-champagne-dim transition shadow-xl shadow-champagne/20 antigravity-btn"
+            >
+              <ShieldCheck className="h-4 w-4" /> Start Free Trial
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ===== FOOTER =====
+function Footer() {
+  return (
+    <footer className="border-t border-glass-border py-12">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-champagne/15">
+              <ReceiptText className="h-3.5 w-3.5 text-champagne" />
+            </div>
+            <span className="text-xs font-bold tracking-tight text-text-primary">{APP_NAME}</span>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-text-muted/70">
+            <Link href="/terms" className="hover:text-text-primary transition">Terms</Link>
+            <Link href="/privacy" className="hover:text-text-primary transition">Privacy</Link>
+            <a href="mailto:security@9starlabs.ca" className="hover:text-text-primary transition inline-flex items-center gap-1">
+              <Mail className="h-3 w-3" /> Contact
+            </a>
+            <span>© {new Date().getFullYear()} 9 Star Labs. All rights reserved.</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+// ===== MAIN LANDING PAGE COMPONENT =====
 interface LandingPageProps {
   onGetStarted: () => void;
 }
@@ -547,58 +685,13 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       <PricingSection onGetStarted={onGetStarted} />
 
       {/* CTA Banner */}
-      <section className="relative py-24 sm:py-32 overflow-hidden">
-        <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-32 w-96 h-96 bg-champagne/10 rounded-full blur-[120px]" aria-hidden />
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 relative">
-          <div className="relative rounded-3xl border border-champagne/20 bg-gradient-to-br from-champagne/10 via-champagne/5 to-transparent p-12 sm:p-16 text-center overflow-hidden animate-in fade-in slide-up-from-bottom-4 duration-700">
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-champagne/5 to-transparent opacity-50" />
-            <div className="relative z-10">
-              <div className="inline-flex items-center gap-2 rounded-full bg-champagne/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-champagne mb-6">
-                <Clock className="h-3 w-3" /> No credit card required
-              </div>
-              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
-                Ready to Get <span className="bg-gradient-to-r from-champagne to-champagne-dim bg-clip-text text-transparent">CRA-Ready?</span>
-              </h2>
-              <p className="text-base text-text-muted/80 max-w-lg mx-auto mb-8">
-                Join hundreds of Canadian businesses that trust {APP_NAME} for their receipt management.
-                Start your free trial — no credit card required.
-              </p>
-              <button
-                type="button"
-                onClick={onGetStarted}
-                className="inline-flex items-center gap-2 rounded-xl bg-champagne px-8 py-3.5 text-sm font-bold text-obsidian hover:bg-champagne-dim transition shadow-xl shadow-champagne/20 antigravity-btn"
-              >
-                <ShieldCheck className="h-4 w-4" /> Start Free Trial
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
+      <CtaBanner onGetStarted={onGetStarted} />
 
       {/* FAQ Section */}
       <FAQSection />
 
       {/* Footer */}
-      <footer className="border-t border-glass-border py-12">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-champagne/15">
-                <ReceiptText className="h-3.5 w-3.5 text-champagne" />
-              </div>
-              <span className="text-xs font-bold tracking-tight text-text-primary">{APP_NAME}</span>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-text-muted/70">
-              <Link href="/terms" className="hover:text-text-primary transition">Terms</Link>
-              <Link href="/privacy" className="hover:text-text-primary transition">Privacy</Link>
-              <a href="mailto:security@9starlabs.ca" className="hover:text-text-primary transition inline-flex items-center gap-1">
-                <Mail className="h-3 w-3" /> Contact
-              </a>
-              <span>© {new Date().getFullYear()} 9 Star Labs. All rights reserved.</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

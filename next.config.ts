@@ -2,10 +2,6 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 import { env } from "./src/lib/env";
 
-// OpenTelemetry instrumentation (runs before app initialization)
-if (process.env.NEXT_RUNTIME === 'nodejs' || process.env.NEXT_RUNTIME === 'edge') {
-  import('./src/lib/telemetry').then(m => m.initializeTelemetry()).catch(() => {});
-}
 
 const config: NextConfig = {
   output: 'standalone',
@@ -30,12 +26,15 @@ const config: NextConfig = {
       {
         source: '/(.*)',
         headers: [
+          // Security headers are primarily set in middleware.ts for dynamic control (CSP, HSTS, etc.)
+          // These are defense-in-depth duplicates for routes not covered by middleware.
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=()' },
-          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
           { key: 'X-DNS-Prefetch-Control', value: 'on' },
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
         ],
       },
     ];

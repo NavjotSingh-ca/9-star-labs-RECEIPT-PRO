@@ -1,9 +1,24 @@
 import { supabase } from '@/lib/supabase';
 import { logError } from '@/lib/logger';
+import { env } from '@/lib/env';
 import type { AuditLogRow } from '@/lib/types';
 import { createHmac } from 'crypto';
 
-const HMAC_SECRET = process.env.AUDIT_HMAC_SECRET || 'default-secret-change-in-production';
+const HMAC_SECRET: string = (() => {
+  const configured = env.AUDIT_HMAC_SECRET;
+  if (configured) return configured;
+  // No env var configured — generate a random per-run secret.
+  // This means audit hashes won't survive server restarts,
+  // but at least the default is not a predictable constant.
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production') {
+    console.warn(
+      '[AUDIT] AUDIT_HMAC_SECRET not set — generated random per-run key. ' +
+      'Audit hashes will be invalidated on server restart. ' +
+      'Set AUDIT_HMAC_SECRET in production for persistent tamper-evident audit chains.'
+    );
+  }
+  return require('crypto').randomBytes(32).toString('hex');
+})();
 
 /**
  * Compute HMAC hash for audit log entry.

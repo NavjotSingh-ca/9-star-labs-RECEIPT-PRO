@@ -12,6 +12,8 @@ const geist = localFont({
   display: 'swap',
   variable: '--font-geist',
   weight: '100 900',
+  preload: true,
+  fallback: ['system-ui', 'sans-serif'],
 });
 
 export const metadata: Metadata = {
@@ -72,6 +74,8 @@ export default function RootLayout({
         <link rel="preconnect" href="https://js.stripe.com" />
         <link rel="preconnect" href="https://generativelanguage.googleapis.com" />
         <link rel="dns-prefetch" href="https://*.supabase.co" />
+        <link rel="preload" as="font" type="font/woff2" href="/fonts/Geist-Variable.woff2" crossOrigin="anonymous" />
+        <link rel="prefetch" href="/features" />
         <noscript>
           <div style={{
             padding: '1rem',

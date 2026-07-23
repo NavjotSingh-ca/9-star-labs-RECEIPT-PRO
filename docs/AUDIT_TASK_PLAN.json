@@ -1,0 +1,681 @@
+{
+  "tasks": [
+    {
+      "id": "AUDIT-001",
+      "title": "Create Next.js middleware for Supabase auth session refresh",
+      "description": "Add src/middleware.ts using @supabase/ssr createServerClient with updateSession pattern. Protects all routes, auto-refreshes JWT, prevents auth bypass. Required before any production deployment.",
+      "priority": "P0",
+      "category": "security",
+      "effort": "M",
+      "files": ["src/middleware.ts (new)"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Middleware intercepts all requests",
+        "Session refreshed on each request",
+        "Unauthenticated users redirected to login",
+        "Protected API routes return 401 without valid session"
+      ],
+      "labels": ["security", "auth", "critical", "middleware"]
+    },
+    {
+      "id": "AUDIT-002",
+      "title": "Replace in-memory rate limiter with Redis-backed implementation",
+      "description": "Current rate-limiter.ts uses process-local Map — bypassed on serverless. Implement using Upstash Redis (HTTP-based, no connection pooling) with sliding window algorithm. Protect scan, auth, and API endpoints.",
+      "priority": "P0",
+      "category": "security",
+      "effort": "M",
+      "files": ["src/lib/rate-limiter.ts", "package.json (add @upstash/ratelimit)"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Rate limits enforced across all function instances",
+        "Scan limit: 3/min, 10/hr per user",
+        "Auth endpoints protected",
+        "Graceful degradation if Redis unavailable"
+      ],
+      "labels": ["security", "rate-limiting", "redis", "critical"]
+    },
+    {
+      "id": "AUDIT-003",
+      "title": "Make TOKEN_ENCRYPTION_KEY mandatory in production",
+      "description": "encryption.ts:47-48 returns plaintext if key missing. Change to throw Error in production. Only allow fallback when NODE_ENV !== 'production'. Add validation in env.ts.",
+      "priority": "P0",
+      "category": "security",
+      "effort": "S",
+      "files": ["src/lib/encryption.ts", "src/lib/env.ts"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Throws in production if key missing or <32 chars",
+        "Allows fallback in development only",
+        "Clear error message with key generation command"
+      ],
+      "labels": ["security", "encryption", "critical", "config"]
+    },
+    {
+      "id": "AUDIT-004",
+      "title": "Remove mock Supabase client fallbacks in production code paths",
+      "description": "supabase-client.ts and supabase-server.ts return mock clients when env vars contain 'placeholder'. This causes silent failures. Replace with explicit throw in production.",
+      "priority": "P0",
+      "category": "security",
+      "effort": "S",
+      "files": ["src/lib/supabase-client.ts", "src/lib/supabase-server.ts"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Throws descriptive error if Supabase URL/key are placeholders in production",
+        "CI mode still works with mocks",
+        "Clear error message for misconfigured deploys"
+      ],
+      "labels": ["security", "supabase", "critical", "config"]
+    },
+    {
+      "id": "AUDIT-005",
+      "title": "Add comprehensive CSP and security headers",
+      "description": "next.config.ts missing headers(). Add: Content-Security-Policy (strict), X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, Permissions-Policy, Cross-Origin-Opener-Policy.",
+      "priority": "P0",
+      "category": "security",
+      "effort": "M",
+      "files": ["next.config.ts"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "CSP allows only self + required CDNs (Stripe, Google AI, Supabase)",
+        "All security headers present on all responses",
+        "No CSP violations in console"
+      ],
+      "labels": ["security", "headers", "csp", "critical"]
+    },
+    {
+      "id": "AUDIT-006",
+      "title": "Engage Canadian tech lawyer for ToS/Privacy/PIA review",
+      "description": "PRD.md:40 confirms legal docs not lawyer-reviewed. Quebec Law 25 PIA required. Budget ~$3-5k. Remove 'CRA-compliant' claims, replace with 'Supports CRA requirements'. Add disclaimer banner component.",
+      "priority": "P0",
+      "category": "commercial",
+      "effort": "L",
+      "files": ["app/terms/page.tsx", "app/privacy/page.tsx", "src/components/DisclaimerBanner.tsx (new)"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Lawyer-reviewed ToS and Privacy Policy deployed",
+        "Quebec Law 25 PIA document created",
+        "All 'guarantee' language removed",
+        "Disclaimer banner on export/report screens"
+      ],
+      "labels": ["compliance", "legal", "critical", "quebec-law-25"]
+    },
+    {
+      "id": "AUDIT-007",
+      "title": "Remove unverified SOC 2 / Canadian data residency claims from marketing",
+      "description": "LandingPage.tsx shows trust badges for 'SOC 2 Compliant' and 'Canadian Data Residency'. Supabase us-west-1 is US region. Remove or substantiate with audit reports.",
+      "priority": "P0",
+      "category": "commercial",
+      "effort": "S",
+      "files": ["src/components/LandingPage.tsx", "src/components/PricingSection.tsx"],
+      "dependencies": ["AUDIT-006"],
+      "acceptanceCriteria": [
+        "Unverified badges removed or replaced with accurate claims",
+        "Data residency claim matches actual Supabase region",
+        "No misleading compliance marketing"
+      ],
+      "labels": ["compliance", "marketing", "critical", "landing-page"]
+    },
+    {
+      "id": "AUDIT-008",
+      "title": "Split scan-receipt.ts monolithic action into focused modules",
+      "description": "620-line function does: auth, rate limit, vendor context, Gemini call, self-correction, tax validation, duplicate hash, logging. Extract to: validateScanRequest, fetchVendorContext, callGemini, postProcessExtraction, validateTax, detectDuplicates, saveScanAttempt.",
+      "priority": "P1",
+      "category": "architecture",
+      "effort": "L",
+      "files": ["src/app/actions/scan-receipt.ts", "src/lib/ai/ (new directory)"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Each module <100 lines, single responsibility",
+        "Unit testable in isolation",
+        "Same external interface preserved",
+        "Self-correction pass optional/configurable"
+      ],
+      "labels": ["architecture", "refactor", "ai", "maintainability"]
+    },
+    {
+      "id": "AUDIT-009",
+      "title": "Extract duplicate hash computation to shared library",
+      "description": "computeDuplicateHash duplicated in scan-receipt.ts:14-25 and save-receipt.ts:77-80. Move to src/lib/hash.ts (already exists, unused) and import in both.",
+      "priority": "P1",
+      "category": "architecture",
+      "effort": "S",
+      "files": ["src/lib/hash.ts", "src/app/actions/scan-receipt.ts", "src/app/actions/save-receipt.ts"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Single source of truth for duplicate hash algorithm",
+        "Both actions import from lib/hash.ts",
+        "Unit test for hash consistency"
+      ],
+      "labels": ["architecture", "dry", "refactor", "easy-win"]
+    },
+    {
+      "id": "AUDIT-010",
+      "title": "Add Zod schema validation for line_items on database read",
+      "description": "database.types.ts:143 types line_items as Json — no runtime validation. Create Zod schema in lib/validations.ts and parse on fetch in receipts service.",
+      "priority": "P1",
+      "category": "architecture",
+      "effort": "M",
+      "files": ["src/lib/validations.ts", "src/lib/services/receipts.ts", "src/lib/database.types.ts"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "ReceiptLineItemSchema validates all fields",
+        "Parse on read with safeParse, log errors",
+        "Invalid data gracefully handled (not crashed)"
+      ],
+      "labels": ["architecture", "types", "validation", "zod"]
+    },
+    {
+      "id": "AUDIT-011",
+      "title": "Add Stripe webhook signature verification",
+      "description": "app/api/stripe/webhook/route.ts missing stripe.webhooks.constructEvent verification. Required for payment security.",
+      "priority": "P1",
+      "category": "security",
+      "effort": "M",
+      "files": ["src/app/api/stripe/webhook/route.ts"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Verifies STRIPE_WEBHOOK_SECRET on every request",
+        "Returns 400 for invalid signatures",
+        "Idempotency key handling for duplicate events"
+      ],
+      "labels": ["security", "stripe", "payments", "webhooks"]
+    },
+    {
+      "id": "AUDIT-012",
+      "title": "Add QBO token refresh retry with exponential backoff",
+      "description": "app/api/qbo/refresh/route.ts has no retry logic. Intuit API returns 429/5xx transient errors. Add retry with backoff (1s, 2s, 4s) and jitter.",
+      "priority": "P1",
+      "category": "security",
+      "effort": "S",
+      "files": ["src/app/api/qbo/refresh/route.ts"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Retries on 429, 500, 502, 503, 504",
+        "Exponential backoff with jitter",
+        "Max 3 attempts, then returns error"
+      ],
+      "labels": ["security", "qbo", "reliability", "integrations"]
+    },
+    {
+      "id": "AUDIT-013",
+      "title": "Add file upload MIME validation and size limits",
+      "description": "scan-receipt.ts:29 accepts base64 up to 6M chars (~4MB) but only checks data URI prefix. Add strict MIME allowlist (image/jpeg, png, webp, pdf), dimensions check, malware scan via ClamAV or similar.",
+      "priority": "P1",
+      "category": "security",
+      "effort": "M",
+      "files": ["src/app/actions/scan-receipt.ts", "src/lib/sanitization.ts"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Rejects non-allowed MIME types",
+        "Enforces max 5MB, max 4000px dimension",
+        "Virus scan integration (optional)"
+      ],
+      "labels": ["security", "upload", "validation", "ai"]
+    },
+    {
+      "id": "AUDIT-014",
+      "title": "Add request size limits to Next.js config",
+      "description": "next.config.ts missing bodyParser size limits. Add to prevent DoS via large payloads.",
+      "priority": "P1",
+      "category": "security",
+      "effort": "S",
+      "files": ["next.config.ts"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "API routes: 1MB default, 5MB for upload endpoints",
+        "Returns 413 for oversized requests"
+      ],
+      "labels": ["security", "dos", "config", "easy-win"]
+    },
+    {
+      "id": "AUDIT-015",
+      "title": "Refactor save-receipt.ts to separate concerns",
+      "description": "save-receipt.ts does: FX rate fetch, vendor defaults update, admin notifications, atomic DB insert. Extract to ReceiptService class with clear methods.",
+      "priority": "P1",
+      "category": "architecture",
+      "effort": "M",
+      "files": ["src/app/actions/save-receipt.ts", "src/lib/services/receipts.ts"],
+      "dependencies": ["AUDIT-009"],
+      "acceptanceCriteria": [
+        "ReceiptService with save(), updateVendorDefaults(), notifyAdmins()",
+        "Action delegates to service",
+        "Each method unit testable"
+      ],
+      "labels": ["architecture", "refactor", "services", "maintainability"]
+    },
+    {
+      "id": "AUDIT-016",
+      "title": "Implement API versioning strategy",
+      "description": "All routes at /api/* without version prefix. Add /api/v1/ prefix, plan for v2. Update all route handlers and client calls.",
+      "priority": "P1",
+      "category": "architecture",
+      "effort": "M",
+      "files": ["src/app/api/ (restructure)", "src/lib/api-client.ts (new)"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "All routes under /api/v1/",
+        "Version in Accept header or URL",
+        "Deprecation policy documented"
+      ],
+      "labels": ["architecture", "api", "versioning", "breaking-changes"]
+    },
+    {
+      "id": "AUDIT-017",
+      "title": "Eliminate 'any' usage across codebase",
+      "description": "grep finds 12+ files using 'any'. Replace with proper types, generics, or unknown. Focus on lib/ and actions/.",
+      "priority": "P1",
+      "category": "quality",
+      "effort": "S",
+      "files": ["Multiple (grep for \\bany\\b)"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Zero 'any' in lib/ and actions/",
+        "Proper generics for flexible functions",
+        "unknown used where type truly unknown"
+      ],
+      "labels": ["quality", "typescript", "strict-mode", "easy-win"]
+    },
+    {
+      "id": "AUDIT-018",
+      "title": "Add ErrorBoundary to Scanner, QBOExport, LandingPage",
+      "description": "Only AppShell wraps Sidebar in ErrorBoundary. Scanner.tsx, QBOExport.tsx, LandingPage.tsx lack boundaries. Add per-feature error boundaries with recovery UI.",
+      "priority": "P1",
+      "category": "quality",
+      "effort": "S",
+      "files": ["src/components/Scanner.tsx", "src/components/features/QBOExport.tsx", "src/components/LandingPage.tsx", "src/components/ErrorBoundary.tsx"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Each top-level feature wrapped",
+        "Fallback UI with retry/report action",
+        "Error logged to Sentry with context"
+      ],
+      "labels": ["quality", "react", "error-boundary", "ux"]
+    },
+    {
+      "id": "AUDIT-019",
+      "title": "Remove heavy unused dependencies from landing page",
+      "description": "@react-three/fiber, @react-three/drei, @react-three/postprocessing, three, three-stdlib, gsap, lenis only used in LandingPage.tsx 3D hero. Evaluate if CSS-only animation suffices. If keeping, lazy-load with dynamic import.",
+      "priority": "P1",
+      "category": "performance",
+      "effort": "M",
+      "files": ["package.json", "src/components/LandingPage.tsx", "next.config.ts"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Bundle size reduced by >200KB",
+        "3D hero loads only when visible (IntersectionObserver)",
+        "Or replaced with CSS animation"
+      ],
+      "labels": ["performance", "bundle-size", "landing-page", "optimization"]
+    },
+    {
+      "id": "AUDIT-020",
+      "title": "Migrate image handling to next/image",
+      "description": "Receipt images served as raw URLs. Use next/image with Supabase Storage loader for optimization, lazy loading, blur placeholders.",
+      "priority": "P1",
+      "category": "performance",
+      "effort": "M",
+      "files": ["src/lib/supabase.ts (getReceiptImageUrl)", "src/components/Scanner.tsx", "src/components/ReceiptImage.tsx (new)"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "All receipt images via next/image",
+        "Automatic WebP/AVIF conversion",
+        "Blur placeholder while loading",
+        "Responsive sizes"
+      ],
+      "labels": ["performance", "images", "next-image", "ux"]
+    },
+    {
+      "id": "AUDIT-021",
+      "title": "Optimize React Query staleTime and add prefetching",
+      "description": "Providers.tsx:47 sets staleTime: 2min. For dashboard data, increase to 5min. Add prefetch on hover for tab navigation. Reduce unnecessary refetches.",
+      "priority": "P1",
+      "category": "performance",
+      "effort": "S",
+      "files": ["src/components/Providers.tsx", "src/components/AppShell.tsx"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "staleTime: 5min for dashboard, 2min for receipts",
+        "Prefetch on tab hover",
+        "No stale data complaints"
+      ],
+      "labels": ["performance", "react-query", "caching", "dx"]
+    },
+    {
+      "id": "AUDIT-022",
+      "title": "Set up comprehensive test infrastructure",
+      "description": "Only proxy.test.ts exists. Configure Vitest with: Supabase test helpers, MSW for API mocking, React Testing Library, coverage thresholds (80% lib/, 60% actions). Add test:unit, test:integration scripts.",
+      "priority": "P1",
+      "category": "testing",
+      "effort": "L",
+      "files": ["vitest.config.ts", "src/lib/__tests__/setup.ts (new)", "package.json"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Vitest runs with coverage",
+        "Supabase mock helpers for auth/DB",
+        "MSW handlers for Stripe/QBO/Gemini",
+        "Coverage gates in CI"
+      ],
+      "labels": ["testing", "vitest", "infrastructure", "ci"]
+    },
+    {
+      "id": "AUDIT-023",
+      "title": "Write unit tests for all lib/ modules",
+      "description": "Target 80% coverage: encryption, receipt-scoring, finance-utils, hash, sanitization, rate-limiter, env, logger, observability, validations, utils.",
+      "priority": "P1",
+      "category": "testing",
+      "effort": "L",
+      "files": ["src/lib/__tests__/*.test.ts (new)"],
+      "dependencies": ["AUDIT-022"],
+      "acceptanceCriteria": [
+        "Each lib module has test file",
+        "Edge cases covered (empty, null, invalid)",
+        "Deterministic, fast (<50ms each)"
+      ],
+      "labels": ["testing", "unit", "coverage", "lib"]
+    },
+    {
+      "id": "AUDIT-024",
+      "title": "Write integration tests for server actions",
+      "description": "Test scan-receipt.ts, save-receipt.ts, parse-bank-statement.ts with test Supabase instance. Target 60% coverage.",
+      "priority": "P1",
+      "category": "testing",
+      "effort": "L",
+      "files": ["src/app/actions/__tests__/*.test.ts (new)"],
+      "dependencies": ["AUDIT-022"],
+      "acceptanceCriteria": [
+        "Actions tested against real Supabase (local/test)",
+        "Auth, RLS, RPC functions verified",
+        "Gemini mocked with golden fixtures"
+      ],
+      "labels": ["testing", "integration", "server-actions", "supabase"]
+    },
+    {
+      "id": "AUDIT-025",
+      "title": "Add Playwright E2E tests for critical user journeys",
+      "description": "Configure Playwright for: 1) Auth → Scan → Save → Export, 2) Team invite → Employee submit → Owner approve, 3) QBO connect → Sync → Export, 4) Offline queue → Online sync.",
+      "priority": "P1",
+      "category": "testing",
+      "effort": "L",
+      "files": ["playwright.config.ts", "tests/e2e/*.spec.ts (new)"],
+      "dependencies": ["AUDIT-022"],
+      "acceptanceCriteria": [
+        "4 critical journeys covered",
+        "Runs in CI on PR",
+        "Flaky test detection (<5% flake)"
+      ],
+      "labels": ["testing", "e2e", "playwright", "critical-paths"]
+    },
+    {
+      "id": "AUDIT-026",
+      "title": "Enable Supabase connection pooling",
+      "description": "USE_POOLER defaults to false. Enable for production to reduce connection overhead. Configure supabase-pooler.ts with project ref.",
+      "priority": "P2",
+      "category": "performance",
+      "effort": "S",
+      "files": [".env.production", "src/lib/supabase-pooler.ts"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "USE_POOLER=true in production",
+        "Pooler host resolves correctly",
+        "Connection count reduced in Supabase dashboard"
+      ],
+      "labels": ["performance", "database", "pooling", "supabase"]
+    },
+    {
+      "id": "AUDIT-027",
+      "title": "Add bundle analysis to CI pipeline",
+      "description": "npm run analyze script exists but not in CI. Add to quality gate. Track bundle size trends, fail if >500KB initial JS.",
+      "priority": "P2",
+      "category": "performance",
+      "effort": "S",
+      "files": [".github/workflows/ci.yml", "next.config.ts"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Bundle analysis runs on every PR",
+        "Size budget enforced",
+        "Report uploaded as artifact"
+      ],
+      "labels": ["performance", "ci", "bundle", "monitoring"]
+    },
+    {
+      "id": "AUDIT-028",
+      "title": "Create incident runbook templates",
+      "description": "No runbooks exist. Create for: 1) Scan failures (Gemini down), 2) Auth outage (Supabase), 3) Payment webhook failures, 4) Database connection exhaustion, 5) Rate limit exhaustion.",
+      "priority": "P2",
+      "category": "commercial",
+      "effort": "M",
+      "files": ["docs/runbooks/ (new directory)"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "5 runbooks with: symptoms, diagnosis, mitigation, escalation",
+        "Linked from Sentry alerts",
+        "Reviewed quarterly"
+      ],
+      "labels": ["commercial", "incident-response", "runbooks", "operations"]
+    },
+    {
+      "id": "AUDIT-029",
+      "title": "Implement structured alerting rules",
+      "description": "Sentry only captures errors. Add alerts for: scan error rate >5%, API latency p95 >3s, auth failure rate >10%, database connection pool >80%, Stripe webhook failure rate >1%.",
+      "priority": "P2",
+      "category": "commercial",
+      "effort": "M",
+      "files": ["sentry.*.config.ts", "lib/observability.ts", "Sentry dashboard (external)"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "5 alert rules configured in Sentry",
+        "Notifications to Slack/email",
+        "Runbook links in alert description"
+      ],
+      "labels": ["commercial", "monitoring", "alerting", "sentry"]
+    },
+    {
+      "id": "AUDIT-030",
+      "title": "Add Sentry tracing for performance monitoring",
+      "description": "Sentry config only captures errors. Enable tracesSampleRate: 0.1, add custom spans for: AI scan, DB queries, Stripe calls, QBO sync.",
+      "priority": "P2",
+      "category": "commercial",
+      "effort": "M",
+      "files": ["sentry.*.config.ts", "lib/observability.ts", "src/app/actions/scan-receipt.ts"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Transaction traces visible in Sentry",
+        "Custom spans for key operations",
+        "Performance regressions detectable"
+      ],
+      "labels": ["commercial", "observability", "tracing", "sentry"]
+    },
+    {
+      "id": "AUDIT-031",
+      "title": "Create health check endpoint with dependency verification",
+      "description": "api/health exists but minimal. Enhance to check: Supabase connectivity, Stripe API, Gemini API, Redis (rate limiter), Database migrations applied.",
+      "priority": "P2",
+      "category": "commercial",
+      "effort": "M",
+      "files": ["src/app/api/health/route.ts", "src/lib/health-checks.ts (new)"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "GET /api/health returns 200 with dependency status",
+        "Each dependency: healthy/degraded/down",
+        "Used by Vercel health checks and uptime monitor"
+      ],
+      "labels": ["commercial", "health-check", "monitoring", "api"]
+    },
+    {
+      "id": "AUDIT-032",
+      "title": "Create Architecture Decision Records (ADRs)",
+      "description": "No ADRs exist. Document: 1) Next.js App Router + Server Actions, 2) Supabase for Auth/DB/Realtime, 3) Gemini for AI, 4) Stripe for payments, 5) React Query + Realtime, 6) Tailwind v4, 7) Merkle audit trail, 8) Multi-tenant RLS.",
+      "priority": "P2",
+      "category": "documentation",
+      "effort": "M",
+      "files": ["docs/adr/ (new directory)"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "8 ADRs in MADR format",
+        "Each: context, decision, consequences",
+        "Linked from README"
+      ],
+      "labels": ["documentation", "architecture", "adrs", "decisions"]
+    },
+    {
+      "id": "AUDIT-033",
+      "title": "Document all environment variables with examples",
+      "description": ".env.example has 30+ vars but no descriptions. Create docs/env.md with: variable, required?, default, description, example, where used.",
+      "priority": "P2",
+      "category": "documentation",
+      "effort": "S",
+      "files": ["docs/env.md (new)", ".env.example"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Every env var documented",
+        "Clear required vs optional",
+        "Generation commands for secrets"
+      ],
+      "labels": ["documentation", "env", "onboarding", "config"]
+    },
+    {
+      "id": "AUDIT-034",
+      "title": "Create developer onboarding guide",
+      "description": "New dev setup not documented. Create docs/onboarding.md: clone, install, env setup, local Supabase (Docker), run dev, run tests, deploy preview.",
+      "priority": "P2",
+      "category": "documentation",
+      "effort": "M",
+      "files": ["docs/onboarding.md (new)"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Fresh clone → running in <15 min",
+        "Local Supabase via Docker Compose",
+        "Test data seeding instructions"
+      ],
+      "labels": ["documentation", "onboarding", "dx", "local-dev"]
+    },
+    {
+      "id": "AUDIT-035",
+      "title": "Add request ID correlation to all logs",
+      "description": "logger.ts has requestId in LogContext but not auto-populated. Add middleware to generate request-id header, propagate to all log calls via context.",
+      "priority": "P2",
+      "category": "security",
+      "effort": "M",
+      "files": ["src/middleware.ts (from AUDIT-001)", "src/lib/logger.ts", "src/lib/supabase.ts"],
+      "dependencies": ["AUDIT-001"],
+      "acceptanceCriteria": [
+        "Every log entry has requestId",
+        "Correlates frontend → API → DB",
+        "Visible in Sentry and console"
+      ],
+      "labels": ["security", "logging", "observability", "correlation"]
+    },
+    {
+      "id": "AUDIT-036",
+      "title": "Implement audit log integrity verification job",
+      "description": "Merkle chain in audit_logs table but no verification. Add cron job (pg_cron or Vercel Cron) to verify chain integrity daily, alert on tampering.",
+      "priority": "P2",
+      "category": "security",
+      "effort": "M",
+      "files": ["supabase/cron/verify-audit-chain.sql (new)", "vercel.json"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Daily verification job runs",
+        "Alert on hash mismatch",
+        "Report shows last verified block"
+      ],
+      "labels": ["security", "audit", "integrity", "compliance"]
+    },
+    {
+      "id": "AUDIT-037",
+      "title": "Extract ReceiptService class from server actions",
+      "description": "Consolidate receipt business logic (scan, save, export, delete, duplicate check) into single service class. Improves testability and reuse.",
+      "priority": "P2",
+      "category": "architecture",
+      "effort": "L",
+      "files": ["src/lib/services/receipts.ts (expand)", "src/app/actions/*.ts"],
+      "dependencies": ["AUDIT-008", "AUDIT-015"],
+      "acceptanceCriteria": [
+        "ReceiptService with all receipt operations",
+        "Actions delegate to service",
+        "Full unit test coverage"
+      ],
+      "labels": ["architecture", "services", "refactor", "maintainability"]
+    },
+    {
+      "id": "AUDIT-038",
+      "title": "Standardize Result<T,E> usage across codebase",
+      "description": "lib/result.ts defines Result but mixed with throwing. Adopt consistently: all server actions return Result, all lib functions return Result. No unhandled throws at boundaries.",
+      "priority": "P2",
+      "category": "architecture",
+      "effort": "M",
+      "files": ["src/lib/result.ts", "src/app/actions/*.ts", "src/lib/services/*.ts"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "All actions return Result<T, AppError>",
+        "No try/catch in components for action calls",
+        "Error types discriminated union"
+      ],
+      "labels": ["architecture", "error-handling", "types", "consistency"]
+    },
+    {
+      "id": "AUDIT-039",
+      "title": "Add JSDoc to all exported lib functions",
+      "description": "lib/ modules lack documentation. Add JSDoc with @param, @returns, @throws, @example for every exported function. Enable TypeDoc generation.",
+      "priority": "P3",
+      "category": "quality",
+      "effort": "M",
+      "files": ["src/lib/*.ts"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "100% exported functions documented",
+        "TypeDoc generates API reference",
+        "Examples for complex functions"
+      ],
+      "labels": ["quality", "documentation", "jsdoc", "dx"]
+    },
+    {
+      "id": "AUDIT-040",
+      "title": "Consolidate tab-content.tsx and TabContent.tsx duplicates",
+      "description": "Two files with similar names: src/components/tab-content.tsx and src/components/TabContent.tsx. Merge, keep best implementation.",
+      "priority": "P3",
+      "category": "quality",
+      "effort": "S",
+      "files": ["src/components/tab-content.tsx", "src/components/TabContent.tsx"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Single canonical tab content component",
+        "All imports updated",
+        "No functionality lost"
+      ],
+      "labels": ["quality", "cleanup", "duplicates", "easy-win"]
+    },
+    {
+      "id": "AUDIT-041",
+      "title": "Virtualize long receipt lists with @tanstack/react-virtual",
+      "description": "Package installed but unused. Receipts table in AppShell can have 1000+ rows. Add virtualization for 60fps scrolling.",
+      "priority": "P3",
+      "category": "performance",
+      "effort": "M",
+      "files": ["src/components/tab-content.tsx", "src/components/ReceiptsTable.tsx (new)"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Lists >100 rows virtualized",
+        "Smooth scrolling at 60fps",
+        "No layout shift"
+      ],
+      "labels": ["performance", "virtualization", "ux", "react-virtual"]
+    },
+    {
+      "id": "AUDIT-042",
+      "title": "Remove dead code: aceternity, magicui component directories",
+      "description": "src/components/aceternity/ and src/components/magicui/ appear unused (no imports found). Remove to reduce bundle and confusion.",
+      "priority": "P3",
+      "category": "quality",
+      "effort": "S",
+      "files": ["src/components/aceternity/", "src/components/magicui/"],
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Directories deleted",
+        "No broken imports",
+        "Bundle size reduced"
+      ],
+      "labels": ["quality", "cleanup", "dead-code", "easy-win"]
+    }
+  ]
+}

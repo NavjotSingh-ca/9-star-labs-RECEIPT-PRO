@@ -158,48 +158,39 @@ export function shouldGlow(confidenceScore: number): boolean {
   return confidenceScore > 0 && confidenceScore < 80;
 }
 
-/**
- * Shape accepted by {@link computeLiveCRAScore}.
- * Accepts partial form data from both ReceiptForm and ReceiptFormValues.
- */
-interface CRAScoreInput {
-  vendor_name?: string;
-  vendor_address?: string;
-  business_number?: string;
-  transaction_date?: string;
-  total_amount: number;
-  subtotal: number;
+/* ─── Receipt Completeness Scoring ─── */
+
+import type { ReceiptLineItem } from '@/components/scanner/types';
+
+export interface CRAScoreInput {
+  business_number: string;
+  line_items: ReceiptLineItem[] | undefined;
   tax_amount: number;
   pst_amount: number;
-  payment_method?: string;
-  notes?: string;
-  line_items?: unknown[];
+  confidence_score: number;
+  subtotal: number;
+  total_amount: number;
+  transaction_date: string;
 }
 
 /**
- * Computes a real-time CRA readiness score (0–100) based on form completeness.
- * Deductions for math mismatches between subtotal + taxes and total.
- *
- * @param form - The form data (partial or complete).
- * @returns A score from 0 to 100.
+ * Calculates a receipt completeness score based on available data.
+ * Returns a score from 0-100 based on six criteria:
+ * 1. Business Number present (20 pts)
+ * 2. Detailed line items exist (20 pts)
+ * 3. Tax amounts present (20 pts)
+ * 4. Valid receipt date (10 pts)
+ * 5. Image quality score above threshold (15 pts) - using confidence score
+ * 6. Mathematical accuracy (subtotal + taxes ≈ total) (15 pts)
  */
 export function computeLiveCRAScore(form: CRAScoreInput): number {
-  let score = 0;
+  const score =
+    (form.business_number?.trim() ? 20 : 0) + // Business Number present
+    (form.line_items && form.line_items.length > 0 ? 20 : 0) + // Detailed line items
+    ((form.tax_amount > 0 || form.pst_amount > 0) ? 20 : 0) + // Tax amounts present
+    (form.transaction_date && !isNaN(Date.parse(form.transaction_date)) ? 10 : 0) + // Valid date
+    (form.confidence_score >= 50 ? 15 : 0) + // Image quality (using confidence score)
+    (Math.abs((form.subtotal + form.tax_amount + form.pst_amount) - form.total_amount) < 0.02 ? 15 : 0); // Math balance
 
-  if ((form.vendor_name ?? '').trim()) score += 15;
-  if ((form.vendor_address ?? '').trim()) score += 8;
-  if ((form.business_number ?? '').trim()) score += 18;
-  if ((form.transaction_date ?? '').trim()) score += 12;
-  if (form.total_amount > 0) score += 12;
-  if (form.subtotal > 0) score += 8;
-  if (form.tax_amount >= 0) score += 7;
-  if (form.payment_method && form.payment_method !== 'Unknown') score += 5;
-  if ((form.notes ?? '').split(/\s+/).filter(Boolean).length >= 8) score += 5;
-  if ((form.line_items ?? []).length > 0) score += 6;
-
-  const mathMismatch =
-    Math.abs(form.subtotal + form.tax_amount + form.pst_amount - form.total_amount) > 0.02;
-  if (mathMismatch && form.total_amount > 0) score -= 15;
-
-  return Math.max(0, Math.min(100, Math.round(score)));
+  return score;
 }

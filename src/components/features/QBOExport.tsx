@@ -6,12 +6,14 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase, getOrgIdString } from '@/lib/supabase';
 import PageHeader from '@/components/layout/PageHeader';
-import { Loader2, AlertCircle, Download, FileSpreadsheet } from 'lucide-react';
+import { Loader2, AlertCircle, Download, FileSpreadsheet, X } from 'lucide-react';
 import { formatDineroIntl } from '@/lib/finance-utils';
 
 export default function QBOExport() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewRows, setPreviewRows] = useState<string[]>([]);
 
   const { data: receipts = [], isLoading, error } = useQuery({
     queryKey: ['qbo-export', fromDate, toDate],
@@ -49,6 +51,11 @@ export default function QBOExport() {
   };
 
   const downloadCSV = () => {
+    setPreviewRows(generateCSV().split('\n').slice(0, 4)); // header + 3 data rows
+    setShowPreview(true);
+  };
+
+  const confirmDownload = () => {
     const blob = new Blob([generateCSV()], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -56,108 +63,150 @@ export default function QBOExport() {
     a.download = `qbo-export-${fromDate || 'all'}-${toDate || 'all'}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    setShowPreview(false);
   };
 
+  const closePreview = () => setShowPreview(false);
+
   return (
-    <motion.div
-      variants={fadeUp}
-      initial="hidden"
-      animate="show"
-      className="space-y-5"
-    >
-      <PageHeader
-        title="QBO Export"
-        subtitle="Export receipts in QuickBooks Online CSV format"
-      />
+    <>
+      <motion.div
+        variants={fadeUp}
+        initial="hidden"
+        animate="show"
+        className="space-y-5"
+      >
+        <PageHeader
+          title="QBO Export"
+          subtitle="Export receipts in QuickBooks Online CSV format"
+        />
 
-      {/* Date Range */}
-      <div className="flex flex-wrap gap-3 items-center rounded-2xl border border-glass-border bg-surface p-4">
-        <div>
-          <label htmlFor="qbo-from" className="block text-xs font-medium text-text-muted mb-1">From</label>
-          <input
-            id="qbo-from"
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="rounded-lg border border-glass-border bg-surface-raised px-3 py-1.5 text-sm text-text-primary"
-          />
+        {/* Date Range */}
+        <div className="flex flex-wrap gap-3 items-center rounded-2xl border border-glass-border bg-surface p-4">
+          <div>
+            <label htmlFor="qbo-from" className="block text-xs font-medium text-text-muted mb-1">From</label>
+            <input
+              id="qbo-from"
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="rounded-lg border border-glass-border bg-surface-raised px-3 py-1.5 text-sm text-text-primary"
+            />
+          </div>
+          <div>
+            <label htmlFor="qbo-to" className="block text-xs font-medium text-text-muted mb-1">To</label>
+            <input
+              id="qbo-to"
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="rounded-lg border border-glass-border bg-surface-raised px-3 py-1.5 text-sm text-text-primary"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={downloadCSV}
+            disabled={receipts.length === 0}
+            className="ml-auto inline-flex items-center gap-2 rounded-xl bg-champagne px-4 py-2 text-sm font-bold text-obsidian hover:bg-champagne-dim transition disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" />
+            Download CSV
+          </button>
         </div>
-        <div>
-          <label htmlFor="qbo-to" className="block text-xs font-medium text-text-muted mb-1">To</label>
-          <input
-            id="qbo-to"
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="rounded-lg border border-glass-border bg-surface-raised px-3 py-1.5 text-sm text-text-primary"
-          />
-        </div>
-        <button
-          type="button"
-          onClick={downloadCSV}
-          disabled={receipts.length === 0}
-          className="ml-auto inline-flex items-center gap-2 rounded-xl bg-champagne px-4 py-2 text-sm font-bold text-obsidian hover:bg-champagne-dim transition disabled:opacity-50"
-        >
-          <Download className="h-4 w-4" />
-          Download CSV
-        </button>
-      </div>
 
-      {isLoading && (
-        <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-champagne" /></div>
-      )}
-      {error && (
-        <div className="rounded-[2rem] bg-danger/10 p-4 text-sm text-danger border border-danger/20"><AlertCircle className="inline h-4 w-4 mr-2" />{error.message}</div>
-      )}
+        {isLoading && (
+          <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-champagne" /></div>
+        )}
+        {error && (
+          <div className="rounded-[2rem] bg-danger/10 p-4 text-sm text-danger border border-danger/20"><AlertCircle className="inline h-4 w-4 mr-2" />{error.message}</div>
+        )}
 
-      {!isLoading && !error && receipts.length === 0 && (
-        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-glass-border bg-surface/30 py-16 text-center">
-          <FileSpreadsheet className="h-10 w-10 text-text-muted/40" />
-          <p className="text-sm text-text-muted">No receipts found for this period. Select dates and try again.</p>
-        </div>
-      )}
+        {!isLoading && !error && receipts.length === 0 && (
+          <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-glass-border bg-surface/30 py-16 text-center">
+            <FileSpreadsheet className="h-10 w-10 text-text-muted/40" />
+            <p className="text-sm text-text-muted">No receipts found for this period. Select dates and try again.</p>
+          </div>
+        )}
 
-      {receipts.length > 0 && (
-        <div className="rounded-2xl border border-glass-border bg-surface overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-surface-raised text-left text-xs font-semibold text-text-muted uppercase tracking-wider">
-                <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">Payee</th>
-                <th className="px-4 py-3">Category</th>
-                <th className="px-4 py-3 text-right">Amount</th>
-                <th className="px-4 py-3 text-right">Tax</th>
-              </tr>
-            </thead>
-            <tbody>
-              {receipts.slice(0, 50).map((r) => (
-                <tr key={r.id} className="border-t border-glass-border hover:bg-champagne/5">
-                  <td className="px-4 py-2.5 text-text-secondary">{r.transaction_date}</td>
-                  <td className="px-4 py-2.5 font-medium text-text-primary">{r.vendor_name || '—'}</td>
-                  <td className="px-4 py-2.5 text-text-secondary">{r.category || '—'}</td>
-                  <td className="px-4 py-2.5 text-right font-semibold tabular-nums">{formatDineroIntl(Number(r.total_amount) || 0)}</td>
-                  <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-emerald-success">{formatDineroIntl(Number(r.tax_amount) || 0)}</td>
+        {receipts.length > 0 && (
+          <div className="rounded-2xl border border-glass-border bg-surface overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-surface-raised text-left text-xs font-semibold text-text-muted uppercase tracking-wider">
+                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">Payee</th>
+                  <th className="px-4 py-3">Category</th>
+                  <th className="px-4 py-3 text-right">Amount</th>
+                  <th className="px-4 py-3 text-right">Tax</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="px-4 py-2 text-xs text-text-muted border-t border-glass-border">
-            Showing {Math.min(receipts.length, 50)} of {receipts.length} receipts
-          </p>
+              </thead>
+              <tbody>
+                {receipts.slice(0, 50).map((r) => (
+                  <tr key={r.id} className="border-t border-glass-border hover:bg-champagne/5">
+                    <td className="px-4 py-2.5 text-text-secondary">{r.transaction_date}</td>
+                    <td className="px-4 py-2.5 font-medium text-text-primary">{r.vendor_name || '—'}</td>
+                    <td className="px-4 py-2.5 text-text-secondary">{r.category || '—'}</td>
+                    <td className="px-4 py-2.5 text-right font-semibold tabular-nums">{formatDineroIntl(Number(r.total_amount) || 0)}</td>
+                    <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-emerald-success">{formatDineroIntl(Number(r.tax_amount) || 0)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="px-4 py-2 text-xs text-text-muted border-t border-glass-border">
+              Showing {Math.min(receipts.length, 50)} of {receipts.length} receipts
+            </p>
+          </div>
+        )}
+
+        {/* Import Instructions */}
+        <div className="rounded-2xl border border-glass-border bg-surface p-5">
+          <h3 className="text-sm font-bold text-text-primary mb-2">QBO Import Instructions</h3>
+          <ol className="list-decimal list-inside space-y-1.5 text-sm text-text-secondary">
+            <li>Go to <strong>QuickBooks Online</strong> → <strong>Gear icon</strong> → <strong>Import Data</strong></li>
+            <li>Select <strong>Expenses</strong> → <strong>Import CSV</strong></li>
+            <li>Upload the downloaded CSV file</li>
+            <li>Map columns: Date → Date, Payee → Payee, Category → Category, Amount → Amount</li>
+            <li>Review and confirm the import</li>
+          </ol>
+        </div>
+      </motion.div>
+
+      {/* Export Preview Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-xl max-h-[90vh] rounded-3xl border border-glass-border bg-surface p-6 overflow-y-auto">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-lg font-semibold text-text-primary">Export Preview</h2>
+              <button
+                onClick={closePreview}
+                className="p-1 rounded-full hover:bg-champagne/5"
+              >
+                <X className="h-4 w-4 text-text-muted" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="overflow-auto max-h-[70vh]">
+                <pre className="text-xs font-mono text-text-secondary bg-surface-raised p-4 rounded-lg overflow-auto">{previewRows.join('\n')}</pre>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={closePreview}
+                  className="inline-flex items-center justify-center gap-2 rounded-[2rem] border border-glass-border bg-surface px-4 py-3 text-sm font-semibold text-text-secondary transition hover:bg-surface-raised"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDownload}
+                  className="inline-flex items-center justify-center gap-2 rounded-[2rem] bg-champagne px-4 py-3 text-sm font-semibold text-obsidian transition hover:bg-champagne-dim"
+                >
+                  <Download className="h-4 w-4" />
+                  Download CSV
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
-
-      {/* Import Instructions */}
-      <div className="rounded-2xl border border-glass-border bg-surface p-5">
-        <h3 className="text-sm font-bold text-text-primary mb-2">QBO Import Instructions</h3>
-        <ol className="list-decimal list-inside space-y-1.5 text-sm text-text-secondary">
-          <li>Go to <strong>QuickBooks Online</strong> → <strong>Gear icon</strong> → <strong>Import Data</strong></li>
-          <li>Select <strong>Expenses</strong> → <strong>Import CSV</strong></li>
-          <li>Upload the downloaded CSV file</li>
-          <li>Map columns: Date → Date, Payee → Payee, Category → Category, Amount → Amount</li>
-          <li>Review and confirm the import</li>
-        </ol>
-      </div>
-    </motion.div>
+    </>
   );
 }

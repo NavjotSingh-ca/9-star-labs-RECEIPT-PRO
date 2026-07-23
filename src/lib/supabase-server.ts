@@ -11,13 +11,12 @@ export async function createServerSupabaseClient(): Promise<SupabaseClient> {
   const { cookies } = await import('next/headers');
   const cookieStore = await cookies();
 
+  const isCI = process.env.CI === 'true';
   const isPlaceholder = env.NEXT_PUBLIC_SUPABASE_URL?.includes('placeholder') ||
-                       env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.includes('placeholder') ||
-                       process.env.CI === 'true' ||
-                       !env.NEXT_PUBLIC_SUPABASE_URL ||
-                       !env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+                       env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.includes('placeholder');
 
-  if (isPlaceholder || process.env.CI === 'true') {
+  // In CI, use mock client
+  if (isCI) {
     // Return a mock client for CI/testing environments
     const mockSubscription = { unsubscribe: () => {} };
 
@@ -54,7 +53,20 @@ export async function createServerSupabaseClient(): Promise<SupabaseClient> {
     } as unknown as SupabaseClient;
   }
 
-  return createServerClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+  // In production, throw if config is missing/misconfigured
+  if (process.env.NODE_ENV === 'production' && (isPlaceholder || !env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_ANON_KEY)) {
+    throw new Error(
+      'Supabase configuration missing or invalid in production. ' +
+      'NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set.'
+    );
+  }
+
+  // Development: warn but allow if placeholder
+  if (isPlaceholder) {
+    console.warn('[Supabase] Using placeholder credentials - some features may not work');
+  }
+
+  return createServerClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookies: {
       getAll() {
         return cookieStore.getAll();

@@ -55,7 +55,7 @@ const SUPABASE_ANON_KEY = env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
 const publicPaths = ['/', '/privacy', '/terms', '/auth/callback'];
 
 // Static asset paths that should never trigger middleware auth checks.
-const staticPaths = ['/sw.js', '/manifest.json', '/favicon.ico'];
+const staticPaths = ['/sw.js', '/manifest.json', '/favicon.ico', '/favicon.svg', '/logo.svg'];
 
 // API routes that are intentionally public. Each self-authenticates:
 //   - /api/health, /api/docs   → informational only (docs is static spec)
@@ -114,7 +114,7 @@ function buildCSP(): string {
   ].join('; ');
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isPublic =

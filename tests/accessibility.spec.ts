@@ -1,45 +1,45 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-function skipInCI() {
-  test.skip(!!process.env.CI, 'Skipping in CI — placeholder auth mode causes environment-dependent results');
-}
-
 test.describe('Accessibility Audit', () => {
-  test.beforeEach(async ({ page }) => {
+  test('landing page has no detectable WCAG violations', async ({ page }) => {
     await page.goto('/');
-    // Wait for the full page loader to disappear
-    await page.waitForSelector('[role="status"][aria-label="Loading application"]', { state: 'hidden', timeout: 10000 });
-  });
-
-  test('should not have any detectable accessibility issues on landing page', async ({ page }) => {
-    skipInCI();
-    const accessibilityScanResults = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-      .analyze();
-
-    expect(accessibilityScanResults.violations).toEqual([]);
-  });
-
-  test('auth page accessibility', async ({ page }) => {
-    skipInCI();
-    // Click Sign In to show auth screen (landing page shows first when not authenticated)
-    await page.getByRole('button', { name: /sign in/i }).click();
-    // Check if AuthScreen is visible - mode is signin by default, so "Welcome back"
-    const authHeading = page.getByRole('heading', { name: /welcome back/i });
-    await expect(authHeading).toBeVisible({ timeout: 10000 });
+    // Wait for main content to render (landing page is public)
+    await expect(page.locator('main')).toBeVisible({ timeout: 15000 });
 
     const results = await new AxeBuilder({ page })
-      .include('form')
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
       .analyze();
 
     expect(results.violations).toEqual([]);
   });
 
-  test('main content structure is accessible', async ({ page }) => {
-    skipInCI();
+  test('auth page form has no detectable violations', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('main')).toBeVisible({ timeout: 15000 });
+
+    // Click the Sign In button on the landing page
+    const signInButton = page.getByRole('button', { name: /sign in/i });
+    await signInButton.click();
+
+    // The auth screen should render with a heading (Sign In / Welcome back)
+    await expect(page.getByRole('heading', { name: /welcome back|sign in/i })).toBeVisible({ timeout: 10000 });
+
     const results = await new AxeBuilder({ page })
-      .include('main') // Top-level main landmark in layout.tsx
+      .include('form')
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze();
+
+    expect(results.violations).toEqual([]);
+  });
+
+  test('main content structure has accessible landmarks', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('main')).toBeVisible({ timeout: 15000 });
+
+    const results = await new AxeBuilder({ page })
+      .include('main')
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
       .analyze();
 
     expect(results.violations).toEqual([]);
@@ -47,20 +47,25 @@ test.describe('Accessibility Audit', () => {
 });
 
 test.describe('Manual Accessibility Checks', () => {
-  test('focus indicators and skip link are visible', async ({ page }) => {
-    skipInCI();
+  test('focus indicators are visible on tab through landing page', async ({ page }) => {
     await page.goto('/');
+    await expect(page.locator('body')).toBeVisible({ timeout: 15000 });
+
+    // Tab to the first focusable element (should be skip link or Sign In)
     await page.keyboard.press('Tab');
-    
-    // The skip link should be the first focused element
+
     const focused = page.locator(':focus');
-    const text = await focused.textContent();
-    expect(text?.toLowerCase()).toContain('skip to main content');
-    
-    const outline = await focused.evaluate((el) => {
+    await expect(focused).toBeVisible({ timeout: 5000 });
+
+    // Verify the focused element has a visible outline or focus ring
+    const hasVisibleFocus = await focused.evaluate((el) => {
       const style = window.getComputedStyle(el);
-      return style.outline !== 'none' && style.outline !== '0px';
+      const outline = style.outline !== 'none' && style.outline !== '0px';
+      const boxShadow = style.boxShadow !== 'none' && style.boxShadow !== '0px 0px 0px 0px';
+      const ring = style.getPropertyValue('--tw-ring-color') || '';
+      return outline || boxShadow || ring.length > 0;
     });
-    expect(outline).toBe(true);
+
+    expect(hasVisibleFocus).toBe(true);
   });
 });

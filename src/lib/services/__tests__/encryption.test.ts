@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('@/lib/env', () => ({
   env: {
-    TOKEN_ENCRYPTION_KEY: 'test-key-1234567890abcdef1234567890abcdef',
+    TOKEN_ENCRYPTION_KEY: '2f4202b54503a36b1a0040c952674d41ad50ded0018e6bd04857b267a22b6c3c',
   },
 }));
 
