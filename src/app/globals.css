@@ -4,93 +4,93 @@
 /* Warm Professional Finance · True Champagne Accent */
 
 :root {
-  /* ─── Light Mode (warm off-white) ─── */
-  --obsidian: #f5f5f4;
+  /* ─── Light Mode (Sleek Warm Slate) ─── */
+  --obsidian: #f4f4f5;
   --surface: #ffffff;
-  --surface-raised: #fafaf9;
-  --surface-hover: #f5f5f4;
+  --surface-raised: #fafafa;
+  --surface-hover: #f4f4f5;
   --card: #ffffff;
-  --card-foreground: #0c0a09;
-  --foreground: #0c0a09;
-  --muted: #f5f5f4;
-  --muted-foreground: #78716c;
-  --background: #f5f5f4;
+  --card-foreground: #09090b;
+  --foreground: #09090b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --background: #f4f4f5;
   --popover: #ffffff;
-  --popover-foreground: #0c0a09;
+  --popover-foreground: #09090b;
 
   /* ─── Text ─── */
-  --text-primary: #0c0a09;
-  --text-secondary: #44403c;
-  --text-muted: #78716c;
+  --text-primary: #09090b;
+  --text-secondary: #3f3f46;
+  --text-muted: #71717a;
 
-  /* ─── True Champagne Gold Accent ─── */
-  --champagne: #8b7355;
-  --champagne-dim: #6b5a42;
-  --champagne-light: #bea98e;
-  --champagne-glow: rgba(139, 115, 85, 0.12);
-  --champagne-glow-strong: rgba(139, 115, 85, 0.2);
-  --accent: #8b7355;
-  --accent-dim: #6b5a42;
-  --accent-glow: rgba(139, 115, 85, 0.12);
-  --accent-glow-strong: rgba(139, 115, 85, 0.2);
+  /* ─── True Champagne Gold & Platinum Accents ─── */
+  --champagne: #b5986d;
+  --champagne-dim: #8b7355;
+  --champagne-light: #d4c5a9;
+  --champagne-glow: rgba(181, 152, 109, 0.15);
+  --champagne-glow-strong: rgba(181, 152, 109, 0.3);
+  --accent: #b5986d;
+  --accent-dim: #8b7355;
+  --accent-glow: rgba(181, 152, 109, 0.15);
+  --accent-glow-strong: rgba(181, 152, 109, 0.3);
 
   /* ─── Semantic Colors ─── */
-  --danger: #dc2626;
-  --danger-light: rgba(220, 38, 38, 0.1);
-  --warning: #d97706;
-  --warning-light: rgba(217, 119, 6, 0.1);
-  --info: #2563eb;
-  --info-light: rgba(37, 99, 235, 0.1);
-  --success: #16a34a;
-  --success-light: rgba(22, 163, 74, 0.1);
-  --emerald-success: #16a34a;
-  --emerald-light: #22c55e;
+  --danger: #ef4444;
+  --danger-light: rgba(239, 68, 68, 0.12);
+  --warning: #f59e0b;
+  --warning-light: rgba(245, 158, 11, 0.12);
+  --info: #3b82f6;
+  --info-light: rgba(59, 130, 246, 0.12);
+  --success: #10b981;
+  --success-light: rgba(16, 185, 129, 0.12);
+  --emerald-success: #10b981;
+  --emerald-light: #34d399;
 
-  /* ─── Borders ─── */
-  --glass-border: rgba(0, 0, 0, 0.12);
-  --glass-border-hover: rgba(0, 0, 0, 0.24);
-  --border: rgba(0, 0, 0, 0.06);
-  --input: rgba(0, 0, 0, 0.06);
-  --ring: #8b7355;
+  /* ─── Premium Glass Borders ─── */
+  --glass-border: rgba(9, 9, 11, 0.08);
+  --glass-border-hover: rgba(181, 152, 109, 0.4);
+  --border: rgba(9, 9, 11, 0.08);
+  --input: rgba(9, 9, 11, 0.08);
+  --ring: #b5986d;
 
   /* ─── Radius ─── */
-  --radius-xs: 0.25rem;
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-  --radius-2xl: 1.25rem;
-  --radius-card: 1rem;
-  --radius-button: 0.5rem;
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-card: 1.25rem;
+  --radius-button: 0.75rem;
   --radius-pill: 9999px;
 
-  /* ─── Shadows ─── */
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 4px rgba(0, 0, 0, 0.04);
-  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
-  --shadow-modal: 0 16px 48px rgba(0, 0, 0, 0.15);
-  --shadow-dropdown: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.04);
+  /* ─── Premium Shadows & Depth ─── */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.03), 0 4px 12px rgba(0, 0, 0, 0.02);
+  --shadow-card-hover: 0 8px 24px rgba(181, 152, 109, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+  --shadow-modal: 0 24px 48px -12px rgba(0, 0, 0, 0.25);
+  --shadow-dropdown: 0 10px 30px -5px rgba(0, 0, 0, 0.12);
+  --shadow-button: 0 2px 4px rgba(0, 0, 0, 0.05);
 
   /* ─── Chart Colors (OKLCH — theme-aware) ─── */
-  --chart-1: oklch(0.6 0.08 75);
-  --chart-2: oklch(0.55 0.14 260);
-  --chart-3: oklch(0.55 0.17 30);
-  --chart-4: oklch(0.6 0.12 140);
-  --chart-5: oklch(0.55 0.1 180);
-  --chart-6: oklch(0.5 0.12 310);
-  --chart-7: oklch(0.6 0.14 50);
-  --chart-8: oklch(0.5 0.15 340);
+  --chart-1: oklch(0.65 0.14 75);
+  --chart-2: oklch(0.6 0.16 250);
+  --chart-3: oklch(0.6 0.18 35);
+  --chart-4: oklch(0.65 0.14 150);
+  --chart-5: oklch(0.6 0.12 190);
+  --chart-6: oklch(0.55 0.14 320);
+  --chart-7: oklch(0.65 0.16 55);
+  --chart-8: oklch(0.55 0.16 350);
 
-  /* ─── Sidebar (always dark) ─── */
+  /* ─── Sidebar (Dark & Sleek Linear Style) ─── */
   --sidebar-bg: #09090b;
-  --sidebar-surface: #18181b;
-  --sidebar-text: #fafafa;
+  --sidebar-surface: #121215;
+  --sidebar-text: #f4f4f5;
   --sidebar-text-secondary: #a1a1aa;
-  --sidebar-text-muted: #52525b;
-  --sidebar-hover: rgba(255, 255, 255, 0.05);
-  --sidebar-active: rgba(190, 169, 142, 0.12);
-  --sidebar-border: rgba(255, 255, 255, 0.06);
-  --sidebar-accent: #bea98e;
+  --sidebar-text-muted: #71717a;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active: rgba(181, 152, 109, 0.16);
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-accent: #b5986d;
 
   /* ─── Z-Index Scale ─── */
   --z-overlay: 100;
@@ -449,7 +449,7 @@ body {
 }
 
 /* ─── Tap feedback (subtle, no scale bounce) ─── */
-* {
+button, a, [role="button"], input, select, textarea, [tabindex] {
   -webkit-tap-highlight-color: var(--champagne-glow);
 }
 
@@ -545,15 +545,7 @@ body {
   padding: 12px 16px !important;
 }
 
-/* ─── Reduced Motion ─── */
-@media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
+
 
 /* ─── Landing page animations ─── */
 @keyframes orbit {
@@ -735,8 +727,8 @@ details > div {
 
 /* ─── Focus Visible ─── */
 *:focus-visible {
-  outline: 2px solid var(--champagne);
-  outline-offset: 2px;
+   outline: 2px solid var(--ring);
+   outline-offset: 2px;
 }
 
 /* ─── Native Smooth Scroll (replaces Lenis) ─── */

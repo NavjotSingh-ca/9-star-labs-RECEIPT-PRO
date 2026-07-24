@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { fadeUp } from '@/lib/animations';
 import { Download, FileDown, FolderSearch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { METRIC_LABELS, formatMetricValue } from '@/lib/services/reports';
 import type { ReportResult } from '@/lib/services/reports';
 
@@ -30,7 +31,8 @@ export function ReportViewer({ result, templateName }: Props) {
           ? [String(row[groupByCol] ?? ''), ...result.config.metrics.map((m) => formatMetricValue(m, Number(row[m] ?? 0)))]
           : result.config.metrics.map((m) => formatMetricValue(m, Number(row[m] ?? 0)))
       );
-      const csvContent = [header.join(','), ...rows.map((r) => r.join(','))].join('\n');
+      const csvQuote = (v: string) => /[,"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+      const csvContent = [header.map(csvQuote).join(','), ...rows.map((r) => r.map(csvQuote).join(','))].join('\n');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -46,7 +48,10 @@ export function ReportViewer({ result, templateName }: Props) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ config: result.config, format }),
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      toast.error('Export failed. Please try again.');
+      return;
+    }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -103,9 +108,9 @@ export function ReportViewer({ result, templateName }: Props) {
             <caption className="sr-only">{templateName} report data</caption>
             <thead>
               <tr className="border-b border-glass-border">
-                {groupBy && <th className="text-left py-2 px-2 font-medium text-xs uppercase tracking-wider text-text-muted">{METRIC_LABELS[groupBy] || groupBy}</th>}
+                {groupBy && <th scope="col" className="text-left py-2 px-2 font-medium text-xs uppercase tracking-wider text-text-muted">{METRIC_LABELS[groupBy] || groupBy}</th>}
                 {result.config.metrics.map((m) => (
-                  <th key={m} className="text-right py-2 px-2 font-medium text-xs uppercase tracking-wider text-text-muted">{METRIC_LABELS[m] || m}</th>
+                  <th key={m} scope="col" className="text-right py-2 px-2 font-medium text-xs uppercase tracking-wider text-text-muted">{METRIC_LABELS[m] || m}</th>
                 ))}
               </tr>
             </thead>
@@ -132,10 +137,7 @@ export function ReportViewer({ result, templateName }: Props) {
       )}
 
       {result.rows.length === 0 && (
-        <motion.div
-          variants={fadeUp}
-          initial="hidden"
-          animate="show"
+        <div
           className="flex flex-col items-center gap-3 px-4 py-12 text-center"
           role="status"
           aria-live="polite"
@@ -143,7 +145,7 @@ export function ReportViewer({ result, templateName }: Props) {
           <FolderSearch className="h-10 w-10 text-text-muted/30" />
           <p className="text-sm text-text-muted">No data matches the current filters and date range.</p>
           <p className="text-xs text-text-muted/60">Try adjusting your date range or selecting different metrics.</p>
-        </motion.div>
+        </div>
       )}
     </motion.div>
   );

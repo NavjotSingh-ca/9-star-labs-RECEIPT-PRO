@@ -6,6 +6,7 @@ import NextTopLoader from 'nextjs-toploader';
 import './globals.css';
 
 import Providers from '@/components/Providers';
+import { MainWithTransition } from '@/components/ui/MainWithTransition';
 
 const geist = localFont({
   src: '../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2',
@@ -73,9 +74,9 @@ export default function RootLayout({
         <meta name="color-scheme" content="light dark" />
         <link rel="preconnect" href="https://js.stripe.com" />
         <link rel="preconnect" href="https://generativelanguage.googleapis.com" />
-        <link rel="dns-prefetch" href="https://*.supabase.co" />
+        <link rel="dns-prefetch" href="https://supabase.co" />
         {/* Geist font preload is handled by next/font/local with preload: true */}
-        <link rel="prefetch" href="/features" />
+        {/* Features page prefetch moved to LandingPage component only */}
         <noscript>
           <div style={{
             padding: '1rem',
@@ -96,9 +97,7 @@ export default function RootLayout({
         </header>
         <NextTopLoader color="#bea98e" height={2} showSpinner={false} />
         <Providers>
-              <main id="main-content" tabIndex={-1} className="outline-none">
-                {children}
-              </main>
+              <MainWithTransition>{children}</MainWithTransition>
               <Toaster
                 position="bottom-right"
                 richColors

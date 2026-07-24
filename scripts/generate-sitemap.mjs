@@ -3,8 +3,8 @@
  * Runs at build time to generate sitemap.xml
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
 
 const BASE_URL = 'https://leduc-receipt-pro.vercel.app';
 

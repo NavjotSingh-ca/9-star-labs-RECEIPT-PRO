@@ -16,7 +16,7 @@ import { logError } from '@/lib/logger';
 import dynamic from 'next/dynamic';
 
 import { semanticSearchAction } from '@/app/actions/semantic-search';
-import { getReceiptsPaginated, deleteReceipt, bulkUpdateApproval, bulkDeleteReceipts } from '@/lib/services/receipts';
+import { getReceiptsPaginated, deleteReceipt, undeleteReceipts, bulkUpdateApproval, bulkDeleteReceipts } from '@/lib/services/receipts';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   AlertDialog,
@@ -159,9 +159,39 @@ export default function History({
     setSelectedReceipt(receipt);
   }, [receipts]);
 
-  const handleDelete = useCallback((id: string) => {
-    setDeleteTarget(id);
-  }, []);
+  const handleDelete = useCallback(async (id: string) => {
+    if (!userId) return;
+    try {
+      await deleteReceipt(id, userId);
+      toast('Receipt deleted', {
+        description: 'You can undo this for 30 days.',
+        duration: 8000,
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            try {
+              await undeleteReceipts([id]);
+              toast.success('Receipt restored');
+              if (onUpdate) await onUpdate();
+              refetch();
+            } catch {
+              toast.error('Failed to restore receipt');
+            }
+          },
+        },
+      });
+      if (onUpdate) await onUpdate();
+      refetch();
+    } catch (err) {
+      logError(err, { action: 'delete_receipt' });
+      // CRA-protected receipts need the confirmation dialog
+      if (err instanceof Error && err.message.includes('CRA retention')) {
+        setDeleteTarget(id);
+      } else {
+        toast.error(err instanceof Error ? err.message : 'Failed to delete receipt');
+      }
+    }
+  }, [userId, onUpdate, refetch]);
 
   const confirmDelete = useCallback(async () => {
     if (!deleteTarget || !userId) return;

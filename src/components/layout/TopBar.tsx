@@ -55,10 +55,13 @@ export default function TopBar({ planLabel, plan, planLoading, children }: TopBa
             className="flex h-9 w-9 items-center justify-center rounded-[2rem] bg-sidebar-surface text-sidebar-text-muted transition hover:bg-sidebar-active hover:text-sidebar-text sm:w-auto sm:gap-2 sm:px-3"
           >
             <Search className="h-4 w-4" />
-            <kbd className="hidden items-center gap-0.5 text-[10px] font-medium text-sidebar-text-muted sm:flex">
-              <span>⌘</span>
-              <span>K</span>
-            </kbd>
+<kbd className="hidden items-center gap-0.5 text-[10px] font-medium text-sidebar-text-muted sm:flex">
+          <span>
+            {typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0 ? '⌘' : 'Ctrl'}
+          </span>
+          <span>+</span>
+          <span>K</span>
+        </kbd>
           </button>
           <NotificationBell />
           <RealtimeStatus connected={isConnected} />

@@ -20,7 +20,7 @@ import { exportReceiptPdf } from '@/lib/export-receipt-pdf';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 
-type SortableField = keyof Pick<ReceiptRow, 'vendor_name' | 'transaction_date' | 'total_amount'>;
+type SortableField = keyof Pick<ReceiptRow, 'vendor_name' | 'transaction_date' | 'category' | 'total_amount'>;
 
 interface ProfessionalLedgerProps {
   /** Full receipt data array */
@@ -88,9 +88,16 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({
     });
   }, [filtered, sortField, sortDir]);
 
+  /** Tri-state sort: ascending → descending → unsorted (back to original order). Playbook §4.1. */
   function toggleSort(field: SortableField) {
     if (sortField === field) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+      if (sortDir === 'asc') {
+        setSortDir('desc');
+      } else {
+        // Third click → unsorted
+        setSortField(null);
+        setSortDir('asc');
+      }
     } else {
       setSortField(field);
       setSortDir('asc');
@@ -167,7 +174,10 @@ export const ProfessionalLedger = React.memo(function ProfessionalLedger({
               aria-sort={sortField === 'transaction_date' ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
               Date {sortField === 'transaction_date' && <ArrowUpDown className="h-3 w-3" />}
             </button>
-            <div className="flex-[1] px-6 py-3">Category</div>
+            <button type="button" onClick={() => toggleSort('category')} className="flex-[1] px-6 py-3 text-left flex items-center gap-1 hover:text-text-primary transition"
+              aria-sort={sortField === 'category' ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
+              Category {sortField === 'category' && <ArrowUpDown className="h-3 w-3" />}
+            </button>
             <button type="button" onClick={() => toggleSort('total_amount')} className="flex-[1] px-6 py-3 text-right flex items-center justify-end gap-1 hover:text-text-primary transition"
               aria-sort={sortField === 'total_amount' ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
               Total {sortField === 'total_amount' && <ArrowUpDown className="h-3 w-3" />}

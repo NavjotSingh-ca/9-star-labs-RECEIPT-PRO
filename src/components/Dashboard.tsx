@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useCallback } from 'react';
-import { AlertCircle, Camera, Receipt, ShieldAlert, TrendingUp, Sparkles } from 'lucide-react';
+import { AlertCircle, Receipt, ShieldAlert, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
@@ -9,13 +9,15 @@ import { cn } from '@/lib/utils';
 import { Card as ShadcnCard } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DashboardSkeleton } from '@/components/ui/PremiumSkeletons';
+import { PremiumEmptyState } from '@/components/ui/PremiumEmptyState';
 import AnimatedCounter from '@/components/ui/AnimatedCounter';
 import type { UserRole } from '@/lib/types';
 import { supabase, getOrgIdString } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { getDashboardSummary } from '@/lib/services/receipts';
+import { getDashboardSummary, getDailySpend } from '@/lib/services/receipts';
 import { toNumber, formatCurrency } from '@/lib/ui-utils';
 import { fadeUp, staggerMedium, cardHoverSubtle } from '@/lib/animations';
+import { Sparkline } from '@/components/charts/Sparkline';
 
 interface DashboardProps {
   /** Navigate to scanner */
@@ -53,6 +55,12 @@ export default function Dashboard({ onScan, role = 'Owner', userId }: DashboardP
     enabled: !!userId, retry: 1, staleTime: 5 * 60 * 1000,
   });
 
+  const { data: dailyData = [] } = useQuery({
+    queryKey: ['daily_spend', userId],
+    queryFn: () => getDailySpend(7),
+    enabled: !!userId, staleTime: 5 * 60 * 1000,
+  });
+
   const thisMonth = useMemo(() => {
     if (!summary?.monthlyTrend?.length) return null;
     const t = summary.monthlyTrend;
@@ -81,7 +89,8 @@ export default function Dashboard({ onScan, role = 'Owner', userId }: DashboardP
         await navigator.clipboard.writeText(data.receipt_email);
         toast.success(`Receipt email copied: ${data.receipt_email}`);
       } else toast.error('No receipt email configured');
-    } catch {
+    } catch (err) {
+      import('@/lib/logger').then(({ logError }) => logError(err, { action: 'copy_forwarding_email' }));
       toast.error('Failed to lookup organization email');
     } finally {
       setForwardingEmail(false);
@@ -105,28 +114,61 @@ export default function Dashboard({ onScan, role = 'Owner', userId }: DashboardP
 
   const { receiptCount = 0, totalSpent = 0, gstRecoverable = 0 } = summary;
 
-  if (receiptCount === 0) return <EmptyState onScan={onScan} handleCopyEmail={handleCopyEmail} forwardingEmail={forwardingEmail} />;
+  if (receiptCount === 0) return (
+    <PremiumEmptyState
+      onScan={onScan}
+      onForwardEmail={handleCopyEmail}
+      forwardingEmail={forwardingEmail}
+    />
+  );
   if (role === 'Employee') return <EmployeeView scans={receiptCount} total={totalSpent} gst={gstRecoverable} />;
 
   return (
-    <motion.div variants={staggerMedium} initial="hidden" animate="show" className="space-y-4" aria-live="polite">
-      <motion.p variants={fadeUp} className="text-xs font-medium text-text-muted">{getGreeting()}</motion.p>
+    <motion.div variants={staggerMedium} initial="hidden" animate="show" className="space-y-6" aria-live="polite">
+      {/* Header & Greeting Bar */}
+      <motion.div variants={fadeUp} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-glass-border pb-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-champagne">{getGreeting()}</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-text-primary sm:text-3xl">Executive Financial Summary</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleCopyEmail} disabled={forwardingEmail} className="rounded-xl border-glass-border text-xs font-medium">
+            <Mail className="mr-1.5 h-3.5 w-3.5 text-champagne" />
+            Copy Receipt Email
+          </Button>
+          <Button size="sm" onClick={onScan} className="rounded-xl bg-champagne text-black font-semibold hover:bg-champagne/90 transition-all shadow-md shadow-champagne/20">
+            <Receipt className="mr-1.5 h-4 w-4" />
+            Scan Receipt
+          </Button>
+        </div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {/* Main KPI Cards Grid */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <motion.div variants={fadeUp}>
-          <ShadcnCard className="p-5">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted mb-1">
-              {thisMonth ? formatMonthLabel(thisMonth.month) : 'This Month'}
-            </p>
-            <p className="text-3xl font-bold tracking-tight tabular-nums sm:text-4xl text-text-primary">
+          <ShadcnCard className="p-6 relative overflow-hidden bg-gradient-to-br from-card via-card to-champagne/5">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                {thisMonth ? formatMonthLabel(thisMonth.month) : 'This Month'} Spend
+              </p>
+              <div className="rounded-full bg-champagne/10 p-2 text-champagne">
+                <Receipt className="h-4 w-4" />
+              </div>
+            </div>
+            <p className="mt-3 text-4xl font-extrabold tracking-tight tabular-nums text-text-primary">
               {thisMonth ? <AnimatedCounter from={0} to={thisMonth.amount} format={(v) => formatCurrency(v)} delay={80} /> : '$0.00'}
             </p>
-            <div className="flex items-center gap-3 mt-2">
-              {mom !== null && (
-                <span className={cn("inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold", mom >= 0 ? 'bg-champagne/10 text-champagne' : 'bg-danger/10 text-danger')}>
+            <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-glass-border/50">
+              {mom !== null ? (
+                <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold", mom >= 0 ? 'bg-champagne/15 text-champagne' : 'bg-danger/15 text-danger')}>
                   <span className={cn("h-1.5 w-1.5 rounded-full", mom >= 0 ? 'bg-champagne' : 'bg-danger')} />
-                  {mom >= 0 ? '+' : ''}{Math.abs(mom).toFixed(1)}%
+                  {mom >= 0 ? '+' : ''}{Math.abs(mom).toFixed(1)}% MoM
                 </span>
+              ) : <span className="text-xs text-text-muted">Baseline month</span>}
+              {dailyData.length >= 2 && (
+                <div className="w-24">
+                  <Sparkline data={dailyData} color="var(--champagne)" id="kpi-spark" />
+                </div>
               )}
             </div>
           </ShadcnCard>
@@ -167,120 +209,7 @@ const KpiCard = React.memo(function KpiCard({ variants: v, label, value, icon }:
 });
 
 
-/** Empty state shown when user has no receipts yet */
-interface EmptyStateProps {
-  onScan?: () => void;
-  handleCopyEmail: () => void;
-  forwardingEmail: boolean;
-}
 
-const EmptyState = React.memo(function EmptyState({ onScan, handleCopyEmail, forwardingEmail }: EmptyStateProps) {
-  return (
-    <motion.div
-      variants={fadeUp}
-      initial="hidden"
-      animate="show"
-      className="relative flex flex-col items-center justify-center py-20 text-center overflow-hidden"
-    >
-      {/* Ambient accent glow — antigravity drift */}
-      <motion.div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-champagne/5 rounded-full blur-[100px] pointer-events-none antigravity-drift"
-        animate={{ y: [0, -8, 0] }}
-        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-      />
-
-      {/* Icon */}
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 250, damping: 18, mass: 0.8 }}
-        className="relative mb-5 antigravity-float"
-      >
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-champagne/15 to-champagne/5 ring-1 ring-champagne/20 ring-inset shadow-[0_0_30px_-8px_rgba(190,169,142,0.2)]">
-          <Receipt className="h-8 w-8 text-champagne" />
-        </div>
-        <motion.div
-          className="absolute -top-1 -right-1"
-          animate={{ opacity: [0.4, 1, 0.4], scale: [1, 1.1, 1] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          <Sparkles className="h-4 w-4 text-champagne-dim" />
-        </motion.div>
-      </motion.div>
-
-      {/* Headline */}
-      <motion.h2
-        variants={fadeUp}
-        initial="hidden"
-        animate="show"
-        className="text-xl font-bold tracking-tight"
-      >
-        Your financial picture starts here
-      </motion.h2>
-      <motion.p
-        variants={fadeUp}
-        initial="hidden"
-        animate="show"
-        className="mt-2 max-w-sm text-sm text-text-secondary/80 leading-relaxed"
-      >
-        Scan your first receipt to unlock AI-powered categorization, CRA compliance scoring, and real-time spend tracking.
-      </motion.p>
-
-      {/* CTA */}
-      <motion.div
-        variants={fadeUp}
-        initial="hidden"
-        animate="show"
-        className="mt-8 flex flex-col items-center gap-4"
-      >
-        {onScan && (
-          <button
-            onClick={onScan}
-            className="shimmer-auth group relative h-11 px-6 rounded-xl font-semibold text-sm text-black transition-all duration-300 border border-champagne/20 hover:shadow-[0_0_25px_-6px_rgba(190,169,142,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--obsidian)]"
-          >
-            <span className="relative z-10 flex items-center gap-2">
-              <Camera className="h-4 w-4" />
-              Scan your first receipt
-            </span>
-          </button>
-        )}
-        <button
-          onClick={handleCopyEmail}
-          disabled={forwardingEmail}
-          className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary transition-colors duration-200 underline underline-offset-4 decoration-white/10 hover:decoration-white/30"
-        >
-          {forwardingEmail ? 'Loading...' : 'Or forward receipts from your email'}
-        </button>
-      </motion.div>
-
-      {/* Feature highlights — staggered entrance */}
-      <motion.div
-        variants={staggerMedium}
-        initial="hidden"
-        animate="show"
-        className="mt-14 grid gap-3 sm:grid-cols-3 max-w-xl"
-      >
-        {[
-          { icon: Sparkles, title: 'AI Extraction', desc: 'Auto-detects vendors, line items, taxes, and categories from any receipt photo.' },
-          { icon: ShieldAlert, title: 'CRA Compliance', desc: 'Real-time scoring ensures every receipt meets Canadian audit requirements.' },
-          { icon: TrendingUp, title: 'Financial Intel', desc: 'Dashboards, tax recovery estimates, and spend trends at a glance.' },
-        ].map((f) => (
-          <motion.div
-            key={f.title}
-            variants={fadeUp}
-            className="group rounded-xl border border-glass-border/50 bg-card/50 p-4 text-center antigravity-card"
-          >
-            <div className="mx-auto mb-2.5 flex h-10 w-10 items-center justify-center rounded-lg bg-champagne/10 text-champagne group-hover:bg-champagne/15 group-hover:shadow-[0_0_15px_-4px_rgba(190,169,142,0.15)] transition-all duration-300">
-              <f.icon className="h-5 w-5" />
-            </div>
-            <h3 className="text-sm font-semibold tracking-tight">{f.title}</h3>
-            <p className="text-xs text-text-muted/80 mt-1 leading-relaxed">{f.desc}</p>
-          </motion.div>
-        ))}
-      </motion.div>
-    </motion.div>
-  );
-});
 
 /** Employee-restricted view — shows personal stats only */
 const EmployeeView = React.memo(function EmployeeView({ scans, total, gst }: { scans: number; total: number; gst: number }) {

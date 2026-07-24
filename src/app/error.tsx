@@ -39,9 +39,9 @@ export default function Error({
           We encountered a critical error while loading the workspace.
         </p>
 
-        {/* Always show the error message */}
+        {/* Show error message in development, generic message in production */}
         <div className="mt-6 rounded-[3rem] bg-black/40 p-4 text-left font-mono text-[11px] text-danger border border-danger/10 overflow-x-auto break-words">
-          {error.message || 'An unexpected error occurred'}
+          {process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'}
           {error.digest && (
             <div className="mt-2 text-[10px] text-text-muted/40">Error ID: {error.digest}</div>
           )}

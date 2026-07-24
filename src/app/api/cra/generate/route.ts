@@ -29,8 +29,8 @@ const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
  */
 async function handler(request: Request) {
   const { searchParams } = new URL(request.url);
-  const rawYear = searchParams.get('year');
-  const taxYear = rawYear ? yearSchema.safeParse(rawYear) : { data: new Date().getFullYear() - 1, success: true };
+const rawYear = searchParams.get('year');
+   const taxYear = rawYear ? yearSchema.safeParse(rawYear) : { data: new Date().getFullYear(), success: true };
   if (!taxYear.success) {
     return NextResponse.json({ error: 'Invalid tax year' }, { status: 400 });
   }

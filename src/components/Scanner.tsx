@@ -14,6 +14,7 @@ import BlurWarning from '@/components/scanner/BlurWarning';
 import ImagePreview from '@/components/scanner/ImagePreview';
 import ErrorModal from '@/components/scanner/ErrorModal';
 import SuccessOverlay from '@/components/scanner/SuccessOverlay';
+import { ScanSuccessBurst } from '@/components/ui/ScanSuccessBurst';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { ScannerProps } from '@/components/scanner/types';
 import { useScannerState } from '@/components/scanner/hooks/useScannerState';
@@ -188,6 +189,12 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
       <AnimatePresence>
         <SuccessOverlay visible={s.showSuccessOverlay} />
       </AnimatePresence>
+
+      <ScanSuccessBurst
+        trigger={s.showSuccessOverlay}
+        duration={1800}
+        particleCount={16}
+      />
     </div>
   );
 }

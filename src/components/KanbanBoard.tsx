@@ -12,6 +12,7 @@ import {
   useSensors,
   type DragStartEvent,
   type DragEndEvent,
+  type DragOverEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -110,10 +111,10 @@ function KanbanCard({ project, actualSpend, budgetPercent, isOverBudget, isDragg
       )}
       {...attributes}
     >
-      {/* Drag handle */}
+{/* Drag handle */}
       <button
         type="button"
-        className="absolute -left-1 top-1/2 -translate-y-1/2 flex h-8 w-5 items-center justify-center rounded-r-md text-text-muted/30 opacity-0 group-hover:opacity-100 hover:text-text-muted transition cursor-grab active:cursor-grabbing"
+        className="absolute -left-1 top-1/2 -translate-y-1/2 flex h-8 w-5 items-center justify-center rounded-r-md text-text-muted/30 hover:text-text-muted transition cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-champagne"
         {...listeners}
         aria-label="Drag to reorder"
         title="Drag to move between columns"
@@ -183,10 +184,10 @@ interface KanbanColumnProps {
   column: ColumnConfig;
   projects: Project[];
   actualsMap: Map<string, number>;
-  onDrop: () => void;
+  isDragTarget?: boolean;
 }
 
-function KanbanColumn({ column, projects, actualsMap }: KanbanColumnProps) {
+function KanbanColumn({ column, projects, actualsMap, isDragTarget }: KanbanColumnProps) {
   const projectIds = useMemo(() => projects.map((p) => p.id), [projects]);
 
   return (
@@ -202,11 +203,23 @@ function KanbanColumn({ column, projects, actualsMap }: KanbanColumnProps) {
 
       {/* Cards */}
       <SortableContext items={projectIds} strategy={verticalListSortingStrategy}>
-        <div className="flex flex-col gap-2 min-h-[120px] rounded-xl bg-surface/30 p-2 transition-colors">
+<div
+          className={cn(
+            'flex flex-col gap-2 min-h-[120px] rounded-xl p-2 transition-colors',
+            isDragTarget && column.id !== 'cancelled' && 'bg-champagne/10 border border-champagne/30 ring-1 ring-champagne/20',
+            isDragTarget && column.id === 'cancelled' && 'bg-danger/5 border border-danger/30 ring-1 ring-danger/20'
+          )}
+        >
           <AnimatePresence mode="popLayout">
             {projects.length === 0 ? (
               <div className="flex items-center justify-center py-8">
-                <p className="text-xs text-text-muted/50">Drop projects here</p>
+                <p className={cn(
+                  'text-xs text-text-muted/50',
+                  isDragTarget && column.id !== 'cancelled' && 'text-champagne font-medium',
+                  isDragTarget && column.id === 'cancelled' && 'text-danger'
+                )}>
+                  {isDragTarget && column.id !== 'cancelled' ? 'Drop to move here' : 'Drop projects here'}
+                </p>
               </div>
             ) : (
               projects.map((project) => {
@@ -271,6 +284,8 @@ export default function KanbanBoard() {
     },
     staleTime: 5 * 60 * 1000,
   });
+
+  const [draggedOverColumn, setDraggedOverColumn] = useState<string | null>(null);
 
   const actualsMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -342,9 +357,19 @@ export default function KanbanBoard() {
     setActiveDragId(String(event.active.id));
   }, []);
 
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const overId = event.over?.id;
+    if (overId && COLUMNS.some((c) => c.id === overId)) {
+      setDraggedOverColumn(String(overId));
+    } else if (!overId) {
+      setDraggedOverColumn(null);
+    }
+  }, []);
+
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       setActiveDragId(null);
+      setDraggedOverColumn(null);
 
       const { active, over } = event;
       if (!over || !active) return;
@@ -405,6 +430,7 @@ export default function KanbanBoard() {
         sensors={sensors}
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
         <div className="flex gap-4 min-w-max">
@@ -414,7 +440,7 @@ export default function KanbanBoard() {
               column={column}
               projects={grouped[column.id] || []}
               actualsMap={actualsMap}
-              onDrop={() => {}}
+              isDragTarget={draggedOverColumn === column.id}
             />
           ))}
         </div>

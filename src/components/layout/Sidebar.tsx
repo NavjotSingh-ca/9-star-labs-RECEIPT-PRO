@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { APP_NAME } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 import { navItemHover } from '@/lib/animations';
 import { useAppStore } from '@/lib/store';
 import { useNotificationStore } from '@/lib/stores/notifications';
@@ -158,11 +159,13 @@ function NavLink({
       aria-current={active ? 'page' : undefined}
       title={label}
       {...navItemHover}
-       className={`relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150 ${
-         active
-           ? 'bg-sidebar-active text-sidebar-text'
-           : 'text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary'
-       } ${collapsed ? 'justify-center px-2' : ''}`}
+      className={cn(
+        'relative flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200',
+        active
+          ? 'bg-sidebar-active text-sidebar-text font-semibold border border-sidebar-accent/25 shadow-sm shadow-sidebar-accent/10'
+          : 'text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary',
+        collapsed && 'justify-center px-2'
+      )}
     >
       {/* Active indicator bar — animated */}
       <motion.div

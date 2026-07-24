@@ -133,47 +133,48 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
       const isDrawerContent = !!target.closest('[data-vaul-drawer-content]');
       if (isInput || isDrawerContent) return;
 
-      if (e.key === 's' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      // All shortcuts require Ctrl/Cmd modifier for accessibility
+      if ((e.key === 's' || e.key === 'S') && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         setTabWithUrl('scan');
       }
-      if (e.key === 'r' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      if ((e.key === 'r' || e.key === 'R') && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         setTabWithUrl('receipts');
       }
-      if (e.key === 'm' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      if ((e.key === 'm' || e.key === 'M') && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         setTabWithUrl('mileage');
       }
-      if (e.key === 'e' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      if ((e.key === 'e' || e.key === 'E') && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         setTabWithUrl('export');
       }
-      if (e.key === 'a' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      if ((e.key === 'a' || e.key === 'A') && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         setTabWithUrl('audit');
       }
-      if (e.key === 'g' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      if ((e.key === 'g' || e.key === 'G') && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         setTabWithUrl('reconcile');
       }
-      if (e.key === 'f' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      if ((e.key === 'f' || e.key === 'F') && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         setTabWithUrl('smart-search');
       }
-      if (e.key === 'b' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      if ((e.key === 'b' || e.key === 'B') && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         setTabWithUrl('budgets');
       }
-      if (e.key === 't' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      if ((e.key === 't' || e.key === 'T') && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         setTabWithUrl('tax-dashboard');
       }
-      if (e.key === 'k' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      if ((e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         setTabWithUrl('kanban-workflow');
       }
-      if (e.key === 'i' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      if ((e.key === 'i' || e.key === 'I') && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         setTabWithUrl('spending-insights');
       }
@@ -238,14 +239,13 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
           <ThemeToggle />
         </TopBar>
 
-        <div
-          id="main-content"
-          className="flex-1 overflow-y-auto px-4 pb-[calc(4rem+env(safe-area-inset-bottom))] pt-16 sm:px-6 lg:pb-8 lg:pt-6 xl:px-8 relative max-w-full overflow-x-hidden"
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          aria-label="Main workspace"
-          role="region"
-        >
+      <div
+        id="workspace-content"
+        className="flex-1 overflow-y-auto px-4 pb-[calc(4rem+env(safe-area-inset-bottom))] pt-16 sm:px-6 lg:pb-8 lg:pt-6 xl:px-8 relative max-w-full overflow-x-hidden"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        aria-label="Main workspace"
+      >
           {/* Ambient gradients — hidden on small mobile to prevent overflow */}
           <div className="pointer-events-none absolute inset-x-0 top-0 h-[300px] sm:h-[600px] bg-gradient-to-b from-champagne/10 via-champagne/5 to-transparent" aria-hidden="true" />
           <div className="pointer-events-none absolute -left-16 -top-16 h-40 w-40 sm:-left-32 sm:-top-32 sm:h-64 sm:w-64 rounded-full bg-champagne/8 blur-3xl" aria-hidden="true" />

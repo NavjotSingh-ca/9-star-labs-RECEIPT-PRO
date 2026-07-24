@@ -1,29 +1,46 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import { motion } from 'framer-motion';
-import { springGentle } from '@/lib/animations';
+import { motion, AnimatePresence } from 'framer-motion';
+import { usePathname } from 'next/navigation';
+import { type ReactNode } from 'react';
 
-interface PageTransitionProps {
-  children: ReactNode;
-  className?: string;
-  /** Entrance delay in seconds */
-  delay?: number;
-}
+const DURATION = 0.35;
+
+const easeOut = [0.25, 0.1, 0.25, 1] as const;
+
+const pageVariants = {
+  initial: { opacity: 0, y: 12 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: DURATION, ease: easeOut },
+  },
+  exit: {
+    opacity: 0,
+    y: -8,
+    transition: { duration: DURATION * 0.6, ease: easeOut },
+  },
+};
 
 /**
- * Standard page/section entrance animation.
- * Wraps content in a fade+slide-up spring animation.
+ * Wraps page content with a fade + micro slide transition on route change.
+ * Place inside a single `<main>` — one per layout.
  */
-export default function PageTransition({ children, className, delay = 0 }: PageTransitionProps) {
+export function PageTransition({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ ...springGentle, delay }}
-      className={className}
-    >
-      {children}
-    </motion.div>
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={pathname}
+        variants={pageVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        className="contents"
+      >
+        {children}
+      </motion.div>
+    </AnimatePresence>
   );
 }
