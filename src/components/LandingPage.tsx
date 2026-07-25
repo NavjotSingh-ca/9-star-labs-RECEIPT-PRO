@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useCallback, Suspense } from 'react';
+import React, { useState, useCallback, Suspense, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import {
   ReceiptText, ArrowRight, Sparkles, Zap,
   Lock, CheckCircle2, ChevronDown, Star, Menu, X,
@@ -13,6 +13,7 @@ import {
   BarChart3, ClipboardCheck, ShieldCheck, AlertTriangle,
   Route, Landmark, Building2, Wallet, Mail, Users, Moon,
   ScrollText, FileSpreadsheet, Lightbulb, Clock,
+  Building, Shield, Globe, Zap as ZapIcon,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import { APP_NAME } from '@/lib/constants';
@@ -30,14 +31,252 @@ const iconComponents: Record<string, React.ComponentType<LucideProps>> = {
   FileDown, BarChart3, ClipboardCheck, ShieldCheck, AlertTriangle,
   Route, Landmark, Building2, Wallet, Mail, Users, Moon,
   ScrollText, FileSpreadsheet, Lightbulb, Star, Sparkles,
+  Building, Shield, Globe, ZapIcon,
 };
 
 const getFeatureIcon = (iconName: string): React.ComponentType<LucideProps> =>
   iconComponents[iconName] || Camera;
 
+// ===== CUSTOM EASING (Fluid spring) =====
+const FLUID_EASE = [0.32, 0.72, 0, 1] as const;
+const FLUID_EASE_OUT = [0.16, 1, 0.3, 1] as const;
+
+// ===== SCROLL REVEAL HOOK =====
+function useScrollReveal(threshold = 0.1, rootMargin = '-80px') {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const reduce = useReducedMotion();
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || reduce) {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(el);
+        }
+      },
+      { rootMargin, threshold }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [reduce, rootMargin, threshold]);
+
+  return { ref, isVisible, reduce };
+}
+
+// ===== STAGGERED REVEAL WRAPPER =====
+function StaggeredReveal({
+  children,
+  delay = 0,
+  className = '',
+  threshold = 0.1,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+  threshold?: number;
+}) {
+  const { ref, isVisible, reduce } = useScrollReveal(threshold);
+
+  if (reduce) {
+    return <div ref={ref} className={className}>{children}</div>;
+  }
+
+  return (
+    <motion.div
+      ref={ref}
+      className={className}
+      initial={{ opacity: 0, y: 32, filter: 'blur(8px)' }}
+      animate={isVisible ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 32, filter: 'blur(8px)' }}
+      transition={{ duration: 0.9, delay, ease: FLUID_EASE }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ===== DOUBLE-BEZEL CARD (Doppelrand) =====
+interface DoubleBezelCardProps {
+  children: React.ReactNode;
+  className?: string;
+  hover?: boolean;
+  padding?: string;
+  outerRadius?: string;
+  innerRadius?: string;
+}
+
+function DoubleBezelCard({
+  children,
+  className = '',
+  hover = false,
+  padding = 'p-6 sm:p-8',
+  outerRadius = 'rounded-[2rem]',
+  innerRadius = 'rounded-[calc(2rem-0.375rem)]',
+}: DoubleBezelCardProps) {
+  return (
+    <div className={`relative ${outerRadius} ${className}`}>
+      {/* Outer Shell */}
+      <div
+        className={`
+          absolute inset-0 ${outerRadius}
+          bg-black/5 dark:bg-white/5
+          border border-white/10 dark:border-black/10
+          p-1.5
+          pointer-events-none
+          ${hover ? 'transition-all duration-500 ease-[0.32,0.72,0,1] group-hover:border-champagne/30 group-hover:bg-champagne/5' : ''}
+        `}
+        aria-hidden="true"
+      />
+      {/* Inner Core */}
+      <div className={`
+        relative ${innerRadius} ${padding} z-10
+        bg-card dark:bg-zinc-950
+        border border-glass-border dark:border-zinc-800
+        shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]
+        ${hover ? 'transition-all duration-500 ease-[0.32,0.72,0,1] group-hover:shadow-[0_20px_40px_-10px_rgba(190,169,142,0.15)]' : ''}
+      `}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ===== BUTTON-IN-BUTTON CTA (Magnetic Island) =====
+interface MagneticCTAProps {
+  children: React.ReactNode;
+  onClick?: () => void;
+  href?: string;
+  variant?: 'primary' | 'secondary' | 'ghost';
+  className?: string;
+  icon?: React.ComponentType<LucideProps>;
+  disabled?: boolean;
+}
+
+function MagneticCTA({
+  children,
+  onClick,
+  href,
+  variant = 'primary',
+  className = '',
+  icon: Icon = ArrowRight,
+  disabled = false,
+}: MagneticCTAProps) {
+  const reduce = useReducedMotion();
+  const [isHovered, setIsHovered] = useState(false);
+
+  const baseStyles = `
+    relative inline-flex items-center justify-center gap-2.5
+    rounded-full px-8 py-3.5 text-sm font-bold
+    transition-all duration-300 ease-[0.32,0.72,0,1]
+    focus:outline-none focus:ring-2 focus:ring-champagne/40 focus:ring-offset-2 focus:ring-offset-obsidian
+    disabled:opacity-50 disabled:cursor-not-allowed
+    ${className}
+  `;
+
+  const variantStyles = {
+    primary: `
+      bg-champagne text-obsidian
+      shadow-xl shadow-champagne/20
+      hover:bg-champagne-dim hover:shadow-champagne/30 hover:-translate-y-0.5
+      active:scale-[0.98]
+    `,
+    secondary: `
+      border border-glass-border bg-white/[0.03] text-text-primary
+      backdrop-blur-sm
+      hover:bg-white/[0.06] hover:border-champagne/20 hover:-translate-y-0.5
+      active:scale-[0.98]
+    `,
+    ghost: `
+      bg-transparent text-text-primary hover:text-champagne
+      hover:bg-champagne/5 hover:-translate-y-0.5
+      active:scale-[0.98]
+    `,
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
+    if (disabled) {
+      e.preventDefault();
+      return;
+    }
+    onClick?.();
+  };
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        onClick={handleClick}
+        onMouseEnter={() => !disabled && setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`group ${baseStyles} ${variantStyles[variant]}`}
+        aria-disabled={disabled}
+      >
+        <span className="relative z-10">{children}</span>
+        {Icon && (
+          <motion.span
+            className={`
+              relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full
+              bg-black/5 dark:bg-white/10
+              transition-transform duration-300 ease-[0.32,0.72,0,1]
+            `}
+            animate={isHovered && !reduce ? { x: 4, scale: 1.1 } : { x: 0, scale: 1 }}
+            transition={{ ease: FLUID_EASE }}
+          >
+            <Icon className="h-4 w-4" />
+          </motion.span>
+        )}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      onMouseEnter={() => !disabled && setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      disabled={disabled}
+      className={`group ${baseStyles} ${variantStyles[variant]}`}
+      aria-disabled={disabled}
+    >
+      <span className="relative z-10">{children}</span>
+      {Icon && (
+        <motion.span
+          className={`
+            relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full
+            bg-black/5 dark:bg-white/10
+            transition-transform duration-300 ease-[0.32,0.72,0,1]
+          `}
+          animate={isHovered && !reduce ? { x: 4, scale: 1.1 } : { x: 0, scale: 1 }}
+          transition={{ ease: FLUID_EASE }}
+        >
+          <Icon className="h-4 w-4" />
+        </motion.span>
+      )}
+    </button>
+  );
+}
+
+// ===== TRUST BADGE =====
+function TrustBadge({ icon: Icon, text }: { icon: React.ComponentType<LucideProps>; text: string }) {
+  return (
+    <div className="inline-flex items-center gap-2 rounded-full bg-surface-raised px-3.5 py-1.5 text-[11px] font-medium text-text-secondary border border-glass-border transition-all hover:border-champagne/20 hover:bg-card">
+      <Icon className="h-3.5 w-3.5 text-champagne" />
+      {text}
+    </div>
+  );
+}
+
 // ===== NAVIGATION =====
 function NavBar({ onGetStarted }: { onGetStarted: () => void }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const reduce = useReducedMotion();
 
   const navItems = [
     { label: 'Features', href: '/features' },
@@ -50,9 +289,9 @@ function NavBar({ onGetStarted }: { onGetStarted: () => void }) {
     if (href.startsWith('/')) {
       window.location.href = href;
     } else {
-      document.getElementById(href.replace('#', ''))?.scrollIntoView({ behavior: 'smooth' });
+      document.getElementById(href.replace('#', ''))?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
     }
-  }, []);
+  }, [reduce]);
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-glass-border bg-obsidian/90 backdrop-blur-xl">
@@ -76,13 +315,9 @@ function NavBar({ onGetStarted }: { onGetStarted: () => void }) {
               <span className="absolute -bottom-1 left-0 h-px w-0 bg-champagne transition-all group-hover:w-full" />
             </button>
           ))}
-          <button
-            type="button"
-            onClick={onGetStarted}
-            className="rounded-xl bg-champagne px-5 py-2.5 text-xs font-bold text-obsidian hover:bg-champagne-dim transition shadow-lg shadow-champagne/10"
-          >
+          <MagneticCTA variant="primary" icon={ArrowRight} onClick={onGetStarted} className="ml-4">
             Sign In
-          </button>
+          </MagneticCTA>
         </nav>
 
         <button
@@ -90,18 +325,19 @@ function NavBar({ onGetStarted }: { onGetStarted: () => void }) {
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover md:hidden"
           aria-label="Toggle menu"
+          aria-expanded={mobileMenuOpen}
         >
           {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {mobileMenuOpen && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
+            transition={{ duration: reduce ? 0 : 0.3, ease: FLUID_EASE }}
             className="overflow-hidden border-t border-glass-border md:hidden"
           >
             <div className="space-y-1 px-4 py-3">
@@ -115,13 +351,9 @@ function NavBar({ onGetStarted }: { onGetStarted: () => void }) {
                   {item.label}
                 </button>
               ))}
-              <button
-                type="button"
-                onClick={() => { setMobileMenuOpen(false); onGetStarted(); }}
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-champagne px-4 py-2.5 text-sm font-bold text-obsidian hover:bg-champagne-dim transition-colors"
-              >
-                Sign In <ArrowRight className="h-4 w-4" />
-              </button>
+              <MagneticCTA variant="primary" icon={ArrowRight} onClick={() => { setMobileMenuOpen(false); onGetStarted(); }} className="mt-2 w-full">
+                Sign In
+              </MagneticCTA>
             </div>
           </motion.div>
         )}
@@ -130,10 +362,17 @@ function NavBar({ onGetStarted }: { onGetStarted: () => void }) {
   );
 }
 
-// ===== HERO — Left-aligned split with 3D background =====
+// ===== HERO — Left-aligned Editorial Split with 3D background =====
 function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
+  const reduce = useReducedMotion();
+  const { ref, isVisible } = useScrollReveal(0.1, '-100px');
+
   return (
-    <section className="relative min-h-[100dvh] flex items-center overflow-hidden pt-24">
+    <section
+      ref={ref}
+      className="relative min-h-[100dvh] flex items-center overflow-hidden pt-24"
+      aria-labelledby="hero-heading"
+    >
       {/* 3D Scene background — right side */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
         <div className="absolute inset-0 bg-gradient-to-b from-champagne/5 via-transparent to-obsidian z-10" />
@@ -142,7 +381,7 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
             <Scene3D />
           </Suspense>
         </div>
-        {/* Ambient glow */}
+        {/* Ambient glow orbs */}
         <div className="absolute top-1/4 -right-32 w-[500px] h-[500px] rounded-full bg-champagne/6 blur-[150px]" />
         <div className="absolute bottom-1/4 -left-32 w-[400px] h-[400px] rounded-full bg-champagne/4 blur-[120px]" />
       </div>
@@ -152,18 +391,21 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left column — text content */}
           <motion.div
-            initial={{ opacity: 0, y: 32 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 0, y: 32, filter: 'blur(8px)' }}
+            animate={isVisible && !reduce ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ duration: reduce ? 0 : 0.9, ease: FLUID_EASE }}
             className="max-w-xl"
           >
-            {/* Eyebrow */}
+            {/* Eyebrow — only ONE on page */}
             <div className="inline-flex items-center gap-2 rounded-full border border-champagne/20 bg-champagne/5 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-champagne backdrop-blur-sm mb-6">
               <Sparkles className="h-3 w-3" /> CRA-Ready Accounting
             </div>
 
-            {/* Headline */}
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] mb-6">
+            {/* Headline — max 2 lines */}
+            <h1
+              id="hero-heading"
+              className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] mb-6"
+            >
               <span className="bg-gradient-to-r from-champagne via-champagne-dim to-champagne bg-clip-text text-transparent">
                 Receipt Management
               </span>
@@ -173,24 +415,17 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
 
             {/* Subtext — max 20 words */}
             <p className="text-lg text-text-muted/90 leading-relaxed mb-10 max-w-lg">
-              Stop worrying about CRA audits. <strong className="text-text-primary">{APP_NAME}</strong> automatically extracts, organizes, and stores your receipts. Tax-ready reports in one click.
+              Stop worrying about CRA audits. <strong className="text-text-primary">{APP_NAME}</strong> extracts, organizes, and stores receipts automatically. Tax-ready reports in one click.
             </p>
 
             {/* CTAs — 1 primary + 1 secondary */}
             <div className="flex flex-col sm:flex-row items-start gap-4">
-              <button
-                type="button"
-                onClick={onGetStarted}
-                className="group relative inline-flex items-center gap-2.5 rounded-2xl bg-champagne px-8 py-3.5 text-sm font-bold text-obsidian transition-all shadow-xl shadow-champagne/20 hover:shadow-champagne/30 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-champagne/40"
-              >
-                Start Free Trial <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
-              </button>
-              <Link
-                href="/features"
-                className="inline-flex items-center gap-2 rounded-2xl border border-glass-border bg-white/[0.03] px-8 py-3.5 text-sm font-medium text-text-primary hover:bg-white/[0.06] transition-colors backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-champagne/40"
-              >
-                <Zap className="h-4 w-4 text-champagne" /> View Features
-              </Link>
+              <MagneticCTA variant="primary" icon={ArrowRight} onClick={onGetStarted}>
+                Start Free Trial
+              </MagneticCTA>
+              <MagneticCTA variant="secondary" icon={Zap} href="/features">
+                View Features
+              </MagneticCTA>
             </div>
 
             {/* Trust badges */}
@@ -200,16 +435,16 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
             </div>
           </motion.div>
 
-          {/* Right column — TiltCard */}
+          {/* Right column — TiltCard with 3D receipt */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+            initial={{ opacity: 0, scale: 0.9, filter: 'blur(8px)' }}
+            animate={isVisible && !reduce ? { opacity: 1, scale: 1, filter: 'blur(0px)' } : { opacity: 1, scale: 1, filter: 'blur(0px)' }}
+            transition={{ duration: reduce ? 0 : 1, ease: FLUID_EASE, delay: 0.2 }}
             className="hidden lg:flex items-center justify-center"
           >
             <Suspense fallback={null}>
               <TiltCard tiltDegree={8} glare scale={1.02}>
-                <div className="w-[340px] h-[480px] rounded-2xl bg-gradient-to-br from-champagne/10 via-card/80 to-champagne/5 border border-champagne/20 shadow-2xl flex flex-col items-center justify-center p-8">
+                <DoubleBezelCard padding="p-8" outerRadius="rounded-2xl" innerRadius="rounded-[calc(2rem-0.375rem)]" className="w-[340px] h-[480px] flex flex-col items-center justify-center">
                   <div className="w-20 h-20 rounded-xl bg-champagne/20 flex items-center justify-center mb-6">
                     <ReceiptText className="w-10 h-10 text-champagne" />
                   </div>
@@ -223,7 +458,7 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
                   <div className="mt-6 w-full border-t border-champagne/10 pt-4 text-center">
                     <span className="text-xs text-champagne/60 font-medium">AI Confidence: 98%</span>
                   </div>
-                </div>
+                </DoubleBezelCard>
               </TiltCard>
             </Suspense>
           </motion.div>
@@ -232,7 +467,7 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
         {/* Scroll indicator */}
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          animate={isVisible && !reduce ? { opacity: 1 } : { opacity: 1 }}
           transition={{ delay: 1.2, duration: 0.6 }}
           className="mt-20 flex flex-col items-center gap-2 text-text-muted/40"
         >
@@ -241,41 +476,6 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
         </motion.div>
       </div>
     </section>
-  );
-}
-
-// ===== REUSABLE COMPONENTS =====
-function TrustBadge({ icon: Icon, text }: { icon: React.ComponentType<LucideProps>; text: string }) {
-  return (
-    <div className="inline-flex items-center gap-2 rounded-full bg-surface-raised px-3.5 py-1.5 text-[11px] font-medium text-text-secondary border border-glass-border transition-all hover:border-champagne/20 hover:bg-card">
-      <Icon className="h-3.5 w-3.5 text-champagne" />
-      {text}
-    </div>
-  );
-}
-
-function FeatureHighlight({ icon, title, description, benefit, index }: {
-  icon: React.ComponentType<LucideProps>;
-  title: string;
-  description: string;
-  benefit: string;
-  index: number;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.3 }}
-      transition={{ duration: 0.5, delay: index * 0.08, ease: [0.16, 1, 0.3, 1] }}
-      className="text-left"
-    >
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-champagne/10 text-champagne transition-all duration-300 hover:bg-champagne/20 hover:scale-105">
-        {React.createElement(icon, { className: 'h-6 w-6' })}
-      </div>
-      <h3 className="text-lg font-bold text-text-primary mb-2 transition-colors hover:text-champagne">{title}</h3>
-      <p className="text-sm text-text-muted/80 leading-relaxed mb-2">{description}</p>
-      <div className="text-xs font-semibold text-champagne">{benefit}</div>
-    </motion.div>
   );
 }
 
@@ -303,15 +503,15 @@ function LogoWall() {
               className="flex items-center gap-2 text-text-muted/30 hover:text-text-muted/60 transition-colors duration-300"
               title={logo.name}
             >
-               <Image
-                 src={`https://cdn.simpleicons.org/${logo.slug}/888888`}
-                 alt={logo.name}
-                 className="h-6 w-auto grayscale opacity-40 hover:opacity-70 hover:grayscale-0 transition-all duration-300"
-                 width={24}
-                 height={24}
-                 unoptimized
-                 priority={false}
-               />
+              <Image
+                src={`https://cdn.simpleicons.org/${logo.slug}/888888`}
+                alt={logo.name}
+                className="h-6 w-auto grayscale opacity-40 hover:opacity-70 hover:grayscale-0 transition-all duration-300"
+                width={24}
+                height={24}
+                unoptimized
+                priority={false}
+              />
               <span className="text-xs font-medium">{logo.name}</span>
             </div>
           ))}
@@ -321,41 +521,7 @@ function LogoWall() {
   );
 }
 
-// ===== STATS SECTION =====
-function StatsSection() {
-  const stats = [
-    { value: 50000, suffix: '+', label: 'Receipts Processed' },
-    { value: 500, suffix: '+', label: 'Canadian Businesses' },
-    { value: 3, suffix: '', label: 'Tax Seasons Supported' },
-    { value: 8, suffix: 'h/mo', label: 'Avg. Time Saved' },
-  ];
-
-  return (
-    <section className="relative py-20 border-t border-glass-border">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 max-w-4xl mx-auto">
-          {stats.map((stat) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="text-center"
-            >
-              <div className="text-4xl sm:text-5xl font-bold tracking-tight text-champagne mb-2 tabular-nums">
-                <AnimatedCounter value={stat.value} suffix={stat.suffix} />
-              </div>
-              <p className="text-xs text-text-muted/70 uppercase tracking-wider font-medium">{stat.label}</p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ===== FEATURES HIGHLIGHTS (moved out of hero) =====
+// ===== FEATURE HIGHLIGHTS =====
 function FeatureHighlights() {
   const highlights = [
     {
@@ -389,14 +555,16 @@ function FeatureHighlights() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {highlights.map((feat, index) => (
-            <FeatureHighlight
-              key={feat.icon}
-              icon={getFeatureIcon(feat.icon)}
-              title={feat.title}
-              description={feat.description}
-              benefit={feat.benefit}
-              index={index}
-            />
+            <StaggeredReveal key={feat.icon} delay={index * 0.08} className="text-left">
+              <DoubleBezelCard padding="p-6" hover className="h-full group">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-champagne/10 text-champagne transition-all duration-500 group-hover:bg-champagne/20 group-hover:scale-105">
+                  {React.createElement(getFeatureIcon(feat.icon), { className: 'h-6 w-6' })}
+                </div>
+                <h3 className="text-lg font-bold text-text-primary mb-2 transition-colors group-hover:text-champagne">{feat.title}</h3>
+                <p className="text-sm text-text-muted/80 leading-relaxed mb-2">{feat.description}</p>
+                <div className="text-xs font-semibold text-champagne">{feat.benefit}</div>
+              </DoubleBezelCard>
+            </StaggeredReveal>
           ))}
         </div>
       </div>
@@ -404,123 +572,138 @@ function FeatureHighlights() {
   );
 }
 
-// ===== FEATURES SECTION (bento-like grid) =====
+// ===== STATS SECTION =====
+function StatsSection() {
+  const stats = [
+    { value: 50000, suffix: '+', label: 'Receipts Processed' },
+    { value: 500, suffix: '+', label: 'Canadian Businesses' },
+    { value: 3, suffix: '', label: 'Tax Seasons Supported' },
+    { value: 8, suffix: 'h/mo', label: 'Avg. Time Saved' },
+  ];
+
+  return (
+    <section className="relative py-20 border-t border-glass-border">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 max-w-4xl mx-auto">
+          {stats.map((stat) => (
+            <StaggeredReveal key={stat.label} delay={0.1} className="text-center">
+              <DoubleBezelCard padding="p-4 sm:p-6" className="text-center">
+                <div className="text-4xl sm:text-5xl font-bold tracking-tight text-champagne mb-2 tabular-nums">
+                  <AnimatedCounter value={stat.value} suffix={stat.suffix} />
+                </div>
+                <p className="text-xs text-text-muted/70 uppercase tracking-wider font-medium">{stat.label}</p>
+              </DoubleBezelCard>
+            </StaggeredReveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ===== FEATURES SECTION (Asymmetrical Bento Grid) =====
 function FeaturesSection() {
-  // First feature: featured full-width card
   const featuredFeature = features[0];
-  // Remaining 8 features in a bento grid
   const gridFeatures = features.slice(1, 9);
 
   return (
     <section id="features" className="relative py-24 sm:py-32 overflow-hidden">
+      {/* Ambient orbs */}
       <div className="pointer-events-none absolute -left-48 -top-32 w-96 h-96 bg-champagne/6 rounded-full blur-[120px]" aria-hidden />
       <div className="pointer-events-none absolute -right-48 bottom-0 w-80 h-80 bg-champagne/4 rounded-full blur-[100px]" aria-hidden />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
-        <div className="text-center mb-16">
+        {/* Section header */}
+        <StaggeredReveal className="text-center mb-16">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: FLUID_EASE_OUT }}
             className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight"
           >
             Packed with <span className="bg-gradient-to-r from-champagne to-champagne-dim bg-clip-text text-transparent">Powerful Features</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: FLUID_EASE_OUT }}
             className="text-base text-text-muted/80 max-w-2xl mx-auto mt-4"
           >
             From AI scanning to CRA-ready reports — every tool a Canadian business needs for receipt management.
           </motion.p>
-        </div>
+        </StaggeredReveal>
 
         {/* Featured card — full width */}
         {featuredFeature && (
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="mb-6"
-          >
+          <StaggeredReveal className="mb-6">
             <Link
               href={`/features/${featuredFeature.id}`}
-              className="group relative block rounded-2xl border border-champagne/20 bg-gradient-to-br from-champagne/8 via-card to-champagne/5 p-8 sm:p-10 transition-all duration-300 hover:border-champagne/30 hover:shadow-lg hover:shadow-champagne/5"
+              className="group block"
             >
-              <div className="flex flex-col sm:flex-row items-start gap-6">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-champagne/15 text-champagne group-hover:bg-champagne/25 group-hover:scale-110 transition-all duration-300">
-                  {React.createElement(getFeatureIcon(featuredFeature.icon), { className: 'h-7 w-7' })}
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-2xl font-bold text-text-primary mb-2 group-hover:text-champagne transition-colors">{featuredFeature.title}</h3>
-                  <p className="text-sm text-text-muted/80 leading-relaxed max-w-2xl">{featuredFeature.longDescription}</p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {featuredFeature.benefits.slice(0, 3).map((b) => (
-                      <span key={b} className="inline-flex items-center gap-1 rounded-full bg-champagne/8 px-3 py-1 text-[10px] font-medium text-champagne">
-                        <CheckCircle2 className="h-3 w-3" /> {b}
-                      </span>
-                    ))}
+              <DoubleBezelCard padding="p-8 sm:p-10" hover outerRadius="rounded-2xl" innerRadius="rounded-[calc(2rem-0.375rem)]">
+                <div className="flex flex-col sm:flex-row items-start gap-6">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-champagne/15 text-champagne group-hover:bg-champagne/25 group-hover:scale-110 transition-all duration-500">
+                    {React.createElement(getFeatureIcon(featuredFeature.icon), { className: 'h-7 w-7' })}
                   </div>
-                  <div className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-champagne opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0">
-                    Learn more <ArrowRight className="h-3.5 w-3.5" />
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-bold text-text-primary mb-2 group-hover:text-champagne transition-colors">{featuredFeature.title}</h3>
+                    <p className="text-sm text-text-muted/80 leading-relaxed max-w-2xl">{featuredFeature.longDescription}</p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {featuredFeature.benefits.slice(0, 3).map((b) => (
+                        <span key={b} className="inline-flex items-center gap-1 rounded-full bg-champagne/8 px-3 py-1 text-[10px] font-medium text-champagne">
+                          <CheckCircle2 className="h-3 w-3" /> {b}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-champagne opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0">
+                      Learn more <ArrowRight className="h-3.5 w-3.5" />
+                    </div>
                   </div>
                 </div>
-              </div>
+              </DoubleBezelCard>
             </Link>
-          </motion.div>
+          </StaggeredReveal>
         )}
 
-        {/* Bento grid: 2-col on desktop, asymmetric sizing */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 scroll-mt-20">
+        {/* Bento grid: asymmetric sizing */}
+        <StaggeredReveal className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 scroll-mt-20">
           {gridFeatures.map((f, i) => {
             const IconComp = getFeatureIcon(f.icon);
-            // Make first and last items span 2 cols on large screens
             const isSpanCol = i === 0 || i === gridFeatures.length - 1;
             return (
               <motion.div
                 key={f.id}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
+                whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                 viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.5, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 0.7, delay: i * 0.05, ease: FLUID_EASE }}
                 className={isSpanCol ? 'lg:col-span-2' : ''}
               >
                 <Link
                   href={`/features/${f.id}`}
-                  className="group block h-full rounded-2xl border border-glass-border bg-card p-6 transition-all duration-300 hover:border-champagne/30 hover:shadow-lg hover:shadow-champagne/5 hover:-translate-y-1"
+                  className="group block h-full"
                 >
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-champagne/10 text-champagne transition-all duration-300 group-hover:bg-champagne/20 group-hover:scale-110">
-                    {React.createElement(IconComp, { className: 'h-6 w-6' })}
-                  </div>
-                  <h3 className="text-lg font-bold text-text-primary mb-2 transition-colors group-hover:text-champagne">{f.title}</h3>
-                  <p className="text-sm text-text-muted/80 leading-relaxed line-clamp-3">{f.shortDescription}</p>
-                  <div className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-champagne opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0">
-                    Learn more <ArrowRight className="h-3.5 w-3.5" />
-                  </div>
+                  <DoubleBezelCard padding="p-6" hover outerRadius="rounded-2xl" innerRadius="rounded-[calc(2rem-0.375rem)]" className="h-full">
+                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-champagne/10 text-champagne transition-all duration-500 group-hover:bg-champagne/20 group-hover:scale-110">
+                      {React.createElement(IconComp, { className: 'h-6 w-6' })}
+                    </div>
+                    <h3 className="text-lg font-bold text-text-primary mb-2 transition-colors group-hover:text-champagne">{f.title}</h3>
+                    <p className="text-sm text-text-muted/80 leading-relaxed line-clamp-3">{f.shortDescription}</p>
+                    <div className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-champagne opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0">
+                      Learn more <ArrowRight className="h-3.5 w-3.5" />
+                    </div>
+                  </DoubleBezelCard>
                 </Link>
               </motion.div>
             );
           })}
-        </div>
+        </StaggeredReveal>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-12 text-center"
-        >
-          <Link
-            href="/features"
-            className="inline-flex items-center gap-2 rounded-xl border border-champagne/20 bg-champagne/5 px-6 py-3 text-sm font-semibold text-champagne hover:bg-champagne/10 transition-colors"
-          >
-            See all {features.length} features <ArrowRight className="h-4 w-4" />
-          </Link>
-        </motion.div>
+        <StaggeredReveal delay={0.3} className="mt-12 text-center">
+          <MagneticCTA variant="secondary" icon={ArrowRight} href="/features" className="inline-flex">
+            See all {features.length} features
+          </MagneticCTA>
+        </StaggeredReveal>
       </div>
     </section>
   );
@@ -554,26 +737,14 @@ function TestimonialsSection() {
       <div className="pointer-events-none absolute -left-32 bottom-0 w-96 h-96 bg-champagne/6 rounded-full blur-[120px]" aria-hidden />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="text-center mb-12"
-        >
+        <StaggeredReveal className="text-center mb-12">
           <h2 className="text-4xl sm:text-5xl font-bold tracking-tight">Trusted by Canadian Businesses</h2>
-        </motion.div>
+        </StaggeredReveal>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {testimonials.map((t, i) => (
-            <motion.div
-              key={t.name}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.5, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <div className="rounded-2xl border border-glass-border bg-card p-6 h-full">
+            <StaggeredReveal key={t.name} delay={i * 0.1}>
+              <DoubleBezelCard padding="p-6" hover outerRadius="rounded-2xl" innerRadius="rounded-[calc(2rem-0.375rem)]" className="h-full">
                 <div className="flex gap-1 mb-3">
                   {Array.from({ length: t.rating }).map((_, j) => (
                     <Star key={j} className="h-4 w-4 fill-champagne text-champagne" />
@@ -592,8 +763,8 @@ function TestimonialsSection() {
                     <p className="text-[10px] text-text-muted">{t.role}</p>
                   </div>
                 </div>
-              </div>
-            </motion.div>
+              </DoubleBezelCard>
+            </StaggeredReveal>
           ))}
         </div>
       </div>
@@ -635,35 +806,25 @@ function PricingSection({ onGetStarted }: { onGetStarted: () => void }) {
       <div className="pointer-events-none absolute -right-32 bottom-1/3 w-80 h-80 bg-champagne/4 rounded-full blur-[100px]" aria-hidden />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="text-center mb-16"
-        >
+        <StaggeredReveal className="text-center mb-16">
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
             No Surprises. <span className="bg-gradient-to-r from-champagne to-champagne-dim bg-clip-text text-transparent">Just Results.</span>
           </h2>
           <p className="text-base text-text-muted/80 max-w-xl mx-auto">
             Start free. Upgrade when you need more power. Every plan includes core receipt management.
           </p>
-        </motion.div>
+        </StaggeredReveal>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start max-w-5xl mx-auto">
           {pricingPlans.map((plan, i) => (
-            <motion.div
-              key={plan.name}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.5, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <div className={`relative rounded-2xl border p-8 transition-all duration-300 h-full flex flex-col ${
-                plan.highlighted
-                  ? 'border-champagne/40 bg-card shadow-2xl shadow-champagne/10 scale-105 z-10'
-                  : 'border-glass-border bg-card hover:shadow-lg hover:border-glass-border-hover'
-              }`}>
+            <StaggeredReveal key={plan.name} delay={i * 0.1}>
+              <DoubleBezelCard
+                padding="p-8"
+                hover
+                outerRadius="rounded-2xl"
+                innerRadius="rounded-[calc(2rem-0.375rem)]"
+                className={`relative h-full flex flex-col ${plan.highlighted ? 'scale-105 z-10' : ''}`}
+              >
                 {plan.highlighted && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-champagne px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-obsidian">
                     Most Popular
@@ -683,8 +844,9 @@ function PricingSection({ onGetStarted }: { onGetStarted: () => void }) {
                     </li>
                   ))}
                 </ul>
-                <button
-                  type="button"
+                <MagneticCTA
+                  variant={plan.highlighted ? 'primary' : 'secondary'}
+                  icon={ArrowRight}
                   onClick={() => {
                     if (plan.name === 'Enterprise') {
                       window.open('mailto:sales@9starlabs.ca?subject=Enterprise%20Plan%20Inquiry', '_blank');
@@ -692,28 +854,20 @@ function PricingSection({ onGetStarted }: { onGetStarted: () => void }) {
                       onGetStarted();
                     }
                   }}
-                  className={`mt-6 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all ${
-                    plan.highlighted
-                      ? 'bg-champagne text-obsidian hover:bg-champagne-dim shadow-lg shadow-champagne/20'
-                      : 'border border-glass-border bg-surface-raised text-text-primary hover:bg-surface-hover'
-                  }`}
+                  className="mt-6 w-full"
                 >
-                  {plan.cta} <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            </motion.div>
+                  {plan.cta}
+                </MagneticCTA>
+              </DoubleBezelCard>
+            </StaggeredReveal>
           ))}
         </div>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-10 text-center text-sm text-text-muted/70"
-        >
-          All plans include AES-256-GCM encryption, Canadian data residency, and PIPEDA compliance.
-        </motion.p>
+        <StaggeredReveal delay={0.3} className="mt-10 text-center">
+          <p className="text-sm text-text-muted/70">
+            All plans include AES-256-GCM encryption, Canadian data residency, and PIPEDA compliance.
+          </p>
+        </StaggeredReveal>
       </div>
     </section>
   );
@@ -735,15 +889,9 @@ function FAQSection() {
   return (
     <section id="faq" className="relative py-24 sm:py-32 border-t border-glass-border scroll-mt-20">
       <div className="mx-auto max-w-4xl px-4 sm:px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="text-center mb-12"
-        >
+        <StaggeredReveal className="text-center mb-12">
           <h2 className="text-4xl sm:text-5xl font-bold tracking-tight">Common Questions</h2>
-        </motion.div>
+        </StaggeredReveal>
 
         <div className="space-y-0">
           {faqs.map((faq, i) => (
@@ -768,7 +916,7 @@ function FAQItem({ question, answer, isOpen, onToggle }: {
   onToggle: () => void;
 }) {
   return (
-    <div className="border-b border-glass-border py-4 group">
+    <DoubleBezelCard padding="py-4" className="group">
       <button
         type="button"
         onClick={onToggle}
@@ -777,7 +925,7 @@ function FAQItem({ question, answer, isOpen, onToggle }: {
         <span className="text-base font-semibold text-text-primary group-hover:text-champagne transition-colors pr-4">{question}</span>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
+          transition={{ duration: 0.2, ease: FLUID_EASE_OUT }}
         >
           <ChevronDown className="h-5 w-5 shrink-0 text-text-muted" />
         </motion.div>
@@ -789,14 +937,14 @@ function FAQItem({ question, answer, isOpen, onToggle }: {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
+            transition={{ duration: 0.3, ease: FLUID_EASE_OUT }}
             className="overflow-hidden"
           >
             <div className="mt-2 text-sm text-text-muted/80 leading-relaxed pb-2">{answer}</div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </DoubleBezelCard>
   );
 }
 
@@ -806,34 +954,31 @@ function CtaBanner({ onGetStarted }: { onGetStarted: () => void }) {
     <section className="relative py-24 sm:py-32 overflow-hidden">
       <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-32 w-96 h-96 bg-champagne/10 rounded-full blur-[120px]" aria-hidden />
       <div className="mx-auto max-w-5xl px-4 sm:px-6 relative">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          className="relative rounded-3xl border border-champagne/20 bg-gradient-to-br from-champagne/10 via-champagne/5 to-transparent p-12 sm:p-16 text-center overflow-hidden"
-        >
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-champagne/5 to-transparent opacity-50" />
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 rounded-full bg-champagne/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-champagne mb-6">
-              <Clock className="h-3 w-3" /> No credit card required
+        <StaggeredReveal className="relative">
+          <DoubleBezelCard
+            padding="p-12 sm:p-16"
+            outerRadius="rounded-3xl"
+            innerRadius="rounded-[calc(3rem-0.375rem)]"
+            className="text-center overflow-hidden border-champagne/20 bg-gradient-to-br from-champagne/10 via-champagne/5 to-transparent"
+          >
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-champagne/5 to-transparent opacity-50" />
+            <div className="relative z-10">
+              <div className="inline-flex items-center gap-2 rounded-full bg-champagne/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-champagne mb-6">
+                <Clock className="h-3 w-3" /> No credit card required
+              </div>
+              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
+                Ready to Get <span className="bg-gradient-to-r from-champagne to-champagne-dim bg-clip-text text-transparent">CRA-Ready?</span>
+              </h2>
+              <p className="text-base text-text-muted/80 max-w-lg mx-auto mb-8">
+                Join hundreds of Canadian businesses that trust {APP_NAME} for their receipt management.
+                Start your free trial — no credit card required.
+              </p>
+              <MagneticCTA variant="primary" icon={ShieldCheck} onClick={onGetStarted}>
+                Start Free Trial
+              </MagneticCTA>
             </div>
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
-              Ready to Get <span className="bg-gradient-to-r from-champagne to-champagne-dim bg-clip-text text-transparent">CRA-Ready?</span>
-            </h2>
-            <p className="text-base text-text-muted/80 max-w-lg mx-auto mb-8">
-              Join hundreds of Canadian businesses that trust {APP_NAME} for their receipt management.
-              Start your free trial — no credit card required.
-            </p>
-            <button
-              type="button"
-              onClick={onGetStarted}
-              className="inline-flex items-center gap-2 rounded-xl bg-champagne px-8 py-3.5 text-sm font-bold text-obsidian hover:bg-champagne-dim transition shadow-xl shadow-champagne/20"
-            >
-              <ShieldCheck className="h-4 w-4" /> Start Free Trial
-            </button>
-          </div>
-        </motion.div>
+          </DoubleBezelCard>
+        </StaggeredReveal>
       </div>
     </section>
   );

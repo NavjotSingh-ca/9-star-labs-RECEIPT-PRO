@@ -3,67 +3,67 @@
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://leduc-receipt-pro.vercel.app/</loc>
-    <lastmod>2026-07-22</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1</priority>
   </url>
   <url>
     <loc>https://leduc-receipt-pro.vercel.app/privacy</loc>
-    <lastmod>2026-07-22</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://leduc-receipt-pro.vercel.app/terms</loc>
-    <lastmod>2026-07-22</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://leduc-receipt-pro.vercel.app/auth/callback</loc>
-    <lastmod>2026-07-22</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://leduc-receipt-pro.vercel.app/notifications</loc>
-    <lastmod>2026-07-22</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://leduc-receipt-pro.vercel.app/settings/admin</loc>
-    <lastmod>2026-07-22</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
     <loc>https://leduc-receipt-pro.vercel.app/settings/billing</loc>
-    <lastmod>2026-07-22</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
     <loc>https://leduc-receipt-pro.vercel.app/settings/org</loc>
-    <lastmod>2026-07-22</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
     <loc>https://leduc-receipt-pro.vercel.app/settings/security</loc>
-    <lastmod>2026-07-22</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
     <loc>https://leduc-receipt-pro.vercel.app/settings/team</loc>
-    <lastmod>2026-07-22</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
     <loc>https://leduc-receipt-pro.vercel.app/settings/features</loc>
-    <lastmod>2026-07-22</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
