@@ -1,7 +1,7 @@
 'use client';
 
 import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -11,14 +11,9 @@ import { motion, AnimatePresence } from 'framer-motion';
  */
 export function ThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const [mounted] = useState(false);
 
-  useEffect(() => {
-  setMounted(true);
-  return () => setMounted(false);
-  }, []);
-
-  if (!mounted) {
+  if (!mounted && typeof window === 'undefined') {
     return <div className="h-10 w-10 rounded-[2rem] bg-sidebar-surface" />;
   }
 

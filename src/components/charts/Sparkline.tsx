@@ -15,7 +15,6 @@ export function Sparkline({ data, color = 'var(--champagne)', id }: SparklinePro
   if (data.length < 2) return null;
 
   const gradientId = id ?? `spark-gradient-${data.length}-${data[0]?.date ?? 'default'}`;
-  const fillColor = color.replace(')', '/0.2)').replace(')', '');
 
   return (
     <div className="h-8 w-full max-w-[120px]" role="img" aria-label={`Sparkline: ${data.length} points over time`}>

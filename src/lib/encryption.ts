@@ -76,8 +76,16 @@ export function decryptToken(encrypted: string): string {
     const key = getEncryptionKey();
     return decryptWithKey(encrypted, key);
   } catch {
-    // Return plaintext for local dev without key configured
-    return encrypted;
+    // No silent garbage — log the issue and throw a clear error
+    console.warn(
+      '[encryption] Failed to decrypt token in dev mode. ' +
+      'TOKEN_ENCRYPTION_KEY may have changed since encryption. ' +
+      'Set a consistent key in .env.local to avoid data loss.'
+    );
+    throw new Error(
+      'Failed to decrypt token — encryption key mismatch or corrupted data. ' +
+      'Ensure TOKEN_ENCRYPTION_KEY is consistent across restarts.'
+    );
   }
 }
 

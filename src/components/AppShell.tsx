@@ -15,7 +15,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import MobileNav from '@/components/layout/MobileNav';
 import TopBar from '@/components/layout/TopBar';
 import MoreSheet from '@/components/layout/MoreSheet';
-import CommandPalette from '@/components/CommandPalette';
+import { CommandPalette, useCommandPalette } from '@/components/CommandPalette';
 import type { UserRole } from '@/lib/types';
 import type { User } from '@supabase/supabase-js';
 import { getReceipts, getDashboardSummary, getDailySpend } from '@/lib/services/receipts';
@@ -64,7 +64,7 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
     'qbo-export', 'xero-export', 'export-dashboard', 'email-forward',
     'readiness-score', 'spending-insights', 'share-receipt', 'payables-dashboard', 'slack-alerts', 'dark-sync',
   ]).withDefault('dashboard'));
-
+  const commandPalette = useCommandPalette();
   const setTabWithUrl = useCallback((tab: Tab) => {
     if (typeof window === 'undefined') return;
     setActiveTab(tab);
@@ -309,9 +309,9 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
       <OnboardingTour />
 
       <CommandPalette
-        onTabChange={setTabWithUrl}
-        onSignOut={handleSignOut}
-        role={role}
+        isOpen={commandPalette.isOpen}
+        onClose={commandPalette.close}
+        onCommand={(cmd) => cmd.action()}
       />
     </div>
   );

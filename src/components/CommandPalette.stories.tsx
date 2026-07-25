@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
-import CommandPalette from './CommandPalette';
+import { CommandPalette } from './CommandPalette';
 import { withProviders } from '../../.storybook/utils';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -25,9 +25,9 @@ type Story = StoryObj<typeof CommandPalette>;
 
 export const Default: Story = {
   args: {
-    onTabChange: (tab) => console.log('Navigate to:', tab),
-    onSignOut: () => console.log('Sign out'),
-    role: 'Owner',
+    isOpen: false,
+    onClose: () => {},
+    onCommand: (cmd) => console.log('Command:', cmd.label),
   },
 };
 
@@ -42,9 +42,9 @@ export const Open: Story = {
         </Button>
         {open && (
           <CommandPalette
-            onTabChange={(t) => console.log(t)}
-            onSignOut={() => console.log('sign out')}
-            role="Owner"
+            isOpen={true}
+            onClose={() => setOpen(false)}
+            onCommand={(cmd) => console.log(cmd.label)}
           />
         )}
       </div>

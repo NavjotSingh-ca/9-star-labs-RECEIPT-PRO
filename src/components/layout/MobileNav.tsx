@@ -9,6 +9,7 @@ import {
   MoreHorizontal,
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
+import { cn } from '@design/utils';
 
 type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'time' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more'
   | 'smart-search' | 'receipt-calendar' | 'receipt-timeline' | 'vendor-analytics'
@@ -17,26 +18,13 @@ type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' 
   | 'qbo-export' | 'xero-export' | 'export-dashboard' | 'email-forward'
   | 'readiness-score' | 'spending-insights' | 'share-receipt' | 'payables-dashboard' | 'slack-alerts' | 'dark-sync';
 
-/**
- * Props for the MobileNav component.
- */
 interface MobileNavProps {
-  /** Currently active navigation tab */
   activeTab: Tab;
-  /** Callback when user navigates to a different tab */
   onTabChange: (tab: Tab) => void;
-  /** Current user's role */
   role: UserRole;
-  /** When true, the scan FAB pulses to encourage the first receipt scan */
   noReceipts?: boolean;
 }
 
-/**
- * Bottom tab navigation bar for mobile/tablet viewports (<1024px).
- * Features 4 tabs: Home, Records, Scan (center FAB), More.
- * The Scan button pulses when no receipts exist to encourage first-time scanning.
- * Supports keyboard navigation with proper focus states.
- */
 export default function MobileNav({ activeTab, onTabChange, noReceipts }: MobileNavProps) {
   const navItems: Array<{
     id: Tab;
@@ -52,7 +40,7 @@ export default function MobileNav({ activeTab, onTabChange, noReceipts }: Mobile
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-glass-border bg-sidebar-bg/95 backdrop-blur-xl bottom-nav lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-glass-border bg-surface-raised/95 backdrop-blur-xl bottom-nav lg:hidden"
       role="navigation"
       aria-label="Main navigation"
     >
@@ -83,7 +71,10 @@ export default function MobileNav({ activeTab, onTabChange, noReceipts }: Mobile
                       ? { repeat: Infinity, duration: 2, ease: 'easeInOut' }
                       : { type: 'spring', stiffness: 400, damping: 15 }
                     }
-                    className="flex h-14 w-14 items-center justify-center rounded-full shadow-xl shimmer-scan text-white/90 shadow-emerald-success/20 focus:outline-none focus:ring-2 focus:ring-champagne/40"
+                    className={cn(
+                      'flex h-14 w-14 items-center justify-center rounded-full shadow-xl shimmer-scan text-white/90 shadow-emerald-success/20 focus:outline-none focus:ring-2 focus:ring-champagne/40',
+                      'bg-champagne hover:bg-champagne-dim'
+                    )}
                   >
                     {item.icon}
                   </motion.button>
@@ -102,18 +93,31 @@ export default function MobileNav({ activeTab, onTabChange, noReceipts }: Mobile
                 aria-label={item.label}
                 aria-current={isActive ? 'page' : undefined}
                 whileTap={{ scale: 0.9 }}
-                className="flex flex-col items-center gap-0.5 py-1 focus:outline-none focus:ring-2 focus:ring-champagne/40 rounded-xl"
-              >
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
+                className={cn(
+                  'flex flex-col items-center gap-0.5 py-1 focus:outline-none focus:ring-2 focus:ring-champagne/40 rounded-xl',
                   isActive
-                    ? 'text-sidebar-accent bg-sidebar-accent/10'
-                    : 'text-sidebar-text-muted hover:text-sidebar-text'
-                }`} aria-hidden="true">
+                    ? 'text-champagne bg-champagne/10'
+                    : 'text-text-muted hover:text-text-secondary'
+                )}
+              >
+                <div
+                  className={cn(
+                    'flex h-10 w-10 items-center justify-center rounded-xl transition-colors',
+                    isActive
+                      ? 'text-champagne bg-champagne/10'
+                      : 'text-text-muted hover:text-text-secondary'
+                  )}
+                  aria-hidden="true"
+                >
                   {item.icon}
                 </div>
-                <span className={`text-[10px] font-semibold transition-colors ${
-                  isActive ? 'text-sidebar-accent' : 'text-sidebar-text-muted'
-                }`} aria-hidden="true">
+                <span
+                  className={cn(
+                    'text-[10px] font-semibold transition-colors',
+                    isActive ? 'text-champagne' : 'text-text-muted'
+                  )}
+                  aria-hidden="true"
+                >
                   {item.label}
                 </span>
               </motion.button>

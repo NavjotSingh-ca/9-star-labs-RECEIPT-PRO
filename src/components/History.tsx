@@ -18,24 +18,15 @@ import dynamic from 'next/dynamic';
 import { semanticSearchAction } from '@/app/actions/semantic-search';
 import { getReceiptsPaginated, deleteReceipt, undeleteReceipts, bulkUpdateApproval, bulkDeleteReceipts } from '@/lib/services/receipts';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { ProfessionalLedger } from '@/components/history/ProfessionalLedger';
 import { StatCards } from '@/components/history/StatCards';
 import { SemanticSearchBar } from '@/components/history/SemanticSearchBar';
 import { BulkActionsBar } from '@/components/history/BulkActionsBar';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { ReceiptTableSkeleton } from '@/components/ui/PremiumSkeletons';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { Button } from '@design/primitives';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { cn } from '@design/utils';
 
 import type { ReceiptRow } from '@/lib/types';
 import type { UserRole } from '@/lib/types';
@@ -69,10 +60,6 @@ type HistoryProps = {
   userId?: string | null;
 };
 
-/**
- * History — paginated receipt ledger with semantic search, bulk actions, and detail drawer.
- * Supports infinite scroll, bulk approve/reject/delete/export, and filter-by-status tabs.
- */
 export default function History({
   activeFilter = 'all',
   onUpdate,
@@ -122,7 +109,6 @@ export default function History({
       else if (normalizedFilter === 'reimbursement') specialFilter = 'reimbursement';
       else if (normalizedFilter !== 'all') filterCategory = activeFilter;
 
-      // If semanticMode is on but we have no results from AI yet, don't fetch from DB
       if (semanticMode && !semanticResults) return { receipts: [], totalCount: 0 };
 
       return getReceiptsPaginated({
@@ -184,7 +170,6 @@ export default function History({
       refetch();
     } catch (err) {
       logError(err, { action: 'delete_receipt' });
-      // CRA-protected receipts need the confirmation dialog
       if (err instanceof Error && err.message.includes('CRA retention')) {
         setDeleteTarget(id);
       } else {
@@ -324,7 +309,7 @@ export default function History({
             <h2 className="text-3xl font-bold tracking-tight">
               {new Date().toLocaleDateString('en-CA', { month: 'long', year: 'numeric' })} Receipts
             </h2>
-            <p className="mt-1 text-sm font-medium text-muted-foreground">
+            <p className="mt-1 text-sm font-medium text-text-muted">
               <span className="font-bold">{totalCount}</span> record{totalCount === 1 ? '' : 's'} · {activeFilter === 'all' ? 'All entries' : activeFilter}
             </p>
           </div>
@@ -364,8 +349,8 @@ export default function History({
             <ReceiptTableSkeleton />
           </div>
         ) : receipts.length === 0 ? (
-          <div className="flex min-h-[40vh] flex-col items-center justify-center gap-6 rounded-xl border border-dashed bg-muted/10 p-12 text-center" aria-live="polite">
-            <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+          <div className="flex min-h-[40vh] flex-col items-center justify-center gap-6 rounded-xl border border-dashed bg-surface/10 p-12 text-center" aria-live="polite">
+            <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-surface text-text-muted">
               <SearchX className="h-10 w-10" />
             </div>
             <div>
@@ -374,7 +359,7 @@ export default function History({
                   ? 'No AI matches found'
                   : (emptyStateMap[activeFilter]?.title || 'No records found')}
               </h3>
-              <p className="mt-2 text-sm text-muted-foreground max-w-xs">
+              <p className="mt-2 text-sm text-text-muted max-w-xs">
                 {semanticMode && semanticResults !== null && semanticResults.length === 0
                   ? 'Try a different search query or use the traditional search bar.'
                   : (emptyStateMap[activeFilter]?.subtitle || 'Adjust your filters or scan a new receipt to populate the ledger.')}
@@ -429,8 +414,8 @@ export default function History({
       >
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
-          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-50 flex flex-col rounded-t-2xl border-t bg-background outline-none focus:ring-0 sm:max-w-3xl sm:mx-auto sm:mb-6 sm:rounded-2xl sm:max-h-[95vh] bottom-nav">
-            <div className="mx-auto mt-4 h-1.5 w-12 flex-shrink-0 rounded-full bg-muted" />
+          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-50 flex flex-col rounded-t-2xl border-t bg-surface outline-none focus:ring-0 sm:max-w-3xl sm:mx-auto sm:mb-6 sm:rounded-2xl sm:max-h-[95vh] bottom-nav">
+            <div className="mx-auto mt-4 h-1.5 w-12 flex-shrink-0 rounded-full bg-text-muted/30" />
             
             {selectedReceipt && receipts.length > 1 && (
               <div className="flex items-center justify-between border-b border-glass-border px-4 py-2">
@@ -474,7 +459,7 @@ export default function History({
       </Drawer.Root>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open: boolean) => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Receipt Record</AlertDialogTitle>
@@ -488,7 +473,7 @@ export default function History({
             />
             <AlertDialogAction
               disabled={deleteLoading}
-              render={<Button variant="destructive" className="rounded-xl font-semibold" />}
+              render={<Button variant="danger" className="rounded-xl font-semibold" />}
               onClick={confirmDelete}
             >
               {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -499,7 +484,7 @@ export default function History({
       </AlertDialog>
 
       {/* Bulk Delete Confirmation */}
-      <AlertDialog open={showBulkDeleteConfirm} onOpenChange={(open) => { if (!open) setShowBulkDeleteConfirm(false); }}>
+      <AlertDialog open={showBulkDeleteConfirm} onOpenChange={(open: boolean) => { if (!open) setShowBulkDeleteConfirm(false); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {selectedIds.length} Records</AlertDialogTitle>
@@ -513,7 +498,7 @@ export default function History({
             />
             <AlertDialogAction
               disabled={bulkLoading}
-              render={<Button variant="destructive" className="rounded-xl font-semibold" />}
+              render={<Button variant="danger" className="rounded-xl font-semibold" />}
               onClick={confirmBulkDelete}
             >
               {bulkLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -535,4 +520,3 @@ export default function History({
     </>
   );
 }
-

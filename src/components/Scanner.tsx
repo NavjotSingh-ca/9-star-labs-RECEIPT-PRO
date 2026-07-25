@@ -15,9 +15,10 @@ import ImagePreview from '@/components/scanner/ImagePreview';
 import ErrorModal from '@/components/scanner/ErrorModal';
 import SuccessOverlay from '@/components/scanner/SuccessOverlay';
 import { ScanSuccessBurst } from '@/components/ui/ScanSuccessBurst';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@design/primitives';
 import type { ScannerProps } from '@/components/scanner/types';
 import { useScannerState } from '@/components/scanner/hooks/useScannerState';
+import { Button } from '@design/primitives';
 
 /**
  * Scanner component — camera capture, gallery upload, manual crop, AI extraction, duplicate detection.
@@ -83,7 +84,7 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
       </AnimatePresence>
 
       {!s.imageSrc ? (
-        <Card className="border bg-card text-card-foreground shadow-sm">
+        <Card className="border bg-surface text-text-primary shadow-sm" variant="default">
           <CardHeader className="px-5 py-4 border-b">
             <CardTitle className="text-lg font-bold">{APP_NAME} Scanner</CardTitle>
             <CardDescription className="mt-1 text-sm">
@@ -110,13 +111,15 @@ export default function Scanner({ user, onSaveSuccess }: ScannerProps) {
             <>
             {s.processingAI && (
               <div className="flex justify-center pb-3">
-                <button
+                <Button
                   type="button"
+                  variant="danger"
+                  size="sm"
                   onClick={s.cancelProcessing}
                   className="rounded-full border border-danger/30 bg-danger/10 px-4 py-1.5 text-xs font-semibold text-danger transition hover:bg-danger/20"
                 >
                   Cancel Processing
-                </button>
+                </Button>
               </div>
             )}
             <ImagePreview

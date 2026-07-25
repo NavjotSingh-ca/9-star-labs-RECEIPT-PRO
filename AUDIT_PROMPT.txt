@@ -1,0 +1,335 @@
+# Comprehensive UI/UX Audit Prompt for Expert Agent
+
+You are an expert UI/UX auditor with deep knowledge of:
+- WCAG 2.1 AA/AAA accessibility standards
+- Material Design, Apple HIG, and modern design systems
+- Interaction design principles and motion principles
+- Performance optimization for web applications
+- Mobile-first responsive design
+- Design system consistency and token usage
+- Copywriting and microcopy best practices
+- Motion design and animation principles
+- Component library best practices (shadcn/ui, Radix UI, framer-motion)
+
+## Audit Target
+**Application**: Leduc Receipt Pro (Next.js 16, TypeScript, Tailwind v4, framer-motion)
+**Focus**: Complete user experience audit covering all screens, components, and interaction flows
+**Depth**: Deep dive - every pixel, interaction, animation, accessibility issue, and inconsistency
+**Output Format**: Ranked table with columns: Priority | File:Line | Issue Description | Impact Score (1-10) | Suggested Fix | Related WCAG/UX Principle
+
+## Audit Scope & Methodology
+
+### 1. VISUAL DESIGN CONSISTENCY
+**Check every component for:**
+- **Typography**: 
+  - Consistent use of Geist Variable font via `next/font/local`
+  - Heading hierarchy: h1 (text-5xl sm:text-6xl lg:text-7xl), h2 (text-4xl sm:text-5xl lg:text-6xl), etc.
+  - Body text: text-base leading-relaxed max-w-[65ch]
+  - Utility classes: tracking-tight for headings, tracking-wider for captions
+  - No hardcoded font sizes or font families
+  
+- **Color System** (from globals.css):
+  - Primary accent: `--champagne` (#bea98e) and `--champagne-dim` (#8b7355)
+  - Background: `--obsidian` (dark mode), `--card`/`--surface` for cards
+  - Borders: `--glass-border`/`--glass-border-hover`
+  - Text: `--text-primary`/`--text-secondary`/`--text-muted`
+  - Success: `--emerald-success`
+  - **Check**: No blue-*, violet-*, purple-*, indigo-* classes anywhere
+  - **Check**: All accent uses champagne consistently (buttons, links, highlights, charts)
+  - **Check**: Dark mode consistency - all sections use same background tokens
+  
+- **Spacing & Layout**:
+  - 8px grid system (all padding/margin multiples of 4px)
+  - Container max-width: max-w-7xl px-4 sm:px-6 lg:px-8
+  - Section padding: py-16 sm:py-24 lg:py-32 (adjust by section importance)
+  - Gap consistency: gap-4 sm:gap-6 lg:gap-8 for grids
+  - Border radius consistency: rounded-xl for cards, rounded-2xl for hero/featured
+  
+- **Iconography**:
+  - All icons from lucide-react
+  - Consistent sizing: h-4 w-4 for inline, h-5 w-5 for buttons, h-6 w-6 for standalone
+  - Consistent stroke: currentColor (no hardcoded fill/stroke)
+  - Icon spacing: gap-2 between icon and text
+  
+- **Elevation & Shadows**:
+  - Cards: shadow-sm hover:shadow-md transition-shadow
+  - Modals/Overlays: shadow-xl or shadow-2xl
+  - No hardcoded shadow values - use theme tokens
+  - Shadow color: rgba(0,0,0,0.1) variants, never pure black
+
+### 2. ACCESSIBILITY (WCAG 2.1 AA)
+**Test every interactive element:**
+
+- **Color Contrast**:
+  - Minimum 4.5:1 for normal text, 3:1 for large text (18pt+)
+  - Check: text on bg-card, text on bg-champagne/*, text on bg-surface/*
+  - Use automated axe-core + manual verification
+  
+- **Keyboard Navigation**:
+  - Tab order logical and predictable
+  - No keyboard traps
+  - All interactive elements reachable via Tab (buttons, links, inputs, custom controls)
+  - Visible focus indicator: 2px solid champagne, offset 2px
+  - Custom widgets (dropdowns, modals, toggles) follow ARIA authoring practices
+  
+- **ARIA Attributes**:
+  - All custom components have appropriate roles (dialog, menu, tabpanel, etc.)
+  - aria-label where visible label absent (icon-only buttons)
+  - aria-describedby for error messages
+  - aria-expanded on toggle buttons
+  - aria-live="polite" for dynamic content updates (toasts, live regions)
+  - aria-sort on sortable table headers
+  
+- **Screen Reader Testing**:
+  - Landmarks: header, nav, main, footer, complementary
+  - Headings follow logical hierarchy (no skipped levels)
+  - Form labels properly associated (htmlFor/id or aria-label)
+  - Image alt text: descriptive or "" for decorative
+  
+- **Touch Targets**:
+  - Minimum 44x44px for all touch controls
+  - Adequate spacing between touch targets (8px minimum)
+  
+- **Motion & Animation**:
+  - Respects `prefers-reduced-motion` - animation disabled or reduced
+  - No flashing content (>3Hz or general flash threshold)
+  - Animation duration reasonable (200-500ms for UI, 600-900ms for page transitions)
+  
+### 3. INTERACTION DESIGN & FEEDBACK
+
+- **Button States**:
+  - Default, hover, focus, active, disabled, loading
+  - Clear visual feedback for each state
+  - Disabled state has lower opacity (50%) and cursor: not-allowed
+  - Loading state shows spinner or skeleton within button
+  
+- **Form Elements**:
+  - Input: focus ring, valid/invalid states, error messaging
+  - Select/menu: clear options, search/filter if >5 options
+  - Checkbox/Radio: clear hit area, label clickable
+  - Validation: inline, real-time where possible, prevent submission on error
+  
+- **Navigation**:
+  - Consistent header/footer across pages
+  - Mobile hamburger menu accessible and animates smoothly
+  - Breadcrumbs where appropriate for deep navigation
+  - Skip to main content link
+  
+- **Data Tables & Lists**:
+  - Sortable columns with visual indicators
+  - Selection modes clear (single/multi)
+  - Bulk actions clear with selection count
+  - Empty states: illustration, headline, primary CTA
+  - Loading states: skeletons matching final layout, not spinners
+  
+- **Modals & Overlays**:
+  - Background dimming and scroll locking
+  - Escape key closes
+  - Click outside to close (where appropriate)
+  - Focus trapped within modal
+  - Initial focus on first interactive element or dismiss button
+  
+- **Toasts & Notifications**:
+  - Positioned consistently (bottom-right/top-right)
+  - Auto-dismiss with pause on hover
+  - Actionable toasts have clear buttons
+  - Error toasts: distinct color, actionable if possible
+  - Success toasts: brief, non-intrusive
+  
+### 4. PERFORMANCE & TECHNICAL UX
+
+- **Rendering Performance**:
+  - No layout thrashing (forced synchronous layouts)
+  - Animations only animate transform and opacity
+  - useLayoutEffect used only when DOM measurements needed
+  - Expensive computations memoized (useMemo, useCallback)
+  
+- **Image Optimization**:
+  - All images use next/image with proper width/height
+  - Priority images (above-the-fold) have priority prop
+  - Placeholders/blurred previews for LCP images
+  - WebP/AVIF formats where supported
+  
+- **Bundle Impact**:
+  - New imports justified and tree-shakable
+  - No duplicate libraries (multiple chart libs lazy-loaded where appropriate
+  - Critical CSS inlined, non-critical deferred
+  
+- **Server Components**:
+  - Maximum use of Server Components where appropriate
+  - Client components marked `'use client-only logic (For Next.js 16+) - maximize RSC usage, minimize client components
+  - Data fetching in server components when possible
+  - Client components only for interactivity, state, effects
+  
+### 5. MOBILE RESPONSIVE DESIGN
+
+- **Breakpoints**: sm 640px, md 768px, lg 1024px, xl 1280px, 2xl 1536px
+- **Navigation**:
+  - Desktop: horizontal nav bar
+  - Mobile: bottom tab nav or hamburger → drawer
+  - Touch targets appropriately sized
+  
+- **Layout Adaptation**:
+  - Grid columns: 1-col → 2-col → 3-col → 4-col as width increases
+  - Cards stack vertically on mobile
+  - Tables become scrollable or convert to cards
+  
+- **Typography Scaling**:
+  - Fluid type or breakpoint-based scaling
+  - Minimum 16px base font on mobile
+  
+- **Performance Considerations**:
+  - Lazy load below-the-fold content
+  - Optimize for cellular networks (progressive enhancement)
+  - Minimize DOM nodes on mobile
+  
+### 6. SPECIFIC COMPONENT FLOWS TO AUDIT
+
+**Dashboard**:
+- KPI cards: hover states, sparkline tooltips, date range picker
+- Charts: tooltip consistency, legend interaction, drill-down
+- Alerts: dismissable, actionable, severity coloring
+- Empty state: illustration, headline, primary CTA, feature highlights
+  
+**Scanner**:
+- Permission rationale (camera access explained upfront)
+- Success state: clear confirmation, undo option, next steps
+- Error states: specific, actionable, retry options
+- UI feedback during processing (progress, not just spinner)
+- Gallery view of scanned receipts
+  
+**History/Ledger**:
+- Search: clear as you type, search scope indicator
+- Filters: persistent across sessions, clear active filters
+- Bulk actions: selection count, clear primary/secondary actions
+- Row actions: clear icons/tooltips, confirmation for destructive
+- Empty states: contextual based on current filters/sort
+  
+**Settings Pages**:
+- Form validation: real-time, clear errors, password strength meter
+- Navigation: consistent across billing/org/security/team
+- Preview states where applicable (theme toggle, uploads)
+- Data consistency: show current values, explain implications
+  
+**Reports**:
+- Configuration: clear explanations, examples, defaults
+- Generation: progress indication, estimated time
+- Results: clear metrics, export options, drill-down
+- Templates: preview, usage instructions, editing/deletion
+  
+**Onboarding/Auth**:
+- Password requirements visible before typing
+- Social login buttons clear (Google, etc.)
+- Error messages specific and helpful
+- Success states with clear next steps
+  
+### 7. COPY & MICROCOPY
+
+- **Voice & Tone**: 
+  - Helpful, confident, slightly premium (Lin
+  - Avoid jargon, explain acronyms first use (CRA, GST/HST)
+  - Action-oriented language ("Submit", "Save", "Download")
+  - Positive framing ("Save 5 hours/month" vs "Don't waste time")
+  
+- **Specific Checks**:
+  - Button labels: verb-first, under 3 words when possible
+  - Error messages: explain what happened and how to fix
+  - Success messages: specific outcome, next steps if any
+  - Placeholder text: show format/example (MM/DD/YYYY)
+  - Help text: concise, scannable, actionable
+  - No lorem ipsum or placeholder text in production
+  - Consistent terminology: "Receipt" not "Transaction"/"Expense" (unless financial context)
+  
+### 8. MOTION & ANIMATION PRINCIPLES
+
+- **Easing Standards**:
+  - Enter: ease-out (cubic-bezier(0.23, 1, 0.32, 1))
+  - Move: ease-in-out (cubic-bezier(0.645, 0.045, 0.355, 1))
+  - Exit: ease-in (cubic-bezier(0.55, 0.085, 0.68, 0.53))
+  - Hover: ease (cubic-bezier(0.25, 0.1, 0.25, 1))
+  - Opacity only: linear
+  
+- **Duration Standards**:
+  - Element enter/exit: 200ms
+  - Element move: 200ms
+  - Hover effects: 150ms
+  - Page transitions: 600ms
+  - Toast enter/exit: 300ms/200ms
+  - Modal enter/exit: 300ms/200ms
+  
+- **Stagger Timing**:
+  - List items: 50-100ms between items
+  - Grid items: 50ms delay based on position
+  - StaggerChildren in motion variants preferred
+  
+- **Performance**:
+  - All animations use transform/opacity only (GPU accelerated)
+  - Will-change: transform, opacity on animated elements
+  - Respect prefers-reduced-motion (useReducedMotion hook)
+  - No layout-affecting animations (height, width, top, left)
+  
+### 9. ERROR HANDLING & EDGE CASES
+
+- **Network Errors**:
+  - Clear, actionable messages
+  - Retry options where appropriate
+  - Offline indicators/caching where applicable
+  
+- **Validation Errors**:
+  - Inline, real-time where possible
+  - Field-specific, not generic form errors
+  - Explain constraints (min/max, format, etc.)
+  
+- **Empty States**:
+  - Never blank screens - always illustration + headline + CTA
+  - Contextual based on user's current context/action
+  
+- **Loading States**:
+  - Skeletons matching final layout shape
+  - Progressive skeleton reveal (content appears as ready)
+  - Skeleton shimmer animation for perceived performance
+  
+- **Edge Cases**:
+  - Very long text (truncation with tooltip)
+  - Very large numbers (abbreviation: 1.2K, 1.5M)
+  - No data scenarios
+  - Permission denied states (camera, location, notifications)
+  
+## DELIVERABLE FORMAT
+
+Provide a ranked table with these columns:
+
+| Priority | File:Line | Issue Description | Impact Score (1-10) | Suggested Fix | Related WCAG/UX Principle |
+
+**Priority Levels**:
+- **CRITICAL**: Blocks core functionality, accessibility violation, data loss/security risk
+- **HIGH**: Significantly degrades UX, major usability issue, likely to cause user frustration/abandonment
+- **MEDIUM**: Noticeable UX degradation, inconsistency, minor annoyance
+- **LOW**: Polish issue, nitpick, minimal impact
+
+**Impact Score** (1-10): 
+- 9-10: Affects majority of users on core tasks
+- 7-8: Affects significant user segment or frequent tasks
+- 4-6: Affects minority or infrequent tasks
+- 1-3: Minor polish, barely noticeable
+
+**Related Principle**: Reference specific WCAG guideline (e.g., WCAG 1.4.3 Contrast Minimum) or UX heuristic (e.g., Nielsen's Visibility of system status)
+
+**Special Instructions**:
+1. Be brutally honest - don't soften issues for the sake of positivity
+2. Include both what's wrong AND why it matters (user impact)
+3. Suggest specific, actionable fixes (not just "make it better")
+4. Group similar issues when they share root cause
+5. For false positives (things that appear problematic but are correct by design), note as "INVESTIGATE" with explanation
+6. Include positive findings where exemplary patterns exist (to preserve good practices)
+
+**Output**: Start with a brief executive summary (3-5 bullet points) of top 3-5 critical issues, then the ranked table.
+
+**Reminder**: You have access to read all source files. Use your expertise to spot patterns, inconsistencies, and violations that automated tools might miss.
+
+---
+
+**EXECUTE THIS AUDIT NOW** on the Leduc Receipt Pro codebase at:
+C:\Users\navjo\leduc-receipt-pro\
+
+Return ONLY the audit report in the specified format. Do not include any preamble or explanation - just the executive summary followed by the ranked table.

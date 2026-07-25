@@ -1,16 +1,15 @@
-import { cn } from "@/lib/utils"
+'use client';
 
-function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="skeleton"
-      className={cn(
-        "rounded-[2rem] bg-gradient-to-r from-surface via-champagne/8 to-surface bg-[length:200%_100%] animate-[shimmer_1.8s_ease-in-out_infinite]",
-        className
-      )}
-      {...props}
-    />
-  )
+import { Skeleton as DesignSkeleton } from '@design/primitives';
+
+/**
+ * Skeleton — Thin wrapper delegating to @design/primitives/Skeleton.
+ * The old API was simple: just className + div props.
+ * The new one adds variant, width, height, lines. We pass through.
+ */
+
+function Skeleton({ className, style, ...props }: React.ComponentProps<'div'>) {
+  return <DesignSkeleton variant="rectangular" className={className} style={style} {...props} />;
 }
 
-export { Skeleton }
+export { Skeleton };

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { APP_NAME } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import { cn } from '@design/utils';
 import { navItemHover } from '@/lib/animations';
 import { useAppStore } from '@/lib/store';
 import { useNotificationStore } from '@/lib/stores/notifications';
@@ -67,29 +67,15 @@ type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' 
   | 'qbo-export' | 'xero-export' | 'export-dashboard' | 'email-forward'
   | 'readiness-score' | 'spending-insights' | 'share-receipt' | 'payables-dashboard' | 'slack-alerts' | 'dark-sync';
 
-/**
- * Props for the Sidebar component.
- */
 interface SidebarProps {
-  /** Currently active navigation tab */
   activeTab: Tab;
-  /** Callback when user navigates to a different tab */
   onTabChange: (tab: Tab) => void;
-  /** Current user's role for permission-based nav items */
   role: UserRole;
-  /** Human-readable plan label (e.g., "Pro", "Free") */
   planLabel: string;
-  /** Plan identifier for feature gating */
   plan: string;
-  /** Sign-out handler */
   handleSignOut: () => void;
 }
 
-/**
- * Map navigation tabs to feature keys for gating.
- * Items without a mapping (null) are always shown.
- * Core features are always on and don't need gating.
- */
 const TAB_TO_FEATURE: Partial<Record<Tab, FeatureKey | null>> = {
   dashboard: 'dashboard',
   scan: 'scanning',
@@ -123,16 +109,12 @@ const TAB_TO_FEATURE: Partial<Record<Tab, FeatureKey | null>> = {
   'xero-export': 'integrations',
   'export-dashboard': 'integrations',
   'email-forward': 'integrations',
-  'receipt-comparison': null, // always shown
-  'recurring-detector': null, // always shown
-  'dark-sync': null, // UI-only
-  more: null, // overflow
+  'receipt-comparison': null,
+  'recurring-detector': null,
+  'dark-sync': null,
+  more: null,
 };
 
-/**
- * Individual navigation link with active state indicator, icon, and label.
- * Shows a champagne accent bar on the left when active.
- */
 function NavLink({
   icon,
   label,
@@ -140,15 +122,10 @@ function NavLink({
   collapsed,
   onClick,
 }: {
-  /** Icon component to display */
   icon: React.ReactNode;
-  /** Display label text */
   label: string;
-  /** Whether this nav item is currently active */
   active: boolean;
-  /** Whether the sidebar is in collapsed state */
   collapsed: boolean;
-  /** Click handler */
   onClick: () => void;
 }) {
   return (
@@ -167,7 +144,6 @@ function NavLink({
         collapsed && 'justify-center px-2'
       )}
     >
-      {/* Active indicator bar — animated */}
       <motion.div
         layoutId="activeNavIndicator"
         className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-sidebar-accent"
@@ -210,15 +186,9 @@ export default function Sidebar({
   const { features } = useFeatures();
   const { isConnected } = useRealtime();
 
-  /**
-   * Check if a tab should be visible based on feature flags.
-   * Items without a feature mapping, core features, or features that are enabled pass through.
-   */
   const isTabVisible = (tab: Tab): boolean => {
     const featureKey = TAB_TO_FEATURE[tab];
-    // No mapping = always visible (UI-only items like more, dark-sync)
     if (featureKey === undefined || featureKey === null) return true;
-    // If the feature key maps but user doesn't have it, hide
     return features[featureKey] ?? true;
   };
 
@@ -311,7 +281,6 @@ export default function Sidebar({
         { id: 'share-receipt' as Tab, label: 'Share', icon: <Share2 className="h-4 w-4" /> },
       ],
     }] : []),
-    // Non-privileged get a simplified Tools group; extra items only for privileged above
     ...(isPrivileged ? [{
       id: 'extra',
       label: 'Extra',
@@ -324,10 +293,7 @@ export default function Sidebar({
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
-      {/* Top accent line */}
       <div className="h-0.5 w-full bg-sidebar-accent/60 flex-shrink-0" />
-
-      {/* Logo */}
       <div className={`flex items-center border-b border-sidebar-border px-4 py-3 ${collapsed ? 'justify-center' : 'gap-3'}`}>
         <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-sidebar-accent/15">
           <ReceiptText className="h-4.5 w-4.5 text-sidebar-accent" />
@@ -343,13 +309,10 @@ export default function Sidebar({
           </p>
         </div>
       </div>
-
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 scroll-smooth no-scrollbar" aria-label="Main navigation">
         {navGroups.map((group) => {
           const hasItems = group.items.length > 0;
           if (!hasItems) return null;
-
           return (
             <div key={group.id} className="mb-5">
               {!collapsed && (
@@ -357,7 +320,7 @@ export default function Sidebar({
                   {group.label}
                 </p>
               )}
-                  <div className="space-y-0.5">
+              <div className="space-y-0.5">
                 {group.items.filter((item) => isTabVisible(item.id)).map((item) => (
                   <NavLink
                     key={item.id}
@@ -371,23 +334,18 @@ export default function Sidebar({
                     }}
                   />
                 ))}
-                      </div>
-                    </div>
-                  );
-                })}
+              </div>
+            </div>
+          );
+        })}
       </nav>
-
-        {/* Bottom section */}
       <div className="border-t border-sidebar-border px-2 py-2">
-        {/* Live sync status */}
         <div
           className={`mb-1 flex items-center rounded-lg px-2.5 py-1.5 text-sidebar-text-muted ${collapsed ? 'justify-center' : ''}`}
           title={collapsed ? (isConnected ? 'Live sync connected' : 'Live sync disconnected') : undefined}
         >
           <RealtimeStatus connected={isConnected} showLabel={!collapsed} />
         </div>
-
-        {/* Billing & Plan */}
         <Link
           href="/settings/billing"
           aria-label="Billing"
@@ -406,8 +364,6 @@ export default function Sidebar({
             </>
           )}
         </Link>
-
-        {/* Admin */}
         <Link
           href="/settings/admin"
           aria-label="Admin"
@@ -417,8 +373,6 @@ export default function Sidebar({
           <LayoutDashboard className="h-3.5 w-3.5 flex-shrink-0" />
           {!collapsed && <span>Admin</span>}
         </Link>
-
-        {/* Organization */}
         <Link
           href="/settings/org"
           aria-label="Organization"
@@ -428,8 +382,6 @@ export default function Sidebar({
           <Settings className="h-3.5 w-3.5 flex-shrink-0" />
           {!collapsed && <span>Organization</span>}
         </Link>
-
-        {/* Notifications */}
         <Link
           href="/notifications"
           aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
@@ -444,8 +396,6 @@ export default function Sidebar({
             </span>
           )}
         </Link>
-
-        {/* Collapse toggle */}
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
@@ -455,8 +405,6 @@ export default function Sidebar({
         >
           {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
         </button>
-
-        {/* Theme + Sign out */}
         <div className={`flex items-center gap-1 rounded-lg bg-sidebar-surface p-1 ${collapsed ? 'flex-col' : ''}`}>
           <ThemeToggle />
           <button
@@ -475,7 +423,6 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Mobile hamburger */}
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
@@ -484,8 +431,6 @@ export default function Sidebar({
       >
         <Menu className="h-5 w-5 text-sidebar-text-muted" />
       </button>
-
-      {/* Mobile overlay sidebar */}
       <AnimatePresence>
         {mobileOpen && (
           <div className="fixed inset-0 z-[100] lg:hidden">
@@ -509,9 +454,7 @@ export default function Sidebar({
               className="relative h-full w-72 max-w-[85vw] bg-sidebar-bg border-r border-sidebar-border shadow-2xl"
             >
               <div className="flex h-full flex-col">
-                {/* Top accent */}
                 <div className="h-0.5 w-full bg-sidebar-accent flex-shrink-0" />
-
                 <div className="flex items-center justify-between border-b border-sidebar-border px-4 py-3">
                   <div className="flex items-center gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-accent/15">
@@ -532,13 +475,12 @@ export default function Sidebar({
                     <X className="h-5 w-5" />
                   </button>
                 </div>
-
                 <div className="flex-1 overflow-y-auto px-3 py-4">
                   {navGroups.map((group) => {
                     const hasItems = group.items.length > 0;
                     if (!hasItems) return null;
                     return (
-            <div key={group.id} className="mb-4">
+                      <div key={group.id} className="mb-4">
                         <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-text-muted">{group.label}</p>
                         <div className="space-y-0.5">
                           {group.items.filter((item) => isTabVisible(item.id)).map((item) => (
@@ -559,7 +501,6 @@ export default function Sidebar({
                     );
                   })}
                 </div>
-
                 <div className="border-t border-sidebar-border p-2 space-y-0.5">
                   <Link
                     href="/settings/billing"
@@ -591,8 +532,6 @@ export default function Sidebar({
           </div>
         )}
       </AnimatePresence>
-
-      {/* Desktop sidebar */}
       <motion.aside
         animate={{ width: collapsed ? 64 : 256 }}
         transition={{ type: 'spring', stiffness: 300, damping: 28 }}

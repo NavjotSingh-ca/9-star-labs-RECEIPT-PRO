@@ -4,38 +4,35 @@ import React, { useMemo, useState, useCallback } from 'react';
 import { AlertCircle, Receipt, ShieldAlert, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
-import { cn } from '@/lib/utils';
+import { cn } from '@design/utils';
+import { fadeUp, staggerMedium } from '@/lib/animations';
 
-import { Card as ShadcnCard } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { DashboardSkeleton } from '@/components/ui/PremiumSkeletons';
-import { PremiumEmptyState } from '@/components/ui/PremiumEmptyState';
+import { Card, CardContent } from '@design/primitives';
+import { Button } from '@design/primitives';
+import { StatCard } from '@design/patterns';
+import { EmptyState } from '@design/patterns';
+import { Skeleton } from '@design/primitives';
+import { Sparkline } from '@/components/charts/Sparkline';
 import AnimatedCounter from '@/components/ui/AnimatedCounter';
+
 import type { UserRole } from '@/lib/types';
 import { supabase, getOrgIdString } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { getDashboardSummary, getDailySpend } from '@/lib/services/receipts';
 import { toNumber, formatCurrency } from '@/lib/ui-utils';
-import { fadeUp, staggerMedium, cardHoverSubtle } from '@/lib/animations';
-import { Sparkline } from '@/components/charts/Sparkline';
 
 interface DashboardProps {
-  /** Navigate to scanner */
   onScan?: () => void;
-  /** Current user role */
   role?: UserRole;
-  /** Current user ID */
   userId?: string;
 }
 
-/** Format YYYY-MM to short month + year label */
 function formatMonthLabel(value: string | undefined | null): string {
   if (!value || typeof value !== 'string' || !/^\d{4}-\d{2}$/.test(value)) return String(value || 'Unknown');
   const [y, m] = value.split('-').map(Number);
   return new Date(y, m - 1).toLocaleDateString('en-CA', { month: 'short', year: '2-digit' });
 }
 
-/** Return time-appropriate greeting */
 function getGreeting(): string {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning.';
@@ -97,30 +94,40 @@ export default function Dashboard({ onScan, role = 'Owner', userId }: DashboardP
     }
   }, []);
 
-  if (isLoading) return <div role="status" aria-live="polite"><DashboardSkeleton /></div>;
+  if (isLoading) return <DashboardSkeleton />;
 
   if (error || !summary) {
     const noOrg = error instanceof Error && error.message.includes('No organization');
     return (
       <motion.div variants={fadeUp} initial="hidden" animate="show"
-        className="flex min-h-[40vh] flex-col items-center justify-center gap-4 rounded-xl border border-glass-border bg-card p-10 text-center">
+        className="flex min-h-[40vh] flex-col items-center justify-center gap-4 rounded-xl border border-glass-border bg-surface p-10 text-center">
         <AlertCircle className="h-10 w-10 text-danger" />
         <h3 className="text-lg font-bold tracking-tight">{noOrg ? 'Organization Required' : 'Sync Error'}</h3>
-        <p className="text-sm text-muted-foreground">{noOrg ? 'Join an organization to continue.' : 'Could not load dashboard data.'}</p>
+        <p className="text-sm text-text-muted">{noOrg ? 'Join an organization to continue.' : 'Could not load dashboard data.'}</p>
         {!noOrg && <Button variant="outline" onClick={() => refetch()}>Retry</Button>}
-    </motion.div>
-  );
+      </motion.div>
+    );
   }
 
   const { receiptCount = 0, totalSpent = 0, gstRecoverable = 0 } = summary;
 
   if (receiptCount === 0) return (
-    <PremiumEmptyState
-      onScan={onScan}
-      onForwardEmail={handleCopyEmail}
-      forwardingEmail={forwardingEmail}
+    <EmptyState
+      title="Your financial picture starts here"
+      description="Scan your first receipt to unlock spending insights, tax-ready reports, and CRA-compliant audit trails — all in one place."
+      action={{
+        label: "Scan your first receipt",
+        onClick: onScan ?? (() => {}),
+        variant: "primary"
+      }}
+      illustration={
+        <svg className="h-16 w-16 text-text-muted/50" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      }
     />
   );
+
   if (role === 'Employee') return <EmployeeView scans={receiptCount} total={totalSpent} gst={gstRecoverable} />;
 
   return (
@@ -136,7 +143,7 @@ export default function Dashboard({ onScan, role = 'Owner', userId }: DashboardP
             <Mail className="mr-1.5 h-3.5 w-3.5 text-champagne" />
             Copy Receipt Email
           </Button>
-          <Button size="sm" onClick={onScan} className="rounded-xl bg-champagne text-black font-semibold hover:bg-champagne/90 transition-all shadow-md shadow-champagne/20">
+          <Button size="sm" onClick={onScan} className="rounded-xl bg-champagne text-black font-semibold hover:bg-champagne-dim transition-all shadow-md shadow-champagne/20">
             <Receipt className="mr-1.5 h-4 w-4" />
             Scan Receipt
           </Button>
@@ -144,96 +151,177 @@ export default function Dashboard({ onScan, role = 'Owner', userId }: DashboardP
       </motion.div>
 
       {/* Main KPI Cards Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <motion.div variants={fadeUp}>
-          <ShadcnCard className="p-6 relative overflow-hidden bg-gradient-to-br from-card via-card to-champagne/5">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-bold uppercase tracking-wider text-text-muted">
-                {thisMonth ? formatMonthLabel(thisMonth.month) : 'This Month'} Spend
-              </p>
-              <div className="rounded-full bg-champagne/10 p-2 text-champagne">
-                <Receipt className="h-4 w-4" />
-              </div>
-            </div>
-            <p className="mt-3 text-4xl font-extrabold tracking-tight tabular-nums text-text-primary">
-              {thisMonth ? <AnimatedCounter from={0} to={thisMonth.amount} format={(v) => formatCurrency(v)} delay={80} /> : '$0.00'}
-            </p>
-            <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-glass-border/50">
-              {mom !== null ? (
-                <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold", mom >= 0 ? 'bg-champagne/15 text-champagne' : 'bg-danger/15 text-danger')}>
-                  <span className={cn("h-1.5 w-1.5 rounded-full", mom >= 0 ? 'bg-champagne' : 'bg-danger')} />
-                  {mom >= 0 ? '+' : ''}{Math.abs(mom).toFixed(1)}% MoM
-                </span>
-              ) : <span className="text-xs text-text-muted">Baseline month</span>}
-              {dailyData.length >= 2 && (
-                <div className="w-24">
-                  <Sparkline data={dailyData} color="var(--champagne)" id="kpi-spark" />
+          <Card variant="interactive" hover className="relative overflow-hidden bg-gradient-to-br from-surface to-champagne/5" padding="lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                  {thisMonth ? formatMonthLabel(thisMonth.month) : 'This Month'} Spend
+                </p>
+                <div className="rounded-full bg-champagne/10 p-2 text-champagne">
+                  <Receipt className="h-4 w-4" />
                 </div>
-              )}
-            </div>
-          </ShadcnCard>
+              </div>
+              <p className="mt-3 text-4xl font-extrabold tracking-tight tabular-nums text-text-primary">
+                {thisMonth ? <AnimatedCounter from={0} to={thisMonth.amount} format={(v) => formatCurrency(v)} delay={80} /> : '$0.00'}
+              </p>
+              <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-glass-border/50">
+                {mom !== null ? (
+                  <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold", mom >= 0 ? 'bg-champagne/15 text-champagne' : 'bg-danger/15 text-danger')}>
+                    <span className={cn("h-1.5 w-1.5 rounded-full", mom >= 0 ? 'bg-champagne' : 'bg-danger')} />
+                    {mom >= 0 ? '+' : ''}{Math.abs(mom).toFixed(1)}% MoM
+                  </span>
+                ) : (
+                  <span className="text-xs text-text-muted">Baseline month</span>
+                )}
+                {dailyData.length >= 2 && (
+                  <div className="w-24">
+                    <Sparkline data={dailyData} color="var(--champagne)" id="kpi-spark" />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
 
-        <KpiCard variants={fadeUp} label="Receipts" value={receiptCount.toLocaleString()} icon={<Receipt className="h-4 w-4 text-champagne" />} />
+        <StatCard
+          label="Receipts"
+          value={receiptCount.toLocaleString()}
+          icon={<Receipt className="h-4 w-4 text-champagne" />}
+        />
+        <StatCard
+          label="Total Spend"
+          value={formatCurrency(totalSpent)}
+          icon={<ShieldAlert className="h-4 w-4 text-champagne" />}
+        />
+        <StatCard
+          label="GST Recoverable"
+          value={formatCurrency(gstRecoverable)}
+          icon={<Mail className="h-4 w-4 text-champagne" />}
+        />
+      </div>
+
+      {/* Charts & Secondary Metrics */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card variant="interactive" hover padding="lg">
+          <CardContent className="p-6">
+            <p className="text-xs font-bold uppercase tracking-wider text-text-muted mb-4">Daily Spend (7 Days)</p>
+            <DailySpendChart data={dailyData} />
+          </CardContent>
+        </Card>
+
+        <Card variant="interactive" hover padding="lg">
+          <CardContent className="p-6">
+            <p className="text-xs font-bold uppercase tracking-wider text-text-muted mb-4">Tax Summary</p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between rounded-xl bg-surface p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-champagne/10 text-champagne">
+                    <Receipt className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">GST Recoverable</p>
+                    <p className="text-lg font-bold tabular-nums text-text-primary">{formatCurrency(gstRecoverable)}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between rounded-xl bg-surface p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-warning/10 text-warning">
+                    <ShieldAlert className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">Total Spend</p>
+                    <p className="text-lg font-bold tabular-nums text-text-primary">{formatCurrency(totalSpent)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </motion.div>
   );
 }
 
-/* ─── Sub-components ─── */
-
-/** KPI metric card with animated counter */
-interface KpiCardProps {
-  variants: typeof fadeUp;
-  label: string;
-  value: string;
-  icon: React.ReactNode;
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse" role="status" aria-label="Loading dashboard">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-glass-border pb-4">
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24 rounded" />
+          <Skeleton className="h-8 w-48 rounded" />
+        </div>
+        <div className="flex gap-2">
+          <Skeleton className="h-10 w-32 rounded-xl" />
+          <Skeleton className="h-10 w-32 rounded-xl" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[...Array(3)].map((_, _i) => (
+          <Skeleton key={_i} variant="card" className="h-40" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Skeleton className="lg:col-span-2 variant=card h-64" />
+        <Skeleton variant="card" className="h-64" />
+      </div>
+    </div>
+  );
 }
 
-const KpiCard = React.memo(function KpiCard({ variants: v, label, value, icon }: KpiCardProps) {
-  const num = Number(String(value).replace(/,/g, '')) || 0;
-  const isPct = value.includes('%');
-  return (
-    <motion.div variants={v} whileHover={cardHoverSubtle.whileHover} whileTap={cardHoverSubtle.whileTap} transition={cardHoverSubtle.transition}>
-      <ShadcnCard className="p-4 h-full antigravity-card" role="figure" aria-label={`${label}: ${value}`}>
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-champagne/10">{icon}</div>
-        </div>
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">{label}</p>
-        <p className="text-xl font-bold tracking-tight tabular-nums mt-0.5" aria-live="polite" aria-atomic="true">
-          {isPct ? value : <AnimatedCounter from={0} to={num} format={(v) => Number.isInteger(v) ? Math.round(v).toLocaleString() : v.toLocaleString()} delay={150} />}
-        </p>
-      </ShadcnCard>
-    </motion.div>
-  );
-});
-
-
-
-
 /** Employee-restricted view — shows personal stats only */
-const EmployeeView = React.memo(function EmployeeView({ scans, total, gst }: { scans: number; total: number; gst: number }) {
+function EmployeeView({ scans, total, gst }: { scans: number; total: number; gst: number }) {
   return (
     <motion.div variants={staggerMedium} initial="hidden" animate="show" className="space-y-4" role="region" aria-label="Employee dashboard summary">
-      <motion.div variants={fadeUp} className="rounded-xl border border-glass-border bg-card p-8 text-center">
+      <motion.div variants={fadeUp} className="rounded-xl border border-glass-border bg-surface p-8 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/10 text-warning mx-auto mb-4"><ShieldAlert className="h-6 w-6" /></div>
         <h2 className="text-lg font-bold">Restricted Dashboard</h2>
         <p className="text-sm text-text-secondary mt-2">Detailed financial data is available to owners and accountants.</p>
       </motion.div>
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl border border-glass-border bg-card p-4" role="figure" aria-label={`Scans: ${scans}`}>
+        <Card className="p-4" role="figure" aria-label={`Scans: ${scans}`}>
           <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">My Scans</p>
           <p className="text-xl font-bold tabular-nums mt-0.5">{scans}</p>
-        </div>
-        <div className="rounded-xl border border-glass-border bg-card p-4" role="figure" aria-label={`Total: ${formatCurrency(total)}`}>
+        </Card>
+        <Card className="p-4" role="figure" aria-label={`Total: ${formatCurrency(total)}`}>
           <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">My Total</p>
           <p className="text-xl font-bold tabular-nums mt-0.5">{formatCurrency(total)}</p>
-        </div>
-        <div className="rounded-xl border border-glass-border bg-card p-4" role="figure" aria-label={`GST: ${formatCurrency(gst)}`}>
+        </Card>
+        <Card className="p-4" role="figure" aria-label={`GST: ${formatCurrency(gst)}`}>
           <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">My GST</p>
           <p className="text-xl font-bold tabular-nums mt-0.5">{formatCurrency(gst)}</p>
-        </div>
+        </Card>
       </div>
     </motion.div>
   );
-});
+}
+
+/* ─── Daily Spend Chart ─── */
+function DailySpendChart({ data }: { data: Array<{ date: string; amount: number }> }) {
+  if (!data.length) return <p className="text-sm text-text-muted text-center py-8">No spend data for this period</p>;
+
+  const maxAmount = Math.max(...data.map(d => d.amount), 1);
+  const barHeight = 120;
+
+  return (
+    <div className="h-32 flex items-end justify-around gap-1" role="img" aria-label="Daily spend bar chart">
+      {data.map((d) => {
+        const height = Math.max((d.amount / maxAmount) * barHeight, 4);
+        return (
+          <div key={d.date} className="flex flex-col items-center gap-1" style={{ width: '100%' }}>
+            <div
+              className="rounded-t bg-champagne transition-all duration-300 hover:bg-champagne-dim"
+              style={{ height: `${height}px`, width: '100%', maxWidth: '40px' }}
+              role="button"
+              tabIndex={0}
+              aria-label={`${d.date}: ${formatCurrency(d.amount)}`}
+            />
+            <span className="text-[9px] text-text-muted">{new Date(d.date).toLocaleDateString('en-CA', { weekday: 'short' })}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}

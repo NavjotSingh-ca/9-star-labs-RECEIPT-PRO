@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, startTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check } from 'lucide-react';
 
@@ -48,7 +48,7 @@ export function ScanSuccessBurst({
   particleCount = 16,
 }: ScanSuccessBurstProps) {
   const [show, setShow] = useState(false);
-  const particlesRef = useRef<Particle[]>([]);
+  const [particles, setParticles] = useState<Particle[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const count = Math.min(Math.max(particleCount, 8), 32);
@@ -70,8 +70,10 @@ export function ScanSuccessBurst({
   useEffect(() => {
     if (!trigger) return;
 
-    particlesRef.current = generateParticles();
-    setShow(true);
+    startTransition(() => {
+      setParticles(generateParticles());
+      setShow(true);
+    });
 
     timerRef.current = setTimeout(() => {
       setShow(false);
@@ -95,7 +97,7 @@ export function ScanSuccessBurst({
         >
           {/* Particle burst ring */}
           <div className="relative flex items-center justify-center">
-            {particlesRef.current.map((p) => (
+            {particles.map((p) => (
               <motion.div
                 key={p.id}
                 className="absolute h-2 w-2 rounded-full"

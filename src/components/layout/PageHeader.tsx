@@ -3,23 +3,12 @@
 import { motion } from 'framer-motion';
 import { fadeUp } from '@/lib/animations';
 import type { ReactNode } from 'react';
-
-/**
- * Props for the PageHeader component.
- */
 interface PageHeaderProps {
-  /** Page title (h1 element) */
   title: string;
-  /** Optional subtitle displayed below the title */
   subtitle?: string;
-  /** Optional action element rendered on the right side (desktop) or below (mobile) */
   action?: ReactNode;
 }
 
-/**
- * Consistent page header with animated entrance, title, optional subtitle,
- * and optional action button. Used as the first element in most page layouts.
- */
 export default function PageHeader({ title, subtitle, action }: PageHeaderProps) {
   return (
     <motion.div

@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import { Checkbox } from './checkbox';
 import { withProviders } from '../../../.storybook/utils';
-import { Label } from './label';
 
 const meta: Meta<typeof Checkbox> = {
   title: 'UI/Checkbox',
@@ -33,7 +32,7 @@ export const WithLabel: Story = {
   render: () => (
     <div className="flex items-center gap-2 p-4">
       <Checkbox id="terms" />
-      <Label htmlFor="terms" className="cursor-pointer">Accept terms and conditions</Label>
+      <span className="cursor-pointer">Accept terms and conditions</span>
     </div>
   ),
 };
@@ -43,11 +42,11 @@ export const Disabled: Story = {
     <div className="flex flex-col gap-3 p-4">
       <div className="flex items-center gap-2">
         <Checkbox id="disabled-unchecked" disabled />
-        <Label htmlFor="disabled-unchecked" className="text-text-muted">Disabled (unchecked)</Label>
+        <span className="text-text-muted">Disabled (unchecked)</span>
       </div>
       <div className="flex items-center gap-2">
         <Checkbox id="disabled-checked" disabled checked />
-        <Label htmlFor="disabled-checked" className="text-text-muted">Disabled (checked)</Label>
+        <span className="text-text-muted">Disabled (checked)</span>
       </div>
     </div>
   ),
@@ -59,15 +58,15 @@ export const Group: Story = {
       <legend className="text-sm font-semibold text-text-primary mb-2">Notification Preferences</legend>
       <div className="flex items-center gap-2">
         <Checkbox id="notif-email" defaultChecked />
-        <Label htmlFor="notif-email">Email notifications</Label>
+        <span>Email notifications</span>
       </div>
       <div className="flex items-center gap-2">
         <Checkbox id="notif-sms" />
-        <Label htmlFor="notif-sms">SMS notifications</Label>
+        <span>SMS notifications</span>
       </div>
       <div className="flex items-center gap-2">
         <Checkbox id="notif-push" defaultChecked />
-        <Label htmlFor="notif-push">Push notifications</Label>
+        <span>Push notifications</span>
       </div>
     </fieldset>
   ),

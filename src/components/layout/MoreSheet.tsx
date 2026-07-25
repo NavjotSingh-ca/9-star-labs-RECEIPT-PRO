@@ -42,6 +42,7 @@ import {
   LayoutDashboard,
 } from 'lucide-react';
 import Link from 'next/link';
+import { Badge } from '@design/primitives';
 
 type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' | 'mileage' | 'time' | 'approvals' | 'payables' | 'projects' | 'alerts' | 'reports' | 'more'
   | 'smart-search' | 'receipt-calendar' | 'receipt-timeline' | 'vendor-analytics'
@@ -50,29 +51,15 @@ type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' 
   | 'qbo-export' | 'xero-export' | 'export-dashboard' | 'email-forward'
   | 'readiness-score' | 'spending-insights' | 'share-receipt' | 'payables-dashboard' | 'slack-alerts' | 'dark-sync';
 
-/**
- * Props for the MoreSheet component.
- */
 interface MoreSheetProps {
-  /** Currently active navigation tab */
   activeTab: Tab;
-  /** Callback when user navigates to a different tab */
   onTabChange: (tab: Tab) => void;
-  /** Callback to close the sheet */
   onClose: () => void;
-  /** Human-readable plan label */
   planLabel: string;
-  /** Plan identifier for styling */
   plan: string;
-  /** Sign-out handler */
   onSignOut: () => void;
 }
 
-/**
- * Slide-out "More" panel for mobile navigation (accessible via the More tab).
- * Contains all navigation groups (Records, Finance, Productivity, Oversight, Integrations),
- * settings links, legal links, and sign-out.
- */
 export default function MoreSheet({
   activeTab,
   onTabChange,
@@ -259,11 +246,15 @@ function MoreSettingLink({
       <span aria-hidden="true">{icon}</span>
       <span className="text-sm font-semibold text-text-secondary flex-1">{label}</span>
       {badge && (
-        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-          badgeActive ? 'bg-warning/10 text-warning' : 'bg-surface-raised text-text-muted'
-        }`} aria-live="polite" aria-atomic="true">
+        <Badge
+          variant={badgeActive ? 'warning' : 'outline'}
+          size="sm"
+          className="text-[10px] px-2 py-0.5"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {badge}
-        </span>
+        </Badge>
       )}
     </Link>
   );

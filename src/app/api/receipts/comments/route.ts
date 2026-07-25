@@ -72,7 +72,8 @@ async function postHandler(request: Request) {
 
     if (receipt?.user_id && receipt.user_id !== user.id) {
       const { data: uploader } = await supabase.rpc('get_user_email', { p_user_id: receipt.user_id });
-      const uploaderEmail = Array.isArray(uploader) ? (uploader as { email: string }[])[0]?.email : null;
+      const rows = Array.isArray(uploader) ? uploader : (uploader ? [uploader] : []);
+      const uploaderEmail = (rows as { email?: string }[])[0]?.email ?? null;
 
       if (uploaderEmail && resend) {
         const from = env.RESEND_FROM_EMAIL;

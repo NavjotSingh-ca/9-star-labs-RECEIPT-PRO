@@ -1,7 +1,7 @@
 'use client';
 
+import { Skeleton, SkeletonCard } from '@design/primitives';
 import { motion } from 'framer-motion';
-import { Skeleton } from '@/components/ui/skeleton';
 import { springSnap } from '@/lib/animations';
 
 /** Full dashboard loading state with skeleton cards and chart placeholders */
@@ -10,10 +10,10 @@ export function DashboardSkeleton() {
     <div className="space-y-8 p-4">
       <div className="flex items-end justify-between">
         <div className="space-y-2">
-          <Skeleton className="h-4 w-32 rounded-[2rem]" />
-          <Skeleton className="h-8 w-64 rounded-[2rem]" />
+          <Skeleton variant="text" className="h-4 w-32" />
+          <Skeleton variant="text" className="h-8 w-64" />
         </div>
-        <Skeleton className="h-10 w-40 rounded-[3rem]" />
+        <Skeleton variant="text" className="h-10 w-40" />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -24,14 +24,14 @@ export function DashboardSkeleton() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1, ...springSnap }}
           >
-            <Skeleton className="h-40 w-full rounded-[3rem]" />
+            <SkeletonCard />
           </motion.div>
         ))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Skeleton className="h-80 w-full lg:col-span-2 rounded-[3rem]" />
-        <Skeleton className="h-80 w-full rounded-[2.5rem]" />
+        <Skeleton variant="card" className="h-80 w-full lg:col-span-2" />
+        <Skeleton variant="card" className="h-80 w-full" />
       </div>
     </div>
   );
@@ -42,10 +42,10 @@ export function ReceiptTableSkeleton() {
   return (
     <div className="space-y-4 p-4">
       <div className="flex items-center justify-between">
-        <Skeleton className="h-10 w-64 rounded-[2rem]" />
+        <Skeleton variant="text" className="h-10 w-64" />
         <div className="flex gap-2">
-          <Skeleton className="h-10 w-10 rounded-[2rem]" />
-          <Skeleton className="h-10 w-10 rounded-[2rem]" />
+          <Skeleton variant="circular" className="h-10 w-10" />
+          <Skeleton variant="circular" className="h-10 w-10" />
         </div>
       </div>
       <div className="space-y-3">
@@ -56,7 +56,7 @@ export function ReceiptTableSkeleton() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.05, ...springSnap }}
           >
-            <Skeleton className="h-20 w-full rounded-[2rem]" />
+            <Skeleton variant="card" className="h-20 w-full" />
           </motion.div>
         ))}
       </div>
@@ -66,33 +66,27 @@ export function ReceiptTableSkeleton() {
 
 /** Single card skeleton for grid layouts */
 export function CardSkeleton() {
-  return (
-    <div className="rounded-[2.5rem] border bg-card p-6 space-y-4">
-      <Skeleton className="h-6 w-1/2 rounded-[2rem]" />
-      <Skeleton className="h-24 w-full rounded-[2rem]" />
-      <Skeleton className="h-10 w-1/3 rounded-[2rem]" />
-    </div>
-  );
+  return <SkeletonCard />;
 }
 
 /** Scanner page loading state with camera and form placeholders */
 export function ScannerSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="rounded-[3rem] border bg-card p-8 text-center space-y-6">
-        <Skeleton className="mx-auto h-20 w-20 rounded-[3rem]" />
+      <div className="rounded-[3rem] border bg-surface p-8 text-center space-y-6">
+        <Skeleton variant="circular" className="mx-auto h-20 w-20" />
         <div className="space-y-2">
-          <Skeleton className="mx-auto h-6 w-48 rounded-[2rem]" />
-          <Skeleton className="mx-auto h-4 w-64 rounded-[2rem]" />
+          <Skeleton variant="text" className="mx-auto h-6 w-48" />
+          <Skeleton variant="text" className="mx-auto h-4 w-64" />
         </div>
         <div className="flex justify-center gap-4">
-          <Skeleton className="h-12 w-32 rounded-[3rem]" />
-          <Skeleton className="h-12 w-32 rounded-[3rem]" />
+          <Skeleton variant="text" className="h-12 w-32" />
+          <Skeleton variant="text" className="h-12 w-32" />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Skeleton className="h-32 w-full rounded-[2.5rem]" />
-        <Skeleton className="h-32 w-full rounded-[2.5rem]" />
+        <Skeleton variant="card" className="h-32 w-full" />
+        <Skeleton variant="card" className="h-32 w-full" />
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef, Suspense } from 'react';
+import React, { useState, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -303,7 +303,6 @@ function LogoWall() {
               className="flex items-center gap-2 text-text-muted/30 hover:text-text-muted/60 transition-colors duration-300"
               title={logo.name}
             >
-import Image from 'next/image';
                <Image
                  src={`https://cdn.simpleicons.org/${logo.slug}/888888`}
                  alt={logo.name}

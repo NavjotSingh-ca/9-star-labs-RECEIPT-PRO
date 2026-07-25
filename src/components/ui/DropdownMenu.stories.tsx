@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import React from 'react';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuCheckboxItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from './dropdown-menu';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from './dropdown-menu';
 import { Button } from './button';
 import { withProviders } from '../../../.storybook/utils';
-import { Settings, User, LogOut, CreditCard, ChevronRight } from 'lucide-react';
+import { Settings, User, LogOut, CreditCard } from 'lucide-react';
 
 const meta: Meta<typeof DropdownMenu> = {
   title: 'UI/DropdownMenu',
@@ -19,43 +19,49 @@ export default meta;
 type Story = StoryObj<typeof DropdownMenu>;
 
 export const Default: Story = {
-  render: () => (
-    <DropdownMenu defaultOpen>
-      <DropdownMenuTrigger render={<Button variant="outline">Open Menu</Button>} />
-      <DropdownMenuContent className="w-48">
-        <DropdownMenuItem>
-          <User className="size-4" />
-          Profile
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Settings className="size-4" />
-          Settings
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <CreditCard className="size-4" />
-          Billing
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <LogOut className="size-4" />
-          Sign Out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  ),
+  render: () => {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger>
+          <Button variant="outline">Open Menu</Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem>
+            <User className="size-4" />
+            Profile
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <Settings className="size-4" />
+            Settings
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <CreditCard className="size-4" />
+            Billing
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem>
+            <LogOut className="size-4" />
+            Sign Out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  },
 };
 
 export const WithCheckboxes: Story = {
   render: () => (
-    <DropdownMenu defaultOpen>
-      <DropdownMenuTrigger render={<Button variant="outline">Columns</Button>} />
+    <DropdownMenu>
+      <DropdownMenuTrigger>
+        <Button variant="outline">Columns</Button>
+      </DropdownMenuTrigger>
       <DropdownMenuContent className="w-48">
         <DropdownMenuLabel>Visible Columns</DropdownMenuLabel>
-        <DropdownMenuCheckboxItem defaultChecked>Vendor</DropdownMenuCheckboxItem>
-        <DropdownMenuCheckboxItem defaultChecked>Amount</DropdownMenuCheckboxItem>
-        <DropdownMenuCheckboxItem defaultChecked>Date</DropdownMenuCheckboxItem>
-        <DropdownMenuCheckboxItem>Category</DropdownMenuCheckboxItem>
-        <DropdownMenuCheckboxItem>Tax</DropdownMenuCheckboxItem>
+        <DropdownMenuItem>Vendor</DropdownMenuItem>
+        <DropdownMenuItem>Amount</DropdownMenuItem>
+        <DropdownMenuItem>Date</DropdownMenuItem>
+        <DropdownMenuItem>Category</DropdownMenuItem>
+        <DropdownMenuItem>Tax</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   ),
@@ -63,21 +69,13 @@ export const WithCheckboxes: Story = {
 
 export const WithSubmenu: Story = {
   render: () => (
-    <DropdownMenu defaultOpen>
-      <DropdownMenuTrigger render={<Button variant="outline">More Actions</Button>} />
+    <DropdownMenu>
+      <DropdownMenuTrigger>
+        <Button variant="outline">More Actions</Button>
+      </DropdownMenuTrigger>
       <DropdownMenuContent className="w-48">
         <DropdownMenuItem>View Details</DropdownMenuItem>
         <DropdownMenuItem>Edit</DropdownMenuItem>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            Export As <ChevronRight className="size-3.5 ml-auto" />
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            <DropdownMenuItem>CSV</DropdownMenuItem>
-            <DropdownMenuItem>PDF</DropdownMenuItem>
-            <DropdownMenuItem>ZIP Package</DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
         <DropdownMenuSeparator />
         <DropdownMenuItem>Delete</DropdownMenuItem>
       </DropdownMenuContent>

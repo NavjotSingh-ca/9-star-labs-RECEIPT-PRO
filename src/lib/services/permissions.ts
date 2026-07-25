@@ -1,6 +1,10 @@
 /**
  * Advanced Permissions System - Enterprise RBAC with inheritance and approval workflows
  * Supports multi-level approvals, department-based access, and time-bound permissions
+ *
+ * IMPORTANT: All permission checks use direct DB queries (user_roles + local RBAC map).
+ * No external API routes are called — the old /api/permissions/check and /api/permissions/user
+ * endpoints never existed and would always 404.
  */
 
 export type Permission =
@@ -100,25 +104,69 @@ export const APPROVAL_WORKFLOWS: ApprovalWorkflow[] = [
   },
 ];
 
+async function getUserRoleName(userId: string, orgId: string): Promise<string | null> {
+  const { supabaseAdmin } = await import('@/lib/supabase-admin');
+  const { data } = await supabaseAdmin
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .eq('org_id', orgId)
+    .maybeSingle();
+  return (data as { role: string } | null)?.role?.toLowerCase() ?? null;
+}
+
 /**
- * Check if user has specific permission
+ * Resolve effective permissions for a role name using the ROLES map.
+ * Handles inheritance: if a role has `inherits`, its permissions are merged.
+ */
+function resolvePermissionsForRole(roleName: string): Permission[] {
+  const roleDef = ROLES[roleName];
+  if (!roleDef) return [];
+
+  const perms = new Set<Permission>(roleDef.permissions);
+
+  if (roleDef.inherits && ROLES[roleDef.inherits]) {
+    for (const p of ROLES[roleDef.inherits].permissions) {
+      perms.add(p);
+    }
+  }
+
+  return [...perms];
+}
+
+/**
+ * Check if user has specific permission via DB-backed RBAC.
+ * Looks up user_roles, resolves inheritance from the ROLES map.
+ *
+ * @returns true if the user's role (or inherited role) grants the permission.
  */
 export async function hasPermission(
   userId: string,
   permission: Permission,
   orgId: string
 ): Promise<boolean> {
-  // In production, check against RPC function that resolves inherited permissions
-  const { data } = await fetch(`/api/permissions/check?user=${userId}&perm=${permission}&org=${orgId}`).then(r => r.json());
-  return data?.allowed ?? false;
+  try {
+    const roleName = await getUserRoleName(userId, orgId);
+    if (!roleName) return false;
+    const perms = resolvePermissionsForRole(roleName);
+    return perms.includes(permission);
+  } catch {
+    return false;
+  }
 }
 
 /**
- * Get user's effective permissions (including inherited)
+ * Get user's effective permissions (including inherited) via DB-backed RBAC.
+ * Returns the merged list of permissions from the user's role and any inherited role.
  */
 export async function getEffectivePermissions(userId: string, orgId: string): Promise<Permission[]> {
-  const { data } = await fetch(`/api/permissions/user?user=${userId}&org=${orgId}`).then(r => r.json());
-  return (data?.permissions as Permission[]) ?? [];
+  try {
+    const roleName = await getUserRoleName(userId, orgId);
+    if (!roleName) return [];
+    return resolvePermissionsForRole(roleName);
+  } catch {
+    return [];
+  }
 }
 
 /**

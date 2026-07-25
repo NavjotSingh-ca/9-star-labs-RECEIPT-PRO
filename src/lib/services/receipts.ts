@@ -1168,17 +1168,26 @@ export const bulkUpdateApproval = async (
     const orgId = await getOrgIdString();
     if (!orgId) throw new Error('No organization found');
 
-    const { data: updated, error } = await withRetry(
-      () => supabase.rpc('bulk_approve_receipts', {
-        p_receipt_ids: receiptIds,
-        p_status: status,
-        p_user_id: userId,
-      }),
-      { maxRetries: MAX_RETRY_ATTEMPTS, delayMs: RETRY_DELAY_MS }
-    );
-    if (error) throw handleSupabaseError(error);
+    const { data: updated, error: updateError } = await supabase
+      .from('receipts')
+      .update({ approval_status: status, updated_at: new Date().toISOString() })
+      .in('id', receiptIds)
+      .eq('org_id', orgId)
+      .eq('is_deleted', false)
+      .select('id');
 
-    return updated as number;
+    if (updateError) throw handleSupabaseError(updateError);
+
+    const updatedCount = updated?.length ?? 0;
+
+    supabase.from('audit_logs').insert({
+      user_id: userId,
+      org_id: orgId,
+      action: `bulk_${status}`,
+      details: `Bulk ${status}: ${updatedCount} receipts`,
+    }).then(null, (err) => logError(err, { action: 'bulk_approval_audit_log' }));
+
+    return updatedCount;
   } catch (error) {
     const supabaseError = handleSupabaseError(error);
     logError(supabaseError, { action: 'bulk_update_approval' });

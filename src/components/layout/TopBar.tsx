@@ -7,26 +7,16 @@ import NotificationBell from '@/components/notifications/NotificationBell';
 import RealtimeStatus from '@/components/layout/RealtimeStatus';
 import { useAppStore } from '@/lib/store';
 import { useRealtime } from '@/providers/RealtimeProvider';
+import { Button } from '@design/primitives';
+import { cn } from '@design/utils';
 
-/**
- * Props for the TopBar component.
- */
 interface TopBarProps {
-  /** Human-readable plan label (e.g., "Pro", "Free") */
   planLabel: string;
-  /** Plan identifier for styling */
   plan: string;
-  /** Whether the plan data is still loading */
   planLoading: boolean;
-  /** Optional action elements to render on the right side */
   children?: React.ReactNode;
 }
 
-/**
- * Top navigation bar for mobile/tablet viewports (<1024px).
- * Shows app logo, plan badge, notification bell, and optional action elements.
- * Has a 2px champagne accent line at the top.
- */
 export default function TopBar({ planLabel, plan, planLoading, children }: TopBarProps) {
   const setCommandOpen = useAppStore((s) => s.setCommandOpen);
   const { isConnected } = useRealtime();
@@ -47,32 +37,40 @@ export default function TopBar({ planLabel, plan, planLoading, children }: TopBa
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-3">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={() => setCommandOpen(true)}
             aria-label="Open command palette"
             title="Open command palette (⌘K)"
-            className="flex h-9 w-9 items-center justify-center rounded-[2rem] bg-sidebar-surface text-sidebar-text-muted transition hover:bg-sidebar-active hover:text-sidebar-text sm:w-auto sm:gap-2 sm:px-3"
+            className="h-9 w-9 rounded-[2rem] bg-sidebar-surface text-sidebar-text-muted transition hover:bg-sidebar-active hover:text-sidebar-text sm:w-auto sm:gap-2 sm:px-3"
           >
             <Search className="h-4 w-4" />
-<kbd className="hidden items-center gap-0.5 text-[10px] font-medium text-sidebar-text-muted sm:flex">
-          <span>
-            {typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0 ? '⌘' : 'Ctrl'}
-          </span>
-          <span>+</span>
-          <span>K</span>
-        </kbd>
-          </button>
+            <kbd className="hidden items-center gap-0.5 text-[10px] font-medium text-sidebar-text-muted sm:flex">
+              <span>
+                {typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0 ? '⌘' : 'Ctrl'}
+              </span>
+              <span>+</span>
+              <span>K</span>
+            </kbd>
+          </Button>
           <NotificationBell />
           <RealtimeStatus connected={isConnected} />
           {children}
 
           <Link
             href="/settings/billing"
-            className="flex items-center gap-1 sm:gap-1.5 rounded-full border border-sidebar-border bg-sidebar-surface px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs font-semibold transition hover:bg-sidebar-hover"
+            className={cn(
+              'flex items-center gap-1 sm:gap-1.5 rounded-full border border-sidebar-border bg-sidebar-surface px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs font-semibold transition hover:bg-sidebar-hover',
+              planLoading && 'opacity-50'
+            )}
           >
             <Crown className="h-4 w-4 text-warning" />
-            <span className={`${plan === 'pro' || plan === 'enterprise' ? 'text-warning' : 'text-sidebar-text-muted'} hidden sm:inline`}>
+            <span className={cn(
+              'hidden sm:inline',
+              plan === 'pro' || plan === 'enterprise' ? 'text-warning' : 'text-sidebar-text-muted'
+            )}>
               {planLoading ? '...' : planLabel}
             </span>
           </Link>

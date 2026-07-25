@@ -1,17 +1,10 @@
 'use client';
 
+import { Button } from '@design/primitives';
+import { ReceiptText, Scan, SearchX, SlidersHorizontal, AlertCircle, RotateCcw, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
-import {
-  ReceiptText,
-  Scan,
-  SearchX,
-  SlidersHorizontal,
-  AlertCircle,
-  RefreshCw,
-  RotateCcw,
-} from 'lucide-react';
 import { type ReactNode } from 'react';
-import { cn } from '@/lib/utils';
+import { cn } from '@design/utils';
 
 const easeOut = [0.25, 0.1, 0.25, 1] as const;
 
@@ -79,7 +72,7 @@ const variantMap: Record<EmptyStateVariant, VariantContent> = {
     icon: <AlertCircle className="h-10 w-10 text-danger" />,
     title: 'Something went wrong',
     description:
-      'We couldn\'t load your receipts right now. This is usually temporary — try again or check your connection.',
+      "We couldn't load your receipts right now. This is usually temporary — try again or check your connection.",
     ctaLabel: 'Try again',
     ctaIcon: <RefreshCw className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />,
     showFeatures: false,
@@ -97,14 +90,6 @@ interface PremiumEmptyStateProps {
   forwardingEmail?: boolean;
 }
 
-/**
- * Premium empty state with four distinct variants per UX playbook §25.
- * Each variant has its own icon, copy, and primary action.
- * - firstRun: no data yet — encourages scanning with feature preview
- * - noResults: search returned nothing — offers to clear search
- * - filteredOut: filters too narrow — offers to clear filters
- * - error: something broke — offers retry
- */
 export function PremiumEmptyState({
   variant = 'firstRun',
   onScan,
@@ -137,7 +122,10 @@ export function PremiumEmptyState({
 
   return (
     <motion.div
-      className="relative flex min-h-[60vh] flex-col items-center justify-center gap-8 overflow-hidden px-4"
+      className={cn(
+        "relative flex min-h-[60vh] flex-col items-center justify-center gap-8 overflow-hidden px-4",
+        variant === 'error' && 'bg-danger-soft/20'
+      )}
       variants={container}
       initial="hidden"
       animate="visible"
@@ -151,7 +139,7 @@ export function PremiumEmptyState({
           background:
             variant === 'error'
               ? 'rgba(239,68,68,0.05)'
-              : 'var(--champagne-glow, #bea98e / 0.05)',
+              : 'rgba(190,154,126,0.05)',
         }}
       />
 
@@ -161,7 +149,7 @@ export function PremiumEmptyState({
           className="absolute -inset-4 rounded-full opacity-30"
           style={{
             background:
-              'radial-gradient(circle, var(--champagne-glow, #bea98e / 0.15), transparent 70%)',
+              'radial-gradient(circle, rgba(190,154,126,0.15), transparent 70%)',
             filter: 'blur(12px)',
           }}
         />
@@ -174,7 +162,7 @@ export function PremiumEmptyState({
             background:
               variant === 'error'
                 ? 'linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.05))'
-                : 'linear-gradient(135deg, var(--champagne, #bea98e / 0.2), var(--champagne, #bea98e / 0.05))',
+                : 'linear-gradient(135deg, rgba(190,154,126,0.2), rgba(190,154,126,0.05))',
           }}
         >
           {content.icon}
@@ -183,10 +171,10 @@ export function PremiumEmptyState({
 
       {/* Headline */}
       <motion.div className="flex max-w-md flex-col items-center gap-3 text-center" variants={item}>
-        <h2 className="text-2xl font-semibold tracking-tight text-[var(--text-primary,#f5f5f4)]">
+        <h2 className="text-2xl font-semibold tracking-tight text-text-primary">
           {content.title}
         </h2>
-        <p className="text-sm leading-relaxed text-[var(--text-secondary,#a1a1aa)]">
+        <p className="text-sm leading-relaxed text-text-secondary">
           {content.description}
         </p>
       </motion.div>
@@ -194,14 +182,16 @@ export function PremiumEmptyState({
       {/* Primary CTA */}
       <motion.div variants={item} className="flex flex-col items-center gap-4">
         {showPrimary && (
-          <button
+          <Button
+            variant={variant === 'error' ? 'danger' : 'primary'}
+            size="lg"
             onClick={handlePrimaryAction}
             className="group relative inline-flex items-center gap-2.5 overflow-hidden rounded-xl px-6 py-3 text-sm font-semibold text-black shadow-lg transition-all duration-300 hover:shadow-xl active:scale-[0.97]"
             style={{
               background:
                 variant === 'error'
                   ? 'linear-gradient(135deg, #ef4444, #ef4444cc)'
-                  : 'linear-gradient(135deg, var(--champagne), var(--champagne-dim, #8b7355))',
+                  : 'linear-gradient(135deg, var(--champagne), var(--champagne-dim))',
               boxShadow:
                 variant === 'error'
                   ? '0 4px 24px -4px rgba(239,68,68,0.25)'
@@ -210,13 +200,16 @@ export function PremiumEmptyState({
           >
             {content.ctaIcon}
             {content.ctaLabel}
-          </button>
+          </Button>
         )}
         {content.showForwardEmail && onForwardEmail && (
           <button
             onClick={onForwardEmail}
             disabled={forwardingEmail}
-            className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted,#71717a)] underline underline-offset-4 decoration-white/10 transition-colors duration-200 hover:text-[var(--text-secondary,#a1a1aa)] hover:decoration-white/30"
+            className={cn(
+              "inline-flex items-center gap-1.5 text-xs text-text-muted underline underline-offset-4 decoration-white/10 transition-colors duration-200 hover:text-text-secondary hover:decoration-white/30",
+              forwardingEmail && 'opacity-50 cursor-not-allowed'
+            )}
           >
             {forwardingEmail ? 'Loading...' : 'Or forward receipts from your email'}
           </button>
@@ -233,12 +226,15 @@ export function PremiumEmptyState({
           ].map((f) => (
             <div
               key={f.label}
-              className="flex flex-col gap-1 rounded-xl border border-[var(--glass-border,#27272a)] bg-[var(--surface,#18181b)] px-4 py-3 text-left transition-colors duration-200 hover:border-champagne/20"
+              className={cn(
+                "flex flex-col gap-1 rounded-xl border bg-surface p-4 text-left transition-colors duration-200 hover:border-champagne/20",
+                variant === 'error' && 'border-danger-soft'
+              )}
             >
-              <span className="text-sm font-semibold text-[var(--text-primary,#f5f5f4)]">
+              <span className="text-sm font-semibold text-text-primary">
                 {f.label}
               </span>
-              <span className="text-xs leading-relaxed text-[var(--text-secondary,#a1a1aa)]">
+              <span className="text-xs leading-relaxed text-text-secondary">
                 {f.desc}
               </span>
             </div>
