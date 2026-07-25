@@ -26,8 +26,8 @@ const config: NextConfig = {
       {
         source: '/(.*)',
         headers: [
-          // Security headers are primarily set in middleware.ts for dynamic control (CSP, HSTS, etc.)
-          // These are defense-in-depth duplicates for routes not covered by middleware.
+          // Security headers are primarily set in proxy.ts for dynamic control (CSP, HSTS, etc.)
+          // These are defense-in-depth duplicates for routes not covered by the proxy.
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },

@@ -54,7 +54,7 @@ const SUPABASE_ANON_KEY = env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
 // Page routes accessible without a session. Everything else requires auth.
 const publicPaths = ['/', '/privacy', '/terms', '/auth/callback'];
 
-// Static asset paths that should never trigger middleware auth checks.
+// Static asset paths that should never trigger proxy auth checks.
 const staticPaths = ['/sw.js', '/manifest.json', '/favicon.ico', '/favicon.svg', '/logo.svg'];
 
 // API routes that are intentionally public. Each self-authenticates:
@@ -79,7 +79,7 @@ function buildCSP(): string {
   // to add nonce attributes to <script src="..."> tags for chunk files, so all chunks
   // are blocked. Using 'unsafe-inline' + 'self' as a practical alternative.
   // Revisit when Next.js improves nonce propagation for dynamically loaded chunks.
-  // 
+  //
   // Security tradeoff: without a nonce, any injected inline script can execute. However,
   // external scripts from unknown origins are still blocked by the lack of their URLs.
   // XSS protection relies on React's built-in escaping + HttpOnly cookies + CSRF tokens.
@@ -114,7 +114,7 @@ function buildCSP(): string {
   ].join('; ');
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isPublic =
@@ -141,7 +141,7 @@ export async function middleware(request: NextRequest) {
 
   // Generate request ID for tracing
   const requestId = generateUUID();
-  
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -210,7 +210,7 @@ export async function middleware(request: NextRequest) {
   supabaseResponse.headers.set('X-Frame-Options', 'DENY');
   supabaseResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   supabaseResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
-  
+
   // HSTS (only in production)
   if (process.env.NODE_ENV === 'production') {
     supabaseResponse.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');

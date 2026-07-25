@@ -54,6 +54,9 @@ storybook-static/
 .agent-coordination/
 .opencode/
 
+# claude code config + worktrees (locally-generated, never commit)
+.claude/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

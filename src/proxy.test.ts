@@ -30,7 +30,7 @@ vi.mock('next/server', () => ({
   },
 }));
 
-const { middleware } = await import('./middleware');
+const { proxy } = await import('./proxy');
 
 interface MockNextRequest {
   nextUrl: URL & { clone: () => URL };
@@ -59,11 +59,11 @@ beforeEach(() => {
   mockGetUser = vi.fn<() => Promise<{ data: { user: { id: string } | null }; error: unknown }>>();
 });
 
-describe('middleware', () => {
+describe('proxy', () => {
   it('redirects unauthenticated users from protected routes to /', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
 
-    const result = await middleware(mockRequest('http://localhost/settings/billing') as unknown as NextRequest);
+    const result = await proxy(mockRequest('http://localhost/settings/billing') as unknown as NextRequest);
 
     expect(result.status).toBe(307);
   });
@@ -73,7 +73,7 @@ describe('middleware', () => {
 
     const paths = ['/', '/privacy', '/terms', '/auth/callback'];
     for (const path of paths) {
-      const result = await middleware(mockRequest(`http://localhost${path}`) as unknown as NextRequest);
+      const result = await proxy(mockRequest(`http://localhost${path}`) as unknown as NextRequest);
       expect(result.status).toBe(undefined);
     }
   });
@@ -81,17 +81,17 @@ describe('middleware', () => {
   it('allows unauthenticated access to /_next/* and /api/*', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
 
-    const result1 = await middleware(mockRequest('http://localhost/_next/static/chunks/app.js') as unknown as NextRequest);
+    const result1 = await proxy(mockRequest('http://localhost/_next/static/chunks/app.js') as unknown as NextRequest);
     expect(result1.status).toBe(undefined);
 
-    const result2 = await middleware(mockRequest('http://localhost/api/health') as unknown as NextRequest);
+    const result2 = await proxy(mockRequest('http://localhost/api/health') as unknown as NextRequest);
     expect(result2.status).toBe(undefined);
   });
 
   it('allows authenticated users on protected routes', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null });
 
-    const result = await middleware(mockRequest('http://localhost/settings/security') as unknown as NextRequest);
+    const result = await proxy(mockRequest('http://localhost/settings/security') as unknown as NextRequest);
     expect(result.status).toBe(undefined);
   });
 });
