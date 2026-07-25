@@ -6,7 +6,7 @@
   "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/generate-sitemap.js && next build",
+    "build": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096\" node scripts/generate-sitemap.js && next build",
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
-    "quality": "npm run typecheck && npm run lint && npm run test:unit && npm run build",
+    "quality": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096\" npm run typecheck && npm run lint && npm run test:unit && npm run build",
     "prepare": "husky",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
