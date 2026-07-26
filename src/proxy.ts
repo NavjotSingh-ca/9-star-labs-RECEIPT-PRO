@@ -55,7 +55,7 @@ const SUPABASE_ANON_KEY = env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
 const publicPaths = ['/', '/privacy', '/terms', '/auth/callback'];
 
 // Static asset paths that should never trigger proxy auth checks.
-const staticPaths = ['/sw.js', '/manifest.json', '/favicon.ico', '/favicon.svg', '/logo.svg'];
+const staticPaths = ['/sw.js', '/manifest.json', '/favicon.ico', '/favicon.svg', '/logo.svg', '/robots.txt', '/llms.txt', '/sitemap.xml'];
 
 // API routes that are intentionally public. Each self-authenticates:
 //   - /api/health, /api/docs   → informational only (docs is static spec)
@@ -100,7 +100,7 @@ function buildCSP(): string {
     "default-src 'self'",
     `script-src ${scriptSrc}`,
     `style-src ${styleSrc}`,
-    "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in",
+    "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://cdn.simpleicons.org",
     "media-src 'self' blob:",
     "connect-src 'self' https://*.supabase.co https://*.supabase.in https://generativelanguage.googleapis.com https://api.resend.com https://*.posthog.com https://js.stripe.com wss://*.supabase.co",
     "font-src 'self' data:",
@@ -111,6 +111,7 @@ function buildCSP(): string {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
+    "require-trusted-types-for 'script'",
   ].join('; ');
 }
 

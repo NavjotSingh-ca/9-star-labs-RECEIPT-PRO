@@ -1,15 +1,13 @@
-# robots.txt for Leduc Receipt Pro
-# Generated automatically at build time
+# LSD Receipt Pro
+# Robots.txt for automated indexers
 
 User-agent: *
 Allow: /
 
-# Disallow private/admin routes
 Disallow: /api/
 Disallow: /settings/
 Disallow: /auth/
 Disallow: /_next/
 Disallow: /_vercel/
 
-# Sitemap location
 Sitemap: https://leduc-receipt-pro.vercel.app/sitemap.xml

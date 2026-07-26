@@ -17,7 +17,7 @@ const config: NextConfig = {
   },
   poweredByHeader: false,
   compress: true,
-  productionBrowserSourceMaps: false,
+  productionBrowserSourceMaps: true,
   experimental: {
     optimizePackageImports: ['lucide-react', 'recharts', 'framer-motion', 'date-fns', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs'],
   },

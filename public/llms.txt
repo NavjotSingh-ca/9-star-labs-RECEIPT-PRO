@@ -1,0 +1,28 @@
+# Leduc Receipt Pro
+
+Leduc Receipt Pro is a receipt management application designed for Canadian contractors and small businesses. It provides AI-powered receipt scanning, CRA-compliant tax exports, and real-time financial insights.
+
+## Core Features
+- Receipt scanning and extraction
+- CRA-compliant tax reporting (GST, HST, PST)
+- Expense tracking and categorization
+- Audit trail management
+- Real-time financial insights
+
+## Navigation
+- [Home](https://leduc-receipt-pro.vercel.app/) - Landing page
+- [Privacy Policy](https://leduc-receipt-pro.vercel.app/privacy) - Privacy policy
+- [Terms of Service](https://leduc-receipt-pro.vercel.app/terms) - Terms and conditions
+- [Notifications](https://leduc-receipt-pro.vercel.app/notifications) - User notifications
+
+## API Documentation
+- [API Health](https://leduc-receipt-pro.vercel.app/api/health) - Health check endpoint
+- [API Docs](https://leduc-receipt-pro.vercel.app/api/docs) - API documentation
+
+## Crawling Guidelines
+- User-agent: *
+- Allowed paths: /
+- Disallowed paths: /api/, /settings/, /auth/, /_next/, /_vercel/
+
+## Contact
+- [Support](mailto:support@leduc-receipt-pro.vercel.app)

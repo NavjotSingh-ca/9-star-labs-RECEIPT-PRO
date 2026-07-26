@@ -72,7 +72,7 @@ const TOC = [
  */
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-obsidian">
+    <div className="min-h-screen bg-champagne">
       <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
         <Link
           href="/"

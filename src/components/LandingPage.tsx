@@ -100,8 +100,8 @@ function StaggeredReveal({
     <motion.div
       ref={ref}
       className={className}
-      initial={{ opacity: 0, y: 32, filter: 'blur(8px)' }}
-      animate={isVisible ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 32, filter: 'blur(8px)' }}
+      initial={{ opacity: 0, y: 32, scale: 0.98 }}
+      animate={isVisible ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 32, scale: 0.98 }}
       transition={{ duration: 0.9, delay, ease: FLUID_EASE }}
     >
       {children}
@@ -399,8 +399,8 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left column — text content */}
           <motion.div
-            initial={{ opacity: 0, y: 32, filter: 'blur(8px)' }}
-            animate={isVisible && !reduce ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 1, y: 0, filter: 'blur(0px)' }}
+            initial={{ opacity: 0, y: 32, scale: 0.98 }}
+            animate={isVisible && !reduce ? { opacity: 1, y: 0, scale: 1 } : { opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: reduce ? 0 : 0.9, ease: FLUID_EASE }}
             className="max-w-xl"
           >
@@ -445,8 +445,8 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
 
           {/* Right column — TiltCard with 3D receipt */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, filter: 'blur(8px)' }}
-            animate={isVisible && !reduce ? { opacity: 1, scale: 1, filter: 'blur(0px)' } : { opacity: 1, scale: 1, filter: 'blur(0px)' }}
+            initial={{ opacity: 0, scale: 0.9, translateY: 20 }}
+            animate={isVisible && !reduce ? { opacity: 1, scale: 1, translateY: 0 } : { opacity: 1, scale: 1, translateY: 0 }}
             transition={{ duration: reduce ? 0 : 1, ease: FLUID_EASE, delay: 0.2 }}
             className="hidden lg:flex items-center justify-center"
           >
@@ -501,7 +501,7 @@ function LogoWall() {
   return (
     <section className="relative py-16 border-t border-glass-border">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <p className="text-center text-xs font-medium uppercase tracking-[0.15em] text-text-muted/50 mb-10">
+        <p className="text-center text-xs font-medium uppercase tracking-[0.15em] text-text-muted mb-10">
           Built with
         </p>
         <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-8">
@@ -568,7 +568,7 @@ function FeatureHighlights() {
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-champagne/10 text-champagne transition-all duration-500 group-hover:bg-champagne/20 group-hover:scale-105">
                   {React.createElement(getFeatureIcon(feat.icon), { className: 'h-6 w-6' })}
                 </div>
-                <h3 className="text-lg font-bold text-text-primary mb-2 transition-colors group-hover:text-champagne">{feat.title}</h3>
+                <h2 className="text-lg font-bold text-text-primary mb-2 transition-colors group-hover:text-champagne">{feat.title}</h2>
                 <p className="text-sm text-text-muted/80 leading-relaxed mb-2">{feat.description}</p>
                 <div className="text-xs font-semibold text-champagne">{feat.benefit}</div>
               </DoubleBezelCard>
@@ -681,8 +681,8 @@ function FeaturesSection() {
             return (
               <motion.div
                 key={f.id}
-                initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
-                whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                initial={{ opacity: 0, y: 24, scale: 0.98 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
                 viewport={{ once: true, amount: 0.3 }}
                 transition={{ duration: 0.7, delay: i * 0.05, ease: FLUID_EASE }}
                 className={isSpanCol ? 'lg:col-span-2' : ''}
@@ -1025,7 +1025,7 @@ interface LandingPageProps {
 
 export default function LandingPage({ onGetStarted }: LandingPageProps) {
   return (
-    <div className="min-h-screen bg-obsidian text-text-primary selection:bg-champagne/30 overflow-x-hidden">
+    <div className="min-h-screen bg-champagne text-text-primary selection:bg-champagne/30 overflow-x-hidden">
       {/* Fixed Navigation */}
       <NavBar onGetStarted={onGetStarted} />
 

@@ -63,7 +63,7 @@ const TOC = [
  */
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-obsidian">
+    <div className="min-h-screen bg-champagne">
       <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
         {/* Back navigation */}
         <div className="mb-6 sm:mb-8">

@@ -74,7 +74,7 @@ export default function FeatureDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-obsidian text-text-primary selection:bg-champagne/30">
+    <div className="min-h-screen bg-champagne text-text-secondary selection:bg-champagne/30">
       {/* Nav */}
       <header className="fixed inset-x-0 top-0 z-50 border-b border-glass-border bg-obsidian/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3 sm:px-6">

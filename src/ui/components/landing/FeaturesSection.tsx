@@ -69,8 +69,8 @@ export function FeaturesSection() {
           {gridFeatures.map((f, i) => (
             <motion.div
               key={f.id}
-              initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
-              whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              initial={{ opacity: 0, y: 24, scale: 0.98 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
               className={i === 0 || i === gridFeatures.length - 1 ? 'lg:col-span-2' : ''}
