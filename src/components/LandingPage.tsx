@@ -4,7 +4,7 @@ import React, { useState, useCallback, Suspense, useEffect, useRef } from 'react
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   ReceiptText, ArrowRight, Sparkles, Zap,
   Lock, CheckCircle2, ChevronDown, Star, Menu, X,
@@ -46,18 +46,26 @@ function useScrollReveal(threshold = 0.1, rootMargin = '-80px') {
   const ref = useRef<HTMLDivElement | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const reduce = useReducedMotion();
+  const visibleRef = useRef(false);
 
   useEffect(() => {
     const el = ref.current;
     if (!el || reduce) {
-      setIsVisible(true);
+      if (!visibleRef.current) {
+        visibleRef.current = true;
+        // Use setTimeout to avoid synchronous setState in effect
+        setTimeout(() => setIsVisible(true), 0);
+      }
       return;
     }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setIsVisible(true);
+          if (!visibleRef.current) {
+            visibleRef.current = true;
+            setIsVisible(true);
+          }
           observer.unobserve(el);
         }
       },

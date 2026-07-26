@@ -1,6 +1,6 @@
 /**
  * Central feature data for the landing page and feature detail pages.
- * Each feature has a slug, title, icon, descriptions, detailed sections, and benefits.
+ * Each feature has a slug (id), title, icon, descriptions, sections, benefits, and related features.
  */
 
 export interface FeatureSection {
@@ -14,13 +14,13 @@ export interface FeatureData {
   icon: string;
   shortDescription: string;
   longDescription: string;
-  sections: FeatureSection[];
-  benefits: string[];
-  relatedFeatures: string[];
+  sections: readonly FeatureSection[];
+  benefits: readonly string[];
+  relatedFeatures: readonly string[];
   highlighted?: boolean;
 }
 
-export const features: FeatureData[] = [
+export const features = [
   {
     id: 'ai-receipt-scanning',
     title: 'AI Receipt Scanning',
@@ -169,7 +169,7 @@ export const features: FeatureData[] = [
       'Overspend predictions with AI',
       'Email and in-app alerts',
     ],
-    relatedFeatures: ['cash-flow-forecast', 'spending-insights', 'vendor-analytics'],
+    relatedFeatures: ['spending-insights', 'vendor-analytics', 'cash-flow-forecast'],
   },
   {
     id: 'cash-flow-forecast',
@@ -219,7 +219,7 @@ export const features: FeatureData[] = [
       {
         title: 'Deduction Readiness',
         content:
-          'Every receipt is scored 0–100 for CRA deduction readiness. Missing BN? Low score. Missing detailed line items? Low score. The dashboard shows exactly what each receipt needs to pass audit scrutiny.',
+          'Every receipt is scored 0–100 for CRA deduction readiness. Missing vendor BN? Low score. Missing detailed line items? Low score. The dashboard shows exactly what each receipt needs to pass audit scrutiny.',
       },
       {
         title: 'Quarterly Estimates',
@@ -233,7 +233,7 @@ export const features: FeatureData[] = [
       'Quarterly remittance estimates',
       'PDF export for accountant review',
     ],
-    relatedFeatures: ['cra-readiness-score', 'cra-reports', 'audit-trail'],
+    relatedFeatures: ['cra-readiness-score', 'cra-reports', 'mileage-tracking'],
   },
   {
     id: 'multi-currency',
@@ -305,14 +305,14 @@ export const features: FeatureData[] = [
       {
         title: 'Approval Workflow',
         content:
-          'Customizable approval chains. Set rules: "receipts over $500 need manager approval". Email notifications when receipts enter or leave each stage. Audit log of all movements.',
+          'Customizable approval chains. Set rules: "receipts over $500 need manager approval", "specific categories need director approval". Email notifications for pending approvals. Escalation if not reviewed within 48 hours.',
       },
     ],
     benefits: [
       'Drag-and-drop Kanban board',
       'Customizable approval chains',
-      'Real-time status updates',
-      'Full audit trail',
+      'Email notifications for pending items',
+      'Auto-escalation for stale approvals',
     ],
     relatedFeatures: ['team-approvals', 'audit-trail', 'payables-dashboard'],
   },
@@ -376,7 +376,7 @@ export const features: FeatureData[] = [
     icon: 'FileDown',
     shortDescription: 'Export to CSV, PDF, ZIP. QBO and Xero formats supported.',
     longDescription:
-      'Export your receipt data in multiple formats. CSV for spreadsheets, PDF for archiving, ZIP for the original images + metadata. QBO and Xero formatted CSVs for direct import into accounting software.',
+      'Export your receipt data in multiple formats. CSV for spreadsheets, PDF for archiving, ZIP for original images + metadata. QBO and Xero formatted CSVs for direct import into accounting software.',
     sections: [
       {
         title: 'Export Formats',
@@ -430,7 +430,7 @@ export const features: FeatureData[] = [
     icon: 'ClipboardCheck',
     shortDescription: '0–100 score based on receipt completeness. Know exactly what\'s missing before tax season.',
     longDescription:
-      'Every receipt gets a CRA Readiness Score — from 0 to 100 — based on how well it would stand up to a CRA audit. The score considers: vendor BN, detailed line items, tax breakdown, valid date, and receipt image quality.',
+      'Every receipt gets a CRA Readiness Score — from 0 to 100 — based on how well it would stand up to a CRA audit. The score considers: vendor BN, detailed line items, tax breakdown with rates, valid receipt date, and receipt image quality.',
     sections: [
       {
         title: 'Scoring Criteria',
@@ -449,7 +449,7 @@ export const features: FeatureData[] = [
       'Actionable improvement suggestions',
       'Batch improvement for similar gaps',
     ],
-    relatedFeatures: ['tax-dashboard', 'cra-reports', 'audit-trail'],
+    relatedFeatures: ['tax-dashboard', 'cra-reports', 'mileage-tracking'],
   },
   {
     id: 'audit-trail',
@@ -460,7 +460,7 @@ export const features: FeatureData[] = [
       'Every single action in the system is logged with timestamp, user, and details. Full audit trail for compliance requirements, with paginated search and export.',
     sections: [
       {
-        title: 'What\'s Logged',
+        title: "What's Logged",
         content:
           'Receipt creation, edits, deletions, approval status changes, exports, logins, team changes, and settings modifications. Each entry includes: timestamp, user, action type, and before/after values for changes.',
       },
@@ -473,7 +473,7 @@ export const features: FeatureData[] = [
     benefits: [
       'Every action logged immutably',
       'Before/after values for changes',
-      'Filterable and searchable',
+      'Filterable and searchable logs',
       'Export for external auditors',
     ],
     relatedFeatures: ['cra-readiness-score', 'team-approvals', 'kanban-workflow'],
@@ -500,7 +500,7 @@ export const features: FeatureData[] = [
     benefits: [
       '5 types of anomaly detection',
       'Real-time fraud alerts',
-      'Email digest notifications',
+      'Severity levels with email digests',
       'Resolution tracking dashboard',
     ],
     relatedFeatures: ['audit-trail', 'cra-readiness-score', 'receipt-comparison'],
@@ -516,7 +516,7 @@ export const features: FeatureData[] = [
       {
         title: 'Trip Logging',
         content:
-          'Log trips manually or import from your GPS. For each trip: date, purpose, starting and ending odometer or locations. Auto-calculate distance using mapping APIs.',
+          'Log trips manually or import from GPS. For each trip: date, purpose, starting and ending odometer or locations. Auto-calculate distance using mapping APIs.',
       },
       {
         title: 'CRA Rates',
@@ -845,6 +845,3 @@ export const featureIconMap: Record<string, string> = {
   Lightbulb: 'Lightbulb',
   Star: 'Star',
 };
-
-// Export the icon map as default feature icons for dynamic rendering
-export const defaultFeatureIcons = featureIconMap;
