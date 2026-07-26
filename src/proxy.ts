@@ -111,7 +111,6 @@ function buildCSP(): string {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    "require-trusted-types-for 'script'",
   ].join('; ');
 }
 
