@@ -89,19 +89,20 @@ export async function getOrgFeaturesRaw(orgId: string): Promise<OrgFeatureRow[]>
 }
 
 /**
- * Fetch features for an organization, filtered by the user's role.
+ * Fetch features for an organization.
+ * Role-based filtering is removed: every org member sees the org's enabled
+ * feature set (org-level toggles still respected, role no longer narrows it).
  * If no rows exist, returns all features enabled (backwards-compatible).
- * Owner always gets all features enabled.
  */
 export async function getOrgFeatures(
   orgId: string,
-  role?: UserRole,
+  _role?: UserRole,
 ): Promise<FeaturesMap> {
   try {
     const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('org_features')
-      .select('feature_key, enabled, allowed_roles')
+      .select('feature_key, enabled')
       .eq('org_id', orgId);
 
     if (error) {
@@ -109,7 +110,7 @@ export async function getOrgFeatures(
       return getAllEnabled();
     }
 
-    type OrgFeatureRow = { feature_key: string; enabled: boolean; allowed_roles: string[] | null };
+    type OrgFeatureRow = { feature_key: string; enabled: boolean };
     const rows = (data as OrgFeatureRow[]) || [];
 
     if (rows.length === 0) {
@@ -117,21 +118,10 @@ export async function getOrgFeatures(
     }
 
     const result: FeaturesMap = {} as FeaturesMap;
-    const isOwner = role === 'Owner';
 
     for (const key of ALL_FEATURE_KEYS) {
       const row = rows.find((r) => r.feature_key === key);
-      const enabled = row ? row.enabled : true;
-      const allowedRoles: string[] = row?.allowed_roles ?? DEFAULT_ROLES_ALL;
-
-      // Owner always bypasses role check
-      if (isOwner) {
-        result[key] = enabled;
-      } else if (role) {
-        result[key] = enabled && allowedRoles.includes(role);
-      } else {
-        result[key] = enabled;
-      }
+      result[key] = row ? row.enabled : true;
     }
     return result;
   } catch (err) {

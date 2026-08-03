@@ -47,7 +47,7 @@ export default function Dashboard({ onScan, role = 'Owner', userId }: DashboardP
     queryKey: ['dashboard_summary', role, userId],
     queryFn: () => {
       if (!userId) throw new Error('No user ID');
-      return getDashboardSummary(role, userId);
+      return getDashboardSummary(userId);
     },
     enabled: !!userId, retry: 1, staleTime: 5 * 60 * 1000,
   });
@@ -127,8 +127,6 @@ export default function Dashboard({ onScan, role = 'Owner', userId }: DashboardP
       }
     />
   );
-
-  if (role === 'Employee') return <EmployeeView scans={receiptCount} total={totalSpent} gst={gstRecoverable} />;
 
   return (
     <motion.div variants={staggerMedium} initial="hidden" animate="show" className="space-y-6" aria-live="polite">
@@ -268,33 +266,6 @@ function DashboardSkeleton() {
         <Skeleton variant="card" className="h-64" />
       </div>
     </div>
-  );
-}
-
-/** Employee-restricted view — shows personal stats only */
-function EmployeeView({ scans, total, gst }: { scans: number; total: number; gst: number }) {
-  return (
-    <motion.div variants={staggerMedium} initial="hidden" animate="show" className="space-y-4" role="region" aria-label="Employee dashboard summary">
-      <motion.div variants={fadeUp} className="rounded-xl border border-glass-border bg-surface p-8 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/10 text-warning mx-auto mb-4"><ShieldAlert className="h-6 w-6" /></div>
-        <h2 className="text-lg font-bold">Restricted Dashboard</h2>
-        <p className="text-sm text-text-secondary mt-2">Detailed financial data is available to owners and accountants.</p>
-      </motion.div>
-      <div className="grid grid-cols-3 gap-3">
-        <Card className="p-4" role="figure" aria-label={`Scans: ${scans}`}>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">My Scans</p>
-          <p className="text-xl font-bold tabular-nums mt-0.5">{scans}</p>
-        </Card>
-        <Card className="p-4" role="figure" aria-label={`Total: ${formatCurrency(total)}`}>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">My Total</p>
-          <p className="text-xl font-bold tabular-nums mt-0.5">{formatCurrency(total)}</p>
-        </Card>
-        <Card className="p-4" role="figure" aria-label={`GST: ${formatCurrency(gst)}`}>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">My GST</p>
-          <p className="text-xl font-bold tabular-nums mt-0.5">{formatCurrency(gst)}</p>
-        </Card>
-      </div>
-    </motion.div>
   );
 }
 

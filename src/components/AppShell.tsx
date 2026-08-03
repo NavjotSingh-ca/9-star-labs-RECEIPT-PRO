@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState, Suspense } from 'react';
 import { useReceiptRealtimeSync } from '@/hooks/useReceiptRealtimeSync';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useQueryState, parseAsStringEnum } from 'nuqs';
-import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { OnboardingTour } from '@/components/OnboardingTour';
@@ -19,7 +18,6 @@ import { CommandPalette, useCommandPalette } from '@/components/CommandPalette';
 import type { UserRole } from '@/lib/types';
 import type { User } from '@supabase/supabase-js';
 import { getReceipts, getDashboardSummary, getDailySpend } from '@/lib/services/receipts';
-import { getPlan, formatPlanLabel } from '@/lib/services/subscription';
 import { TabContent, AuditHUD, tabTransition, type Tab } from '@/components/tab-content';
 
 const FULL_TAB_ORDER: Tab[] = [
@@ -30,11 +28,6 @@ const FULL_TAB_ORDER: Tab[] = [
   'receipt-tags', 'batch-operations', 'receipt-comparison', 'recurring-detector', 'kanban-workflow',
   'qbo-export', 'xero-export', 'export-dashboard', 'email-forward',
   'readiness-score', 'spending-insights', 'share-receipt', 'payables-dashboard', 'slack-alerts', 'dark-sync', 'more',
-];
-
-const EMPLOYEE_TAB_ORDER: Tab[] = [
-  'receipts', 'scan', 'mileage', 'time', 'smart-search', 'receipt-calendar',
-  'receipt-timeline', 'vendor-analytics', 'receipt-tags', 'share-receipt', 'more',
 ];
 
 export interface AppShellProps {
@@ -71,17 +64,9 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
   }, [setActiveTab]);
 
   const closeMoreMenu = useCallback(() => {
-    const fallback: Tab = role === 'Employee' ? 'scan' : 'dashboard';
+    const fallback: Tab = 'dashboard';
     setTabWithUrl(fallback);
-  }, [role, setTabWithUrl]);
-
-  useEffect(() => {
-    if (role === 'Employee') {
-      if (!(EMPLOYEE_TAB_ORDER as readonly Tab[]).includes(activeTab)) {
-        toast.error('This feature is not available for your role.');
-      }
-    }
-  }, [role, activeTab]);
+  }, [setTabWithUrl]);
 
   const queryClient = useQueryClient();
 
@@ -89,7 +74,7 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
     if (userId && role) {
       queryClient.prefetchQuery({
         queryKey: ['dashboard_summary', role, userId],
-        queryFn: () => getDashboardSummary(role, userId),
+        queryFn: () => getDashboardSummary(userId),
         staleTime: 5 * 60 * 1000,
       });
       queryClient.prefetchQuery({
@@ -112,21 +97,11 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
 // throttled to 5 min to avoid a multi-MB payload every 30s.
   const { data: receipts = [], isLoading: receiptsLoading, refetch: fetchReceipts, isError: receiptsError } = useQuery({
     queryKey: ['receipts', role, userId],
-    queryFn: async () => getReceipts(role, userId),
+    queryFn: async () => getReceipts(userId),
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });
-
-  const { data: currentPlan } = useQuery({
-    queryKey: ['plan'],
-    queryFn: getPlan,
-    enabled: !!userId,
-    staleTime: 60_000,
-  });
-  const plan = currentPlan || 'free';
-  const planLabel = formatPlanLabel(plan);
-  const planLoading = false;
 
   const { isConnected } = useReceiptRealtimeSync(role, userId);
 
@@ -196,12 +171,12 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
     const deltaX = e.changedTouches[0].clientX - touchStartX.current;
     const deltaY = e.changedTouches[0].clientY - touchStartY.current;
     if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
-    const tabOrder: Tab[] = role === 'Employee' ? EMPLOYEE_TAB_ORDER : FULL_TAB_ORDER;
+    const tabOrder: Tab[] = FULL_TAB_ORDER;
     const currentIndex = tabOrder.indexOf(activeTab);
     if (currentIndex === -1) return;
     if (deltaX < 0 && currentIndex < tabOrder.length - 1) setTabWithUrl(tabOrder[currentIndex + 1]);
     else if (deltaX > 0 && currentIndex > 0) setTabWithUrl(tabOrder[currentIndex - 1]);
-  }, [activeTab, role, setTabWithUrl]);
+  }, [activeTab, setTabWithUrl]);
 
   const tabContent = (
     <TabContent
@@ -231,16 +206,13 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
         <Sidebar
           activeTab={activeTab}
           onTabChange={setTabWithUrl}
-          role={role}
-          planLabel={planLabel}
-          plan={plan}
           handleSignOut={handleSignOut}
           isConnected={isConnected}
         />
       </ErrorBoundary>
 
       <div className="flex flex-1 flex-col min-w-0">
-        <TopBar planLabel={planLabel} plan={plan} planLoading={planLoading} isConnected={isConnected}>
+        <TopBar isConnected={isConnected}>
           <ThemeToggle />
         </TopBar>
 
@@ -256,7 +228,7 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
           <div className="pointer-events-none absolute -left-16 -top-16 h-40 w-40 sm:-left-32 sm:-top-32 sm:h-64 sm:w-64 rounded-full bg-champagne/8 blur-3xl" aria-hidden="true" />
           <div className="hidden sm:block pointer-events-none absolute -right-32 top-64 h-48 w-48 rounded-full bg-champagne/5 blur-3xl" aria-hidden="true" />
           <div className="mx-auto w-full max-w-6xl relative">
-            {!receiptsLoading && receipts.length > 0 && role !== 'Employee' && (
+            {!receiptsLoading && receipts.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -283,8 +255,6 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
               activeTab={activeTab}
               onTabChange={setTabWithUrl}
               onClose={closeMoreMenu}
-              planLabel={planLabel}
-              plan={plan}
               onSignOut={handleSignOut}
             />
           </Suspense>

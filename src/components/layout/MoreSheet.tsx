@@ -3,7 +3,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Download,
-  Crown,
   Settings,
   LogOut,
   X,
@@ -55,8 +54,6 @@ interface MoreSheetProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
   onClose: () => void;
-  planLabel: string;
-  plan: string;
   onSignOut: () => void;
 }
 
@@ -64,8 +61,6 @@ export default function MoreSheet({
   activeTab,
   onTabChange,
   onClose,
-  planLabel,
-  plan,
   onSignOut,
 }: MoreSheetProps) {
   return (
@@ -105,13 +100,6 @@ export default function MoreSheet({
               <div className="grid gap-2">
                 <div className="px-2">
                   <p className="mb-2 text-xs font-bold uppercase tracking-widest text-text-muted">Settings</p>
-                  <MoreSettingLink
-                    icon={<Crown className="h-4 w-4 text-warning" />}
-                    label="Billing & Plan"
-                    href="/settings/billing"
-                    badge={planLabel}
-                    badgeActive={plan === 'pro' || plan === 'enterprise'}
-                  />
                   <MoreSettingLink
                     icon={<LayoutDashboard className="h-4 w-4 text-text-muted" />}
                     label="Admin"

@@ -93,7 +93,7 @@ const ReimburseCard = React.memo(function ReimburseCard({
  * ReimbursementsPanel — Track and mark employee cash-expense reimbursements as paid.
  * Shows pending payables with total outstanding amount and per-receipt "Mark Paid" actions.
  */
-export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) {
+export default function ReimbursementsPanel(_props: ReimbursementsPanelProps) {
   const queryClient = useQueryClient();
 
   const { data: { user } = {}, isLoading: userLoading } = useQuery({
@@ -108,7 +108,7 @@ export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) 
   const { data: payables = [], isLoading, error: queryError, refetch } = useQuery({
     queryKey: ['reimbursements_pending'],
     queryFn: async () => getReimbursementsPending(),
-    enabled: !!user?.id && role !== 'Employee',
+    enabled: !!user?.id,
     staleTime: 60_000,
   });
 
@@ -140,8 +140,6 @@ export default function ReimbursementsPanel({ role }: ReimbursementsPanelProps) 
   const totalPending = payables
     .filter((r) => r.reimbursement_status !== 'approved')
     .reduce((sum, r) => sum + Number(r.total_amount ?? 0), 0);
-
-  if (role === 'Employee') return null;
 
   return (
     <section className="space-y-5 fade-in" role="region" aria-label="Reimbursements panel">

@@ -22,7 +22,6 @@ import {
   BarChart3,
   AlertTriangle,
   Bell,
-  Crown,
   Settings,
   LogOut,
   PanelLeftClose,
@@ -55,7 +54,6 @@ import {
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import RealtimeStatus from '@/components/layout/RealtimeStatus';
-import type { UserRole } from '@/lib/types';
 import { useFeatures } from '@/lib/features/hooks';
 import type { FeatureKey } from '@/lib/features/registry';
 
@@ -69,9 +67,6 @@ type Tab = 'dashboard' | 'receipts' | 'scan' | 'export' | 'audit' | 'reconcile' 
 interface SidebarProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
-  role: UserRole;
-  planLabel: string;
-  plan: string;
   handleSignOut: () => void;
   /** Whether the org's realtime receipt channel is currently subscribed. */
   isConnected: boolean;
@@ -173,9 +168,6 @@ function NavLink({
 export default function Sidebar({
   activeTab,
   onTabChange,
-  role,
-  planLabel,
-  plan,
   handleSignOut,
   isConnected,
 }: SidebarProps) {
@@ -183,7 +175,8 @@ export default function Sidebar({
   const collapsed = useAppStore((s) => s.sidebarCollapsed);
   const setCollapsed = useAppStore((s) => s.setSidebarCollapsed);
 
-  const isPrivileged = role !== 'Employee';
+  // Full access for every role: no nav items are hidden based on role.
+  const isPrivileged = true;
   const unreadCount = useNotificationStore((s) => s.unreadCount());
   const { features } = useFeatures();
 
@@ -348,24 +341,6 @@ export default function Sidebar({
           <RealtimeStatus connected={isConnected} showLabel={!collapsed} />
         </div>
         <Link
-          href="/settings/billing"
-          aria-label="Billing"
-          className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition mb-0.5 ${collapsed ? 'justify-center px-2' : ''}`}
-          title={collapsed ? `Billing · ${planLabel}` : undefined}
-        >
-          <Crown className={`h-3.5 w-3.5 flex-shrink-0 ${plan === 'pro' || plan === 'enterprise' ? 'text-warning' : 'text-sidebar-text-muted'}`} />
-          {!collapsed && (
-            <>
-              <span className="flex-1">Billing</span>
-              <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${
-                plan === 'pro' || plan === 'enterprise' ? 'bg-warning/10 text-warning' : 'bg-sidebar-hover text-sidebar-text-muted'
-              }`}>
-                {planLabel}
-              </span>
-            </>
-          )}
-        </Link>
-        <Link
           href="/settings/admin"
           aria-label="Admin"
           className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition mb-0.5 ${collapsed ? 'justify-center px-2' : ''}`}
@@ -503,14 +478,6 @@ export default function Sidebar({
                   })}
                 </div>
                 <div className="border-t border-sidebar-border p-2 space-y-0.5">
-                  <Link
-                    href="/settings/billing"
-                    onClick={() => setMobileOpen(false)}
-                    className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text-secondary transition"
-                  >
-                    <Crown className="h-3.5 w-3.5 text-warning flex-shrink-0" />
-                    <span>Billing</span>
-                  </Link>
                   <Link
                     href="/settings/org"
                     onClick={() => setMobileOpen(false)}

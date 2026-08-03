@@ -176,7 +176,7 @@ const ApprovalCard = React.memo(function ApprovalCard({
  * Supports bulk actions via keyboard shortcuts (A = approve all, R = reject all).
  * Optimistic updates with rollback on failure.
  */
-export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
+export default function ApprovalsQueue(_props: ApprovalsQueueProps) {
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -184,7 +184,6 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
   const { data: pending = [], isLoading, error: queryError, refetch } = useQuery({
     queryKey: ['approvals_pending'],
     queryFn: getReceiptsPendingApproval,
-    enabled: role !== 'Employee',
     staleTime: 60_000,
   });
 
@@ -287,15 +286,6 @@ export default function ApprovalsQueue({ role }: ApprovalsQueueProps) {
       setActionLoading(null);
     }
   }, [approveMutation]);
-
-  if (role === 'Employee') {
-    return (
-      <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-glass-border bg-surface/30 py-16 text-center" role="status" aria-live="polite">
-        <AlertCircle className="h-10 w-10 text-text-muted opacity-30" />
-        <p className="text-sm text-text-muted">Employees do not have access to the Approvals Queue.</p>
-      </div>
-    );
-  }
 
   return (
     <section className="space-y-5 fade-in" role="region" aria-label="Approvals queue">

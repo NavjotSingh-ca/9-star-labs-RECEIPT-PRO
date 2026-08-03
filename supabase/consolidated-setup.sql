@@ -913,13 +913,13 @@ CREATE POLICY "Update Projects by Org" ON projects FOR UPDATE USING (org_id = ge
 CREATE POLICY "Delete Projects by Org" ON projects FOR DELETE USING (org_id = get_user_org() AND has_elevated_role());
 
 -- receipts
-CREATE POLICY "Select_Receipts_Tenant" ON receipts FOR SELECT USING (org_id = get_user_org() AND is_deleted = false AND (user_id = auth.uid() OR has_elevated_role()));
+CREATE POLICY "Select_Receipts_Tenant" ON receipts FOR SELECT USING (org_id = get_user_org() AND is_deleted = false);
 CREATE POLICY "Insert_Receipts_Tenant" ON receipts FOR INSERT WITH CHECK (org_id = get_user_org() AND user_id = auth.uid());
-CREATE POLICY "Update_Receipts_Tenant" ON receipts FOR UPDATE USING (org_id = get_user_org() AND (user_id = auth.uid() OR has_elevated_role()));
+CREATE POLICY "Update_Receipts_Tenant" ON receipts FOR UPDATE USING (org_id = get_user_org());
 CREATE POLICY "Protect_CRA_Retention_Window" ON receipts FOR DELETE USING (transaction_date > (CURRENT_DATE - '7 years'::interval));
 
 -- audit_logs
-CREATE POLICY "Select_Audit_Tenant" ON audit_logs FOR SELECT USING (org_id = get_user_org() AND (user_id = auth.uid() OR has_elevated_role()));
+CREATE POLICY "Select_Audit_Tenant" ON audit_logs FOR SELECT USING (org_id = get_user_org());
 CREATE POLICY "Insert_Audit_Tenant" ON audit_logs FOR INSERT WITH CHECK (org_id = get_user_org() AND user_id = auth.uid());
 CREATE POLICY "Protect_Audit_Log_Retention" ON audit_logs FOR DELETE USING ((created_at)::date < (now() - '10 years'::interval)::date);
 
@@ -1459,7 +1459,6 @@ BEGIN
   SELECT receipts.id, 1 - (receipts.semantic_embedding <=> query_embedding) AS similarity
   FROM receipts
   WHERE receipts.org_id = COALESCE(p_org_id, get_user_org()) AND receipts.semantic_embedding IS NOT NULL AND receipts.is_deleted = false
-    AND (p_user_id IS NULL OR receipts.user_id = p_user_id OR has_elevated_role())
     AND 1 - (receipts.semantic_embedding <=> query_embedding) > match_threshold
   ORDER BY receipts.semantic_embedding <=> query_embedding LIMIT match_count;
 END;

@@ -728,27 +728,20 @@ function TestimonialsSection() {
 function PricingSection({ onGetStarted }: { onGetStarted: () => void }) {
   const pricingPlans = [
     {
-      name: 'Starter',
+      name: 'Full Access',
       price: 'Free',
-      description: 'For solo entrepreneurs testing the waters.',
-      features: ['Up to 50 receipts/month', 'AI receipt scanning', 'Basic search & filters', 'CSV export', 'Email support'],
-      cta: 'Get Started Free',
-    },
-    {
-      name: 'Pro',
-      price: '$19',
-      description: 'For growing businesses that need serious tools.',
-      features: ['Unlimited receipts', 'AI scanning + email forwarding', 'Budget management & forecasts', 'Kanban workflow & approvals', 'QBO / Xero export', 'CRA readiness score', 'Multi-user (up to 5)', 'Priority email support'],
+      description: 'Every feature for every account. No subscription, no limits, no upgrade prompts.',
+      features: [
+        'Unlimited receipt scanning & storage',
+        'AI extraction + email forwarding',
+        'CRA-ready reports (T2125, T777) & tax dashboard',
+        'Exports (CSV, PDF, QBO, Xero) & bank reconciliation',
+        'Approvals, payables, budgets & full audit trail',
+        'Unlimited team members — full access for every role',
+        'Priority email support',
+      ],
       highlighted: true,
-      cta: 'Start 14-Day Free Trial',
-      priceDetail: '/month, billed annually',
-    },
-    {
-      name: 'Enterprise',
-      price: 'Custom',
-      description: 'For larger teams with custom needs.',
-      features: ['Everything in Pro', 'Unlimited users', 'Custom integrations', 'Dedicated account manager', 'SLA & SSO', 'On-premise option', 'Custom branding'],
-      cta: 'Contact Sales',
+      cta: 'Get Started Free',
     },
   ];
 
@@ -763,7 +756,7 @@ function PricingSection({ onGetStarted }: { onGetStarted: () => void }) {
             No Surprises. <span className="bg-gradient-to-r from-champagne to-champagne-dim bg-clip-text text-transparent">Just Results.</span>
           </h2>
           <p className="text-base text-text-muted/80 max-w-xl mx-auto">
-            Start free. Upgrade when you need more power. Every plan includes core receipt management.
+            No subscriptions. Every account gets full access to every feature.
           </p>
         </StaggeredReveal>
 
@@ -785,7 +778,6 @@ function PricingSection({ onGetStarted }: { onGetStarted: () => void }) {
                 <h3 className="text-xl font-bold text-text-primary">{plan.name}</h3>
                 <div className="mt-3 flex items-baseline gap-1">
                   <span className="text-4xl font-bold tracking-tight tabular-nums text-text-primary">{plan.price}</span>
-                  {plan.price !== 'Custom' && plan.priceDetail && <span className="text-xs text-text-muted">{plan.priceDetail}</span>}
                 </div>
                 <p className="mt-2 text-sm text-text-muted/80">{plan.description}</p>
                 <ul className="mt-5 space-y-2.5 flex-grow">
@@ -799,13 +791,7 @@ function PricingSection({ onGetStarted }: { onGetStarted: () => void }) {
                 <MagneticCTA
                   variant={plan.highlighted ? 'primary' : 'secondary'}
                   icon={ArrowRight}
-                  onClick={() => {
-                    if (plan.name === 'Enterprise') {
-                      window.open('mailto:sales@9starlabs.ca?subject=Enterprise%20Plan%20Inquiry', '_blank');
-                    } else {
-                      onGetStarted();
-                    }
-                  }}
+                  onClick={onGetStarted}
                   className="mt-6 w-full"
                 >
                   {plan.cta}
@@ -817,7 +803,7 @@ function PricingSection({ onGetStarted }: { onGetStarted: () => void }) {
 
         <StaggeredReveal delay={0.3} className="mt-10 text-center">
           <p className="text-sm text-text-muted/70">
-            All plans include AES-256-GCM encryption, Canadian data residency, and PIPEDA compliance.
+            Every account includes AES-256-GCM encryption, Canadian data residency, and PIPEDA compliance.
           </p>
         </StaggeredReveal>
       </div>
@@ -831,8 +817,8 @@ function FAQSection() {
     { question: 'Is my data stored in Canada?', answer: 'Yes. All data is stored on Canadian servers (Supabase hosted in us-west-1 with Canadian data residency compliance). We follow PIPEDA guidelines and Quebec Law 25 requirements.' },
     { question: 'Can I use this for CRA audits?', answer: 'Absolutely. Every receipt is stored with original image, extracted data, and a full audit trail. You can generate CRA-ready reports including T2125 statements.' },
     { question: 'How does the AI scanning work?', answer: 'Take a photo or forward a receipt email. Our AI extracts vendor name, date, amount, tax, and category with high accuracy. You can review and correct before saving.' },
-    { question: 'What happens after the free trial?', answer: 'Your 14-day Pro trial gives full access to all features. After it ends, you revert to the free Starter plan unless you subscribe. No data is lost.' },
-    { question: 'Can my employees use it too?', answer: 'Yes. Pro plans include up to 5 users with role-based access. Employees can submit receipts; owners approve and export.' },
+    { question: 'Is there a subscription or free trial?', answer: 'No. Every account gets full access to every feature — unlimited scanning, exports, and team members. There is no trial, no paywall, and no upgrade prompts.' },
+    { question: 'Can my employees use it too?', answer: 'Yes. Every team member gets the same full access — the complete workspace, receipts, approvals, reports, and exports are available to every role.' },
     { question: 'How secure is my data?', answer: 'End-to-end encryption for tokens. AES-256-GCM for sensitive data. We implement SOC 2-style controls including access logging, data retention policies, and regular internal security reviews.' },
   ];
 

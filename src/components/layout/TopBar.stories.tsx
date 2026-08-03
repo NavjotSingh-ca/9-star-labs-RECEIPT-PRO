@@ -7,7 +7,7 @@ const meta: Meta<typeof TopBar> = {
   component: TopBar,
   decorators: [withProviders],
   parameters: {
-    docs: { description: { component: 'Fixed top header bar for tablet/mobile. Shows logo, tagline, plan badge, and optional children (hamburger, notifications).' } },
+    docs: { description: { component: 'Fixed top header bar for tablet/mobile. Shows logo, tagline, and optional children (hamburger, notifications).' } },
     viewport: { defaultViewport: 'mobile1' },
     layout: 'fullscreen',
   },
@@ -19,32 +19,12 @@ type Story = StoryObj<typeof TopBar>;
 
 export const Default: Story = {
   args: {
-    planLabel: 'Pro',
-    plan: 'pro',
-    planLoading: false,
+    isConnected: true,
   },
 };
 
-export const FreePlan: Story = {
+export const Disconnected: Story = {
   args: {
-    planLabel: 'Free',
-    plan: 'free',
-    planLoading: false,
-  },
-};
-
-export const EnterprisePlan: Story = {
-  args: {
-    planLabel: 'Enterprise',
-    plan: 'enterprise',
-    planLoading: false,
-  },
-};
-
-export const LoadingPlan: Story = {
-  args: {
-    planLabel: '',
-    plan: 'free',
-    planLoading: true,
+    isConnected: false,
   },
 };

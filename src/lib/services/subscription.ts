@@ -29,11 +29,10 @@ export interface PlanGates {
 }
 
 // ─── Plan gates with real limits ───
-// Free: basic scanning, 25 receipts, 1 user, no exports/QBO/Xero/approval/banking
-// Starter: 200 receipts, 3 users, exports + banking
-// Pro: unlimited receipts, 10 users, all features, priority support
-// Business: unlimited, 15 users, all features
-// Enterprise: unlimited everything
+// NOTE: Billing/paywalling was removed — every account gets full access
+// (previously the "enterprise" tier). PLAN_GATES is retained for type/API
+// compatibility, but getPlanGates() always resolves to full access so no
+// consumer can ever be locked out.
 
 export const PLAN_GATES: Record<Plan, PlanGates> = {
   free: {
@@ -136,35 +135,25 @@ export async function getSubscription(): Promise<Subscription | null> {
 
 /**
  * Resolve the effective plan for the current user's organization.
- * Accounts for trial status (treated as pro) and expired/canceled periods (downgraded to free).
+ * Paywalling is removed: every account is treated as full-access "enterprise".
  *
- * @returns The effective plan name.
+ * @returns The effective plan name ('enterprise').
  */
 export async function getPlan(): Promise<Plan> {
-  const sub = await getSubscription();
-  if (!sub) return 'free';
-
-  if (sub.status === 'trialing') return 'pro';
-
-  if (sub.status === 'canceled' || sub.status === 'past_due') {
-    const periodEnd = sub.current_period_end ? new Date(sub.current_period_end) : null;
-    if (periodEnd && periodEnd > new Date()) {
-      return sub.plan as Plan;
-    }
-    return 'free';
-  }
-
-  return sub.plan as Plan;
+  return 'enterprise';
 }
 
 /**
  * Get feature gates for a given plan.
+ * Paywalling is removed: every plan resolves to full access (the old
+ * enterprise tier — unlimited receipts/users, every feature enabled), so
+ * callers can never be feature-locked regardless of the plan argument.
  *
- * @param plan - The plan name.
- * @returns The PlanGates object with all feature flags. Defaults to free if plan is unknown.
+ * @param _plan - Ignored; retained for API compatibility.
+ * @returns The full-access PlanGates object.
  */
-export function getPlanGates(plan: Plan): PlanGates {
-  return PLAN_GATES[plan] || PLAN_GATES.free;
+export function getPlanGates(_plan: Plan): PlanGates {
+  return PLAN_GATES.enterprise;
 }
 
 /**

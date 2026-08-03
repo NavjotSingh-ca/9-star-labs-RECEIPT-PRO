@@ -24,9 +24,6 @@ export const Default: Story = {
       <Sidebar
         activeTab="dashboard"
         onTabChange={() => {}}
-        role="Owner"
-        planLabel="Pro"
-        plan="pro"
         handleSignOut={() => {}}
         isConnected={true}
       />
@@ -42,9 +39,6 @@ export const Collapsed: Story = {
         <Sidebar
           activeTab="dashboard"
           onTabChange={() => {}}
-          role="Owner"
-          planLabel="Pro"
-          plan="pro"
           handleSignOut={() => {}}
           isConnected={true}
         />
@@ -53,31 +47,12 @@ export const Collapsed: Story = {
   },
 };
 
-export const EmployeeRole: Story = {
-  render: () => (
-    <div className="h-screen">
-      <Sidebar
-        activeTab="receipts"
-        onTabChange={() => {}}
-        role="Employee"
-        planLabel="Free"
-        plan="free"
-        handleSignOut={() => {}}
-        isConnected={true}
-      />
-    </div>
-  ),
-};
-
-export const AccountantRole: Story = {
+export const FullNav: Story = {
   render: () => (
     <div className="h-screen">
       <Sidebar
         activeTab="dashboard"
         onTabChange={() => {}}
-        role="Accountant"
-        planLabel="Enterprise"
-        plan="enterprise"
         handleSignOut={() => {}}
         isConnected={true}
       />

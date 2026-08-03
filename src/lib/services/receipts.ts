@@ -128,16 +128,16 @@ function parseReceiptRows(rows: unknown[]): ReceiptRow[] {
 }
 
 /**
- * Fetch receipts for the current user's organization with role-based filtering.
+ * Fetch receipts for the current user's organization.
+ * Every org member sees org-wide data (role scoping removed).
  *
- * @param role - The caller's role (Employees only see their own receipts).
  * @param userId - UUID of the caller.
  * @param limit - Max results (default 1000).
  * @param offset - Pagination offset (default 0).
  * @returns Array of parsed ReceiptRow objects.
  * @throws {SupabaseError} If the DB query fails.
  */
-export async function getReceipts(role: UserRole, userId?: string, limit: number = MAX_RECEIPT_FETCH_LIMIT, offset: number = 0): Promise<ReceiptRow[]> {
+export async function getReceipts(userId?: string, limit: number = MAX_RECEIPT_FETCH_LIMIT, offset: number = 0): Promise<ReceiptRow[]> {
   if (!userId) return [];
   if (limit < 1 || offset < 0) return [];
 
@@ -147,7 +147,7 @@ export async function getReceipts(role: UserRole, userId?: string, limit: number
   try {
     const result = await withRetry(
       () => {
-        let query = supabase
+        return supabase
           .from('receipts')
           .select('*')
           .eq('org_id', orgId)
@@ -155,12 +155,6 @@ export async function getReceipts(role: UserRole, userId?: string, limit: number
           .range(offset, offset + limit - 1)
           .order('transaction_date', { ascending: false })
           .order('created_at', { ascending: false });
-
-        if (role === 'Employee') {
-          query = query.eq('user_id', userId);
-        }
-
-        return query;
       },
       { maxRetries: MAX_RETRY_ATTEMPTS, delayMs: RETRY_DELAY_MS }
     );
@@ -178,13 +172,13 @@ export async function getReceipts(role: UserRole, userId?: string, limit: number
 
 /**
  * Fetch receipts with pagination, filters, and semantic search via RPC.
+ * Every org member sees org-wide data (role scoping removed).
  *
- * @param params - Query parameters including role, user ID, pagination, filters.
+ * @param params - Query parameters including user ID, pagination, filters.
  * @returns Paginated receipt rows and total count.
  * @throws {SupabaseError} If the DB query fails.
  */
 export async function getReceiptsPaginated(params: {
-  role: UserRole;
   userId?: string;
   limit?: number;
   offset?: number;
@@ -211,10 +205,6 @@ export async function getReceiptsPaginated(params: {
       .select('*', { count: 'exact', head: false })
       .eq('org_id', orgId)
       .eq('is_deleted', false);
-
-    if (params.role === 'Employee') {
-      query = query.eq('user_id', params.userId);
-    }
 
     switch (params.specialFilter) {
       case 'missing-bn':
@@ -245,7 +235,9 @@ export async function getReceiptsPaginated(params: {
   const { data, error } = await supabase.rpc('get_receipts_paginated', {
     p_org_id: orgId,
     p_user_id: params.userId,
-    p_role: params.role,
+    // Every org member gets org-wide data; the RPC's role filter is bypassed
+    // with 'Owner' so employees see the full org ledger too.
+    p_role: 'Owner',
     p_limit: pageLimit,
     p_offset: pageOffset,
     p_order_by: 'created_at',
@@ -323,12 +315,14 @@ export interface DashboardSummary {
   mileageTotalKm: number;
 }
 
-// Fallback function when materialized view is unavailable
-async function fallbackDashboardStats(orgId: string, userId: string, role: UserRole): Promise<GetDashboardStatsReturns> {
+// Fallback function when materialized view is unavailable.
+// Every org member sees org-wide data — the RPC's role filter is bypassed
+// with 'Owner' (the RPC still enforces org membership via auth.uid()).
+async function fallbackDashboardStats(orgId: string, userId: string): Promise<GetDashboardStatsReturns> {
   const { data: stats, error: statsError } = await supabase.rpc('get_dashboard_stats', {
     p_org_id: orgId,
     p_user_id: userId,
-    p_role: role,
+    p_role: 'Owner',
   });
   if (statsError) throw statsError;
   return (stats?.[0] || {}) as GetDashboardStatsReturns;
@@ -339,12 +333,11 @@ async function fallbackDashboardStats(orgId: string, userId: string, role: UserR
  * Uses materialized view for core stats (sub-50ms for 5000+ row queries)
  * and fetches remaining data in parallel.
  *
- * @param role - The caller's role.
  * @param userId - UUID of the caller.
  * @returns Complete dashboard summary with all metrics.
  * @throws {Error} If the org cannot be resolved.
  */
-export const getDashboardSummary = async (role: UserRole, userId: string): Promise<DashboardSummary> => {
+export const getDashboardSummary = async (userId: string): Promise<DashboardSummary> => {
   const orgId = await getOrgIdString();
   if (!orgId) throw new Error('No organization found');
 
@@ -357,7 +350,7 @@ export const getDashboardSummary = async (role: UserRole, userId: string): Promi
     .single();
 
   // Fallback to RPC if materialized view is stale/empty
-  const mainStats = mvStats || (await fallbackDashboardStats(orgId, userId, role));
+  const mainStats = mvStats || (await fallbackDashboardStats(orgId, userId));
 
   // 2. Fetch remaining dashboard data in parallel — but ONLY for fields the
   //    materialized view (or RPC fallback) did not return. Gating on missing
@@ -382,9 +375,7 @@ export const getDashboardSummary = async (role: UserRole, userId: string): Promi
     reimbursementsResult, trendResult, confidenceResult, bankResult, mileageResult] = await Promise.all([
     // 2. Category Breakdown
     needsCategory ? (async () => {
-      let q = supabase.from('receipts').select('category, total_amount').eq('org_id', orgId).eq('is_deleted', false);
-      if (role === 'Employee') q = q.eq('user_id', userId);
-      const { data } = await q;
+      const { data } = await supabase.from('receipts').select('category, total_amount').eq('org_id', orgId).eq('is_deleted', false);
       const map = new Map<string, number>();
       (data || []).forEach(r => {
         const cat = r.category || 'Uncategorized';
@@ -427,9 +418,7 @@ export const getDashboardSummary = async (role: UserRole, userId: string): Promi
     needsTrend ? (async () => {
       try {
         const sixMonthsAgo = new Date(); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-        let q = supabase.from('receipts').select('transaction_date, total_amount').eq('org_id', orgId).eq('is_deleted', false).gte('created_at', sixMonthsAgo.toISOString());
-        if (role === 'Employee') q = q.eq('user_id', userId);
-        const { data } = await q;
+        const { data } = await supabase.from('receipts').select('transaction_date, total_amount').eq('org_id', orgId).eq('is_deleted', false).gte('created_at', sixMonthsAgo.toISOString());
         const map = new Map<string, number>();
         (data || []).forEach(r => {
           const d = String(r.transaction_date || '').slice(0, 7);
@@ -646,8 +635,6 @@ export const deleteReceipt = async (receiptId: string, userId: string): Promise<
   const orgId = await getOrgIdString();
   if (!orgId) throw new Error('No organization found');
 
-  const role = await getUserRole(userId);
-
   // Check retention: prevent deletion of approved receipts within CRA window
   const { data: receipt } = await supabase
     .from('receipts')
@@ -666,17 +653,12 @@ export const deleteReceipt = async (receiptId: string, userId: string): Promise<
   }
 
   try {
-    let query = supabase
+    const { error } = await supabase
       .from('receipts')
       .update({ is_deleted: true, updated_at: new Date().toISOString() })
       .eq('id', receiptId)
       .eq('org_id', orgId);
 
-    if (role === 'Employee') {
-      query = query.eq('user_id', userId);
-    }
-
-    const { error } = await query;
     if (error) throw error;
 
     await createAuditLog(userId, 'receipt_deleted', `Receipt marked as deleted: ${receiptId}`);
@@ -702,20 +684,13 @@ export const bulkDeleteReceipts = async (receiptIds: string[], userId: string): 
   const orgId = await getOrgIdString();
   if (!orgId) throw new Error('No organization found');
 
-  const role = await getUserRole(userId);
-
   try {
-    let query = supabase
+    const { error } = await supabase
       .from('receipts')
       .update({ is_deleted: true, updated_at: new Date().toISOString() })
       .in('id', receiptIds)
       .eq('org_id', orgId);
 
-    if (role === 'Employee') {
-      query = query.eq('user_id', userId);
-    }
-
-    const { error } = await query;
     if (error) throw error;
 
     await createAuditLog(userId, 'bulk_receipt_deleted', `Bulk delete: ${receiptIds.length} receipts by ${userId}`);
@@ -742,20 +717,13 @@ export const undeleteReceipts = async (receiptIds: string[]): Promise<void> => {
   const userId = (await supabase.auth.getUser()).data.user?.id;
   if (!userId) throw new Error('Not authenticated');
 
-  const role = await getUserRole(userId);
-
   try {
-    let query = supabase
+    const { error } = await supabase
       .from('receipts')
       .update({ is_deleted: false, updated_at: new Date().toISOString() })
       .in('id', receiptIds)
       .eq('org_id', orgId);
 
-    if (role === 'Employee') {
-      query = query.eq('user_id', userId);
-    }
-
-    const { error } = await query;
     if (error) throw error;
 
     await createAuditLog(userId, 'bulk_receipt_restored', `Bulk restore: ${receiptIds.length} receipts by ${userId}`);

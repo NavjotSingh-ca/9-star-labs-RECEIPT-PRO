@@ -112,7 +112,6 @@ export default function History({
       if (semanticMode && !semanticResults) return { receipts: [], totalCount: 0 };
 
       return getReceiptsPaginated({
-        role,
         userId,
         limit: 25,
         offset: pageParam,

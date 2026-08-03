@@ -1,24 +1,19 @@
 'use client';
 
-import { ReceiptText, Crown, Search } from 'lucide-react';
+import { ReceiptText, Search } from 'lucide-react';
 import { APP_NAME } from '@/lib/constants';
-import Link from 'next/link';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import RealtimeStatus from '@/components/layout/RealtimeStatus';
 import { useAppStore } from '@/lib/store';
 import { Button } from '@design/primitives';
-import { cn } from '@design/utils';
 
 interface TopBarProps {
-  planLabel: string;
-  plan: string;
-  planLoading: boolean;
   /** Whether the org's realtime receipt channel is currently subscribed. */
   isConnected: boolean;
   children?: React.ReactNode;
 }
 
-export default function TopBar({ planLabel, plan, planLoading, isConnected, children }: TopBarProps) {
+export default function TopBar({ isConnected, children }: TopBarProps) {
   const setCommandOpen = useAppStore((s) => s.setCommandOpen);
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-sidebar-border bg-sidebar-bg lg:hidden relative" role="banner">
@@ -58,22 +53,6 @@ export default function TopBar({ planLabel, plan, planLoading, isConnected, chil
           <NotificationBell />
           <RealtimeStatus connected={isConnected} />
           {children}
-
-          <Link
-            href="/settings/billing"
-            className={cn(
-              'flex items-center gap-1 sm:gap-1.5 rounded-full border border-sidebar-border bg-sidebar-surface px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs font-semibold transition hover:bg-sidebar-hover',
-              planLoading && 'opacity-50'
-            )}
-          >
-            <Crown className="h-4 w-4 text-warning" />
-            <span className={cn(
-              'hidden sm:inline',
-              plan === 'pro' || plan === 'enterprise' ? 'text-warning' : 'text-sidebar-text-muted'
-            )}>
-              {planLoading ? '...' : planLabel}
-            </span>
-          </Link>
         </div>
       </div>
     </header>

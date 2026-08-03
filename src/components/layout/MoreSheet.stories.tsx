@@ -7,7 +7,7 @@ const meta: Meta<typeof MoreSheet> = {
   component: MoreSheet,
   decorators: [withProviders],
   parameters: {
-    docs: { description: { component: 'Slide-out sheet panel with settings, billing, and legal links. Accessible from MobileNav "More" tab.' } },
+    docs: { description: { component: 'Slide-out sheet panel with settings and legal links. Accessible from MobileNav "More" tab.' } },
     viewport: { defaultViewport: 'mobile1' },
     layout: 'fullscreen',
   },
@@ -22,19 +22,6 @@ export const Visible: Story = {
     activeTab: 'more',
     onTabChange: () => {},
     onClose: () => {},
-    planLabel: 'Pro',
-    plan: 'pro',
-    onSignOut: () => {},
-  },
-};
-
-export const FreePlan: Story = {
-  args: {
-    activeTab: 'more',
-    onTabChange: () => {},
-    onClose: () => {},
-    planLabel: 'Free',
-    plan: 'free',
     onSignOut: () => {},
   },
 };
@@ -44,8 +31,6 @@ export const NotVisible: Story = {
     activeTab: 'dashboard',
     onTabChange: () => {},
     onClose: () => {},
-    planLabel: 'Pro',
-    plan: 'pro',
     onSignOut: () => {},
   },
 };
