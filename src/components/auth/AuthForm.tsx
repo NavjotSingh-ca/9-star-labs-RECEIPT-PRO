@@ -52,8 +52,10 @@ function GlassCard({ children, className }: { children: React.ReactNode; classNa
     <div className={cn('relative group', className)}>
       {/* Gradient border glow — visible on hover */}
       <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-b from-champagne/15 via-white/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-      {/* Main glass surface */}
-      <div className="relative rounded-2xl border border-white/[0.06] bg-black/40 backdrop-blur-xl shadow-xl shadow-black/20">
+      {/* Main glass surface — blur-md (not xl): 24px backdrop blur over the
+          continuously-animating orb background forces a full backdrop re-sample
+          every frame; 12px is visually equivalent here but ~half the cost */}
+      <div className="relative rounded-2xl border border-white/[0.06] bg-black/40 backdrop-blur-md shadow-xl shadow-black/20">
         {children}
       </div>
     </div>
@@ -74,7 +76,7 @@ export default function AuthForm({
         className="w-full max-w-md"
       >
         {/* ── Mobile logo (visible only below lg) ── */}
-        <div style={{ animation: 'fadeSlideIn 0.4s ease-out 0.1s both' }} className="lg:hidden mb-8 text-center pointer-events-none opacity-0">
+        <div style={{ animation: 'fadeSlideIn 0.4s ease-out 0.1s both' }} className="lg:hidden mb-8 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-champagne/[0.12] mb-4 shadow-[0_0_25px_-6px_rgba(190,169,142,0.25)] ring-1 ring-champagne/20 ring-inset">
             <ReceiptText className="h-7 w-7 text-champagne" />
           </div>
@@ -93,7 +95,7 @@ export default function AuthForm({
             <GlassCard>
               <div className="p-6 sm:p-8">
                 {/* ── Header ── */}
-                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.05s both' }} className="mb-6 pointer-events-none opacity-0">
+                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.05s both' }} className="mb-6">
                   <h2 className="text-[22px] font-bold tracking-tight text-white">
                     {mode === 'signin' ? 'Welcome back' : 'Create account'}
                   </h2>
@@ -105,7 +107,7 @@ export default function AuthForm({
                 </div>
 
                 {/* ── Google OAuth ── */}
-                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.1s both' }} className="pointer-events-none opacity-0">
+                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.1s both' }}>
                   <button
                     type="button"
                     onClick={onGoogleSignIn}
@@ -133,7 +135,7 @@ export default function AuthForm({
                 </div>
 
                 {/* ── Divider ── */}
-                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.15s both' }} className="relative my-5 pointer-events-none opacity-0">
+                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.15s both' }} className="relative my-5 ">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-white/[0.06]" />
                   </div>
@@ -161,7 +163,7 @@ export default function AuthForm({
                     </AnimatePresence>
 
                     {/* Email field */}
-                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.2s both' }} className="space-y-1.5 pointer-events-none opacity-0">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.2s both' }} className="space-y-1.5 ">
                       <label htmlFor="signin-email" className={labelBase}>Email</label>
                       <div className="relative">
                         <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
@@ -183,7 +185,7 @@ export default function AuthForm({
                     </div>
 
                     {/* Password field */}
-                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.25s both' }} className="space-y-1.5 pointer-events-none opacity-0">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.25s both' }} className="space-y-1.5 ">
                       <label htmlFor="signin-password" className={labelBase}>Password</label>
                       <div className="relative">
                         <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
@@ -213,7 +215,7 @@ export default function AuthForm({
                     </div>
 
                     {/* Remember me + Forgot password */}
-                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.3s both' }} className="flex items-center justify-between pointer-events-none opacity-0">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.3s both' }} className="flex items-center justify-between ">
                       <label className="flex items-center gap-2 cursor-pointer group">
                         <input
                           {...signinForm.register('rememberMe')}
@@ -233,7 +235,7 @@ export default function AuthForm({
                     </div>
 
                     {/* Submit button */}
-                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.35s both' }} className="pointer-events-none opacity-0">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.35s both' }}>
                       <button
                         type="submit"
                         disabled={loading}
@@ -274,7 +276,7 @@ export default function AuthForm({
                     </AnimatePresence>
 
                     {/* Email field */}
-                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.2s both' }} className="space-y-1.5 pointer-events-none opacity-0">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.2s both' }} className="space-y-1.5 ">
                       <label htmlFor="signup-email" className={labelBase}>Email</label>
                       <div className="relative">
                         <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
@@ -296,7 +298,7 @@ export default function AuthForm({
                     </div>
 
                     {/* Password field */}
-                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.25s both' }} className="space-y-1.5 pointer-events-none opacity-0">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.25s both' }} className="space-y-1.5 ">
                       <label htmlFor="signup-password" className={labelBase}>Create password</label>
                       <div className="relative">
                         <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
@@ -363,7 +365,7 @@ export default function AuthForm({
                     </div>
 
                     {/* Invite code */}
-                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.3s both' }} className="space-y-1.5 pointer-events-none opacity-0">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.3s both' }} className="space-y-1.5 ">
                       <label htmlFor="signup-invite" className={labelBase}>
                         Invite code <span className="text-white/20 normal-case font-normal">(optional)</span>
                       </label>
@@ -380,7 +382,7 @@ export default function AuthForm({
                     </div>
 
                     {/* Terms acceptance */}
-                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.35s both' }} className="pointer-events-none opacity-0">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.35s both' }}>
                       <button
                         type="button"
                         onClick={() => signupForm.setValue('accepted', !signupForm.getValues('accepted'), { shouldValidate: true })}
@@ -411,7 +413,7 @@ export default function AuthForm({
                     </div>
 
                     {/* Submit button */}
-                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.4s both' }} className="pointer-events-none opacity-0">
+                    <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.4s both' }}>
                       <button
                         type="submit"
                         disabled={loading}
@@ -436,7 +438,7 @@ export default function AuthForm({
                 )}
 
                 {/* ── Mode switch ── */}
-                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.45s both' }} className="mt-6 text-center pointer-events-none opacity-0">
+                <div style={{ animation: 'fadeSlideIn 0.35s ease-out 0.45s both' }} className="mt-6 text-center ">
                   <button
                     type="button"
                     onClick={() => onModeChange(mode === 'signin' ? 'signup' : 'signin')}

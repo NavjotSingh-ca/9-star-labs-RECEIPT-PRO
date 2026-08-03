@@ -392,6 +392,32 @@ button, a, [role="button"], input, select, textarea, [tabindex] {
 .antigravity-float-slow { animation: floatWide 12s ease-in-out infinite; }
 .antigravity-drift { animation: drift 10s ease-in-out infinite; }
 
+/* ─── Entrance & Fade Keyframes ─── */
+/* Auth form staggered reveal + error fades + .stagger-enter lists.
+   `both` fill-mode hides elements during their delay, so callers must NOT
+   also set opacity-0/pointer-events-none (that breaks the form if the
+   animation is ever missing or disabled). */
+@keyframes fadeSlideIn {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes fadeSlideUp {
+  0% { opacity: 0; transform: translateY(24px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes floatWide {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(18px, -12px); }
+}
+
 /* ─── Stagger Entrance (CSS-only) ─── */
 .stagger-enter > :nth-child(1)  { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(1 * 30ms); }
 .stagger-enter > :nth-child(2)  { animation: fadeSlideUp 0.4s ease-out both; animation-delay: calc(2 * 30ms); }

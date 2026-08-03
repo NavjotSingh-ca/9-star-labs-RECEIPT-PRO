@@ -163,7 +163,6 @@ export default function AuthScreen({ onBackToLanding }: { onBackToLanding?: () =
         className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(190,169,142,0.08),transparent)]"
         animate={{
           opacity: [0.5, 0.9, 0.5],
-          scale: [1, 1.02, 1],
         }}
         transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
       />
@@ -188,12 +187,14 @@ export default function AuthScreen({ onBackToLanding }: { onBackToLanding?: () =
         }}
       />
 
-      {/* Floating ambient orbs — ethereal antigravity drift */}
+      {/* Floating ambient orbs — ethereal antigravity drift.
+          Transform-only animation (x/y) so the browser composites them on the
+          GPU; scaling a 30-55vw radial gradient would re-rasterize every frame. */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {orbs.map((orb, i) => (
           <motion.div
             key={i}
-            className="absolute rounded-full"
+            className="absolute rounded-full will-change-transform"
             style={{
               width: `${orb.size}vw`,
               height: `${orb.size}vw`,
@@ -205,7 +206,6 @@ export default function AuthScreen({ onBackToLanding }: { onBackToLanding?: () =
             animate={{
               x: [0, (i % 2 === 0 ? 1 : -1) * (25 + i * 5), 0],
               y: [0, (i % 2 === 0 ? -1 : 1) * (20 + i * 3), 0],
-              scale: [1, 1.08 - i * 0.01, 1],
             }}
             transition={{
               duration: orb.duration,
