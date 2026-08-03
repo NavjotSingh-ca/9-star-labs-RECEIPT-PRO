@@ -7,7 +7,7 @@ import { withRateLimit } from '@/lib/rate-limiter';
  * GET /api/health
  *
  * Comprehensive health check endpoint for monitoring (load balancers, cron jobs, etc.).
- * Checks all critical dependencies: Supabase, Stripe, Resend, etc.
+ * Checks all critical dependencies: Supabase, Resend, etc.
  * Public endpoint - no auth required for load balancer health checks.
  * 
  * Returns: { status: 'healthy' | 'degraded' | 'unhealthy', timestamp, checks: {...} }
@@ -26,7 +26,6 @@ async function handler(_request: Request) {
       latencyMs: Date.now() - startTime,
       checks: {
         database: { status: 'degraded', latencyMs: 0, error: 'Placeholder mode — Supabase not configured' },
-        stripe: { status: 'degraded', latencyMs: 0, error: 'Placeholder mode — not checked' },
         resend: { status: 'degraded', latencyMs: 0, error: 'Placeholder mode — not checked' },
         auth: { status: 'degraded', latencyMs: 0, error: 'Placeholder mode — Supabase not configured' },
       },
@@ -47,20 +46,6 @@ async function handler(_request: Request) {
     };
   } catch (err) {
     checks.database = { status: 'unhealthy', latencyMs: Date.now() - startTime, error: String(err) };
-  }
-
-  // Check Stripe connectivity
-  try {
-    const stripeStart = Date.now();
-    if (env.STRIPE_SECRET_KEY) {
-      const Stripe = (await import('stripe')).default;
-      new Stripe(env.STRIPE_SECRET_KEY); // Just verify we can create a client
-      checks.stripe = { status: 'healthy', latencyMs: Date.now() - stripeStart };
-    } else {
-      checks.stripe = { status: 'degraded', latencyMs: 0, error: 'Not configured' };
-    }
-  } catch (err) {
-    checks.stripe = { status: 'unhealthy', latencyMs: Date.now() - startTime, error: String(err) };
   }
 
   // Check Resend (email) connectivity

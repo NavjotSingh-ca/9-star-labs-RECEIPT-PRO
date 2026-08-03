@@ -33,21 +33,25 @@
     "review": {
       "description": "Review code for quality, security, and maintainability",
       "agent": "code-reviewer",
+      "template": "Review the code for: correctness (edge cases, null safety), TypeScript strictness (no `any`, proper generics), error handling (no empty catches, proper error propagation), performance (memoization, re-renders), and adherence to project conventions (see .opencode/rules/). Output findings grouped by severity.",
       "subtask": true
     },
     "security": {
       "description": "Run comprehensive security review",
       "agent": "security-reviewer",
+      "template": "Review the following code for security vulnerabilities: SQL injection, XSS, CSRF, auth bypass, hardcoded secrets, path traversal, insecure crypto, improper error handling (leaking stack traces). Output CRITICAL, HIGH, MEDIUM, LOW findings with file:line references.",
       "subtask": true
     },
     "perf": {
       "description": "Run performance review",
       "agent": "performance-reviewer",
+      "template": "Review code for performance issues: N+1 database queries, missing indexes, unnecessary context providers, inline functions in render, large bundle imports, missing React.lazy splits, expensive computations without memoization. Output findings with file:line.",
       "subtask": true
     },
     "plan": {
       "description": "Create a detailed implementation plan",
       "agent": "planner",
+      "template": "Analyze the request, break into phases with dependencies, identify risks (data loss, breaking changes, API limits), estimate effort per phase, and produce a numbered implementation plan. Do NOT write code.",
       "subtask": true
     }
   }

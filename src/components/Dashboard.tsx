@@ -53,7 +53,7 @@ export default function Dashboard({ onScan, role = 'Owner', userId }: DashboardP
   });
 
   const { data: dailyData = [] } = useQuery({
-    queryKey: ['daily_spend', userId],
+    queryKey: ['daily_spend', userId, 7],
     queryFn: () => getDailySpend(7),
     enabled: !!userId, staleTime: 5 * 60 * 1000,
   });

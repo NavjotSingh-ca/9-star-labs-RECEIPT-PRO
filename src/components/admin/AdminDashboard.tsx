@@ -74,25 +74,27 @@ export function AdminDashboard() {
       const orgId = roleData?.org_id;
       if (!orgId) throw new Error('No organization');
 
-      const { count: receiptCount } = await supabase
-        .from('receipts')
-        .select('*', { count: 'exact', head: true })
-        .eq('org_id', orgId)
-        .eq('is_deleted', false);
-
-      const { count: userCount } = await supabase
-        .from('user_roles')
-        .select('*', { count: 'exact', head: true })
-        .eq('org_id', orgId);
-
       // Count receipts created in last 30 days
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      const { count: recentReceipts } = await supabase
-        .from('receipts')
-        .select('*', { count: 'exact', head: true })
-        .eq('org_id', orgId)
-        .eq('is_deleted', false)
-        .gte('created_at', thirtyDaysAgo);
+
+      // Independent counts — run in parallel
+      const [{ count: receiptCount }, { count: userCount }, { count: recentReceipts }] = await Promise.all([
+        supabase
+          .from('receipts')
+          .select('*', { count: 'exact', head: true })
+          .eq('org_id', orgId)
+          .eq('is_deleted', false),
+        supabase
+          .from('user_roles')
+          .select('*', { count: 'exact', head: true })
+          .eq('org_id', orgId),
+        supabase
+          .from('receipts')
+          .select('*', { count: 'exact', head: true })
+          .eq('org_id', orgId)
+          .eq('is_deleted', false)
+          .gte('created_at', thirtyDaysAgo),
+      ]);
 
       return {
         receiptCount: receiptCount ?? 0,

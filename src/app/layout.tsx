@@ -73,7 +73,6 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
         <meta name="color-scheme" content="light dark" />
         <link rel="preconnect" href="https://supabase.co" />
-        <link rel="dns-prefetch" href="https://js.stripe.com" />
         <link rel="dns-prefetch" href="https://generativelanguage.googleapis.com" />
         {/* Geist font preload is handled by next/font/local with preload: true */}
         {/* Features page prefetch moved to LandingPage component only */}

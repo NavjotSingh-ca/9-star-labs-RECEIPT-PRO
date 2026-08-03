@@ -239,7 +239,7 @@ export default function TermsPage() {
               <Section id="third-party" title="6. Third-Party Services & Integrations">
                 <p>
                   The Service integrates with third-party platforms including QuickBooks Online, Xero,
-                  Google Gemini AI, Stripe, Supabase, and Vercel. Your use of these third-party services
+                  Google Gemini AI, Supabase, and Vercel. Your use of these third-party services
                   is subject to their respective terms of service and privacy policies.
                 </p>
                 <p>

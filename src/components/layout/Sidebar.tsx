@@ -55,7 +55,6 @@ import {
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import RealtimeStatus from '@/components/layout/RealtimeStatus';
-import { useRealtime } from '@/providers/RealtimeProvider';
 import type { UserRole } from '@/lib/types';
 import { useFeatures } from '@/lib/features/hooks';
 import type { FeatureKey } from '@/lib/features/registry';
@@ -74,6 +73,8 @@ interface SidebarProps {
   planLabel: string;
   plan: string;
   handleSignOut: () => void;
+  /** Whether the org's realtime receipt channel is currently subscribed. */
+  isConnected: boolean;
 }
 
 const TAB_TO_FEATURE: Partial<Record<Tab, FeatureKey | null>> = {
@@ -176,6 +177,7 @@ export default function Sidebar({
   planLabel,
   plan,
   handleSignOut,
+  isConnected,
 }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const collapsed = useAppStore((s) => s.sidebarCollapsed);
@@ -184,7 +186,6 @@ export default function Sidebar({
   const isPrivileged = role !== 'Employee';
   const unreadCount = useNotificationStore((s) => s.unreadCount());
   const { features } = useFeatures();
-  const { isConnected } = useRealtime();
 
   const isTabVisible = (tab: Tab): boolean => {
     const featureKey = TAB_TO_FEATURE[tab];

@@ -1,45 +1,33 @@
 'use client';
 
-import React, { useState, useCallback, Suspense, useEffect, useRef } from 'react';
+import { useState, useCallback, Suspense, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import {
-  ReceiptText, ArrowRight, Sparkles, Zap,
-  Lock, CheckCircle2, ChevronDown, Star, Menu, X,
-  Camera, Search, CalendarDays, Store, PiggyBank, TrendingUp,
-  DollarSign, Tags, Kanban, GitCompare, Repeat, FileDown,
-  BarChart3, ClipboardCheck, ShieldCheck, AlertTriangle,
-  Route, Landmark, Building2, Wallet, Mail, Users, Moon,
-  ScrollText, FileSpreadsheet, Lightbulb, Clock,
-  Building, Shield, Globe, Zap as ZapIcon,
-} from 'lucide-react';
-import type { LucideProps } from 'lucide-react';
+import { motion, useReducedMotion, AnimatePresence } from 'framer-motion';
+import React from 'react';
 import { APP_NAME } from '@/lib/constants';
 import { features } from '@/lib/feature-content';
-import { AnimatedCounter } from '@/components/landing/AnimatedCounter';
+import { ArrowRight, Camera, Search, CalendarDays, Store, PiggyBank, TrendingUp, ReceiptText, DollarSign, Tags, Kanban, GitCompare, Repeat, FileDown, BarChart3, ClipboardCheck, ShieldCheck, AlertTriangle, Route, Landmark, Building2, Wallet, Mail, Users, Moon, ScrollText, FileSpreadsheet, Lightbulb, Star, Sparkles, Zap, Lock, CheckCircle2, ChevronDown, Menu, X, Shield, Clock } from 'lucide-react';
+import type { LucideProps } from 'lucide-react';
 
-// Dynamically import Three.js components (SSR: false)
-const Scene3D = dynamic(() => import('@/components/landing/Scene3D'), { ssr: false });
-const TiltCard = dynamic(() => import('@/components/landing/TiltCard').then((m) => ({ default: m.TiltCard })), { ssr: false });
+// ===== DESIGN TOKENS =====
+// Using the existing design system from globals.css
+const FLUID_EASE = [0.32, 0.72, 0, 1] as const;
+const FLUID_EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
-// Icon component mapping for dynamic rendering
+// ===== ICON COMPONENT MAPPING =====
 const iconComponents: Record<string, React.ComponentType<LucideProps>> = {
   Camera, Search, CalendarDays, Store, PiggyBank, TrendingUp,
   ReceiptText, DollarSign, Tags, Kanban, GitCompare, Repeat,
   FileDown, BarChart3, ClipboardCheck, ShieldCheck, AlertTriangle,
   Route, Landmark, Building2, Wallet, Mail, Users, Moon,
-  ScrollText, FileSpreadsheet, Lightbulb, Star, Sparkles,
-  Building, Shield, Globe, ZapIcon,
+  ScrollText, FileSpreadsheet, Lightbulb, Star, Sparkles, Zap,
+  Lock, CheckCircle2, Shield,
 };
 
 const getFeatureIcon = (iconName: string): React.ComponentType<LucideProps> =>
-  iconComponents[iconName] || Camera;
-
-// ===== CUSTOM EASING (Fluid spring) =====
-const FLUID_EASE = [0.32, 0.72, 0, 1] as const;
-const FLUID_EASE_OUT = [0.16, 1, 0.3, 1] as const;
+  (iconComponents[iconName] || Camera) as React.ComponentType<LucideProps>;
 
 // ===== SCROLL REVEAL HOOK =====
 function useScrollReveal(threshold = 0.1, rootMargin = '-80px') {
@@ -53,7 +41,6 @@ function useScrollReveal(threshold = 0.1, rootMargin = '-80px') {
     if (!el || reduce) {
       if (!visibleRef.current) {
         visibleRef.current = true;
-        // Use setTimeout to avoid synchronous setState in effect
         setTimeout(() => setIsVisible(true), 0);
       }
       return;
@@ -100,16 +87,16 @@ function StaggeredReveal({
     <motion.div
       ref={ref}
       className={className}
-      initial={{ opacity: 0, y: 32, scale: 0.98 }}
-      animate={isVisible ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 32, scale: 0.98 }}
-      transition={{ duration: 0.9, delay, ease: FLUID_EASE }}
+      initial={{ opacity: 0, y: 24 }}
+      animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
+      transition={{ duration: 0.3, delay, ease: FLUID_EASE }}
     >
       {children}
     </motion.div>
   );
 }
 
-// ===== DOUBLE-BEZEL CARD (Doppelrand) =====
+// ===== DOUBLE-BEZEL CARD =====
 interface DoubleBezelCardProps {
   children: React.ReactNode;
   className?: string;
@@ -123,9 +110,9 @@ function DoubleBezelCard({
   children,
   className = '',
   hover = false,
-  padding = 'p-6 sm:p-8',
-  outerRadius = 'rounded-[2rem]',
-  innerRadius = 'rounded-[calc(2rem-0.375rem)]',
+  padding = 'p-6',
+  outerRadius = 'rounded-2xl',
+  innerRadius = 'rounded-xl',
 }: DoubleBezelCardProps) {
   return (
     <div className={`relative ${outerRadius} ${className}`}>
@@ -137,7 +124,7 @@ function DoubleBezelCard({
           border border-white/10 dark:border-black/10
           p-1.5
           pointer-events-none
-          ${hover ? 'transition-all duration-500 ease-[0.32,0.72,0,1] group-hover:border-champagne/30 group-hover:bg-champagne/5' : ''}
+          ${hover ? 'transition-all duration-500 ease-[0.32,0.72,0,1]' : ''}
         `}
         aria-hidden="true"
       />
@@ -147,7 +134,7 @@ function DoubleBezelCard({
         bg-card dark:bg-zinc-950
         border border-glass-border dark:border-zinc-800
         shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]
-        ${hover ? 'transition-all duration-500 ease-[0.32,0.72,0,1] group-hover:shadow-[0_20px_40px_-10px_rgba(190,169,142,0.15)]' : ''}
+        ${hover ? 'transition-all duration-500 ease-[0.32,0.72,0,1]' : ''}
       `}>
         {children}
       </div>
@@ -155,7 +142,7 @@ function DoubleBezelCard({
   );
 }
 
-// ===== BUTTON-IN-BUTTON CTA (Magnetic Island) =====
+// ===== BUTTON COMPONENT =====
 interface MagneticCTAProps {
   children: React.ReactNode;
   onClick?: () => void;
@@ -181,7 +168,7 @@ function MagneticCTA({
   const baseStyles = `
     relative inline-flex items-center justify-center gap-2.5
     rounded-full px-8 py-3.5 text-sm font-bold
-    transition-all duration-300 ease-[0.32,0.72,0,1]
+    transition-all duration-200 ease-[0.32,0.72,0,1]
     focus:outline-none focus:ring-2 focus:ring-champagne/40 focus:ring-offset-2 focus:ring-offset-obsidian
     disabled:opacity-50 disabled:cursor-not-allowed
     ${className}
@@ -370,7 +357,7 @@ function NavBar({ onGetStarted }: { onGetStarted: () => void }) {
   );
 }
 
-// ===== HERO — Left-aligned Editorial Split with 3D background =====
+// ===== HERO SECTION =====
 function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
   const reduce = useReducedMotion();
   const { ref, isVisible } = useScrollReveal(0.1, '-100px');
@@ -401,14 +388,9 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
           <motion.div
             initial={{ opacity: 0, y: 32, scale: 0.98 }}
             animate={isVisible && !reduce ? { opacity: 1, y: 0, scale: 1 } : { opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: reduce ? 0 : 0.9, ease: FLUID_EASE }}
+            transition={{ duration: 0.9, ease: FLUID_EASE }}
             className="max-w-xl"
           >
-            {/* Eyebrow — only ONE on page */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-champagne/20 bg-champagne/5 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-champagne backdrop-blur-sm mb-6">
-              <Sparkles className="h-3 w-3" /> CRA-Ready Accounting
-            </div>
-
             {/* Headline — max 2 lines */}
             <h1
               id="hero-heading"
@@ -447,28 +429,24 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
           <motion.div
             initial={{ opacity: 0, scale: 0.9, translateY: 20 }}
             animate={isVisible && !reduce ? { opacity: 1, scale: 1, translateY: 0 } : { opacity: 1, scale: 1, translateY: 0 }}
-            transition={{ duration: reduce ? 0 : 1, ease: FLUID_EASE, delay: 0.2 }}
+            transition={{ duration: 1, ease: FLUID_EASE, delay: 0.2 }}
             className="hidden lg:flex items-center justify-center"
           >
-            <Suspense fallback={null}>
-              <TiltCard tiltDegree={8} glare scale={1.02}>
-                <DoubleBezelCard padding="p-8" outerRadius="rounded-2xl" innerRadius="rounded-[calc(2rem-0.375rem)]" className="w-[340px] h-[480px] flex flex-col items-center justify-center">
-                  <div className="w-20 h-20 rounded-xl bg-champagne/20 flex items-center justify-center mb-6">
-                    <ReceiptText className="w-10 h-10 text-champagne" />
-                  </div>
-                  <div className="space-y-3 w-full max-w-xs">
-                    <div className="h-3 bg-champagne/30 rounded-full w-3/4 mx-auto" />
-                    <div className="h-3 bg-champagne/20 rounded-full w-1/2 mx-auto" />
-                    <div className="h-3 bg-champagne/15 rounded-full w-2/3 mx-auto" />
-                    <div className="h-3 bg-champagne/20 rounded-full w-3/5 mx-auto" />
-                    <div className="h-3 bg-champagne/10 rounded-full w-3/4 mx-auto" />
-                  </div>
-                  <div className="mt-6 w-full border-t border-champagne/10 pt-4 text-center">
-                    <span className="text-xs text-champagne/60 font-medium">AI Confidence: 98%</span>
-                  </div>
-                </DoubleBezelCard>
-              </TiltCard>
-            </Suspense>
+            <DoubleBezelCard padding="p-8" outerRadius="rounded-2xl" innerRadius="rounded-[calc(2rem-0.375rem)]" className="w-[340px] h-[480px] flex flex-col items-center justify-center">
+              <div className="w-20 h-20 rounded-xl bg-champagne/20 flex items-center justify-center mb-6">
+                <ReceiptText className="w-10 h-10 text-champagne" />
+              </div>
+              <div className="space-y-3 w-full max-w-xs">
+                <div className="h-3 bg-champagne/30 rounded-full w-3/4 mx-auto" />
+                <div className="h-3 bg-champagne/20 rounded-full w-1/2 mx-auto" />
+                <div className="h-3 bg-champagne/15 rounded-full w-2/3 mx-auto" />
+                <div className="h-3 bg-champagne/20 rounded-full w-3/5 mx-auto" />
+                <div className="h-3 bg-champagne/10 rounded-full w-3/4 mx-auto" />
+              </div>
+              <div className="mt-6 w-full border-t border-champagne/10 pt-4 text-center">
+                <span className="text-xs text-champagne/60 font-medium">AI Confidence: 98%</span>
+              </div>
+            </DoubleBezelCard>
           </motion.div>
         </div>
 
@@ -533,25 +511,25 @@ function LogoWall() {
 function FeatureHighlights() {
   const highlights = [
     {
-      icon: 'Camera',
+      icon: Camera,
       title: 'AI Receipt Scanning',
-      description: 'Snap, forward, or drag — AI extracts data in <2s with confidence scoring',
+      description: 'Snap, forward, or drag - AI extracts data in <2s with confidence scoring',
       benefit: '95%+ accuracy on Canadian receipts',
     },
     {
-      icon: 'BarChart3',
+      icon: BarChart3,
       title: 'Spend Intelligence',
       description: 'AI analyzes patterns, predicts cash flow, and flags anomalies',
       benefit: 'See trends before they become problems',
     },
     {
-      icon: 'ShieldCheck',
+      icon: ShieldCheck,
       title: 'CRA Audit Ready',
       description: 'Every receipt scored 0-100 for deduction readiness',
-      benefit: 'Know exactly what\'s missing before tax season',
+      benefit: 'Know exactly what missing before tax season',
     },
     {
-      icon: 'Users',
+      icon: Users,
       title: 'Team Workflows',
       description: 'Role-based access with approval chains and audit trails',
       benefit: 'Collaborate securely with your accountant or team',
@@ -563,12 +541,12 @@ function FeatureHighlights() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {highlights.map((feat, index) => (
-            <StaggeredReveal key={feat.icon} delay={index * 0.08} className="text-left">
+            <StaggeredReveal key={feat.title} delay={index * 0.08} className="text-left">
               <DoubleBezelCard padding="p-6" hover className="h-full group">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-champagne/10 text-champagne transition-all duration-500 group-hover:bg-champagne/20 group-hover:scale-105">
-                  {React.createElement(getFeatureIcon(feat.icon), { className: 'h-6 w-6' })}
+                  <feat.icon className="h-6 w-6" />
                 </div>
-                <h2 className="text-lg font-bold text-text-primary mb-2 transition-colors group-hover:text-champagne">{feat.title}</h2>
+                <h3 className="text-lg font-bold text-text-primary mb-2 transition-colors group-hover:text-champagne">{feat.title}</h3>
                 <p className="text-sm text-text-muted/80 leading-relaxed mb-2">{feat.description}</p>
                 <div className="text-xs font-semibold text-champagne">{feat.benefit}</div>
               </DoubleBezelCard>
@@ -580,68 +558,34 @@ function FeatureHighlights() {
   );
 }
 
-// ===== STATS SECTION =====
-function StatsSection() {
-  const stats = [
-    { value: 50000, suffix: '+', label: 'Receipts Processed' },
-    { value: 500, suffix: '+', label: 'Canadian Businesses' },
-    { value: 3, suffix: '', label: 'Tax Seasons Supported' },
-    { value: 8, suffix: 'h/mo', label: 'Avg. Time Saved' },
-  ];
-
-  return (
-    <section className="relative py-20 border-t border-glass-border">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 max-w-4xl mx-auto">
-          {stats.map((stat) => (
-            <StaggeredReveal key={stat.label} delay={0.1} className="text-center">
-              <DoubleBezelCard padding="p-4 sm:p-6" className="text-center">
-                <div className="text-4xl sm:text-5xl font-bold tracking-tight text-champagne mb-2 tabular-nums">
-                  <AnimatedCounter value={stat.value} suffix={stat.suffix} />
-                </div>
-                <p className="text-xs text-text-muted/70 uppercase tracking-wider font-medium">{stat.label}</p>
-              </DoubleBezelCard>
-            </StaggeredReveal>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ===== FEATURES SECTION (Asymmetrical Bento Grid) =====
+// ===== FEATURES SECTION =====
 function FeaturesSection() {
   const featuredFeature = features[0];
-  const gridFeatures = features.slice(1, 9);
+  const gridFeatures = features.slice(1, 6);
 
   return (
     <section id="features" className="relative py-24 sm:py-32 overflow-hidden">
       {/* Ambient orbs */}
-      <div className="pointer-events-none absolute -left-48 -top-32 w-96 h-96 bg-champagne/6 rounded-full blur-[120px]" aria-hidden />
-      <div className="pointer-events-none absolute -right-48 bottom-0 w-80 h-80 bg-champagne/4 rounded-full blur-[100px]" aria-hidden />
+      <div className="pointer-events-none absolute -left-32 -top-32 w-96 h-96 bg-champagne/6 rounded-full blur-[120px]" aria-hidden />
+      <div className="pointer-events-none absolute -right-32 bottom-1/3 w-80 h-80 bg-champagne/4 rounded-full blur-[100px]" aria-hidden />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
         {/* Section header */}
         <StaggeredReveal className="text-center mb-16">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: FLUID_EASE_OUT }}
-            className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight"
-          >
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
             Packed with <span className="bg-gradient-to-r from-champagne to-champagne-dim bg-clip-text text-transparent">Powerful Features</span>
-          </motion.h2>
+          </h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1, ease: FLUID_EASE_OUT }}
             className="text-base text-text-muted/80 max-w-2xl mx-auto mt-4"
           >
-            From AI scanning to CRA-ready reports — every tool a Canadian business needs for receipt management.
+            From AI scanning to CRA-ready reports - every tool a Canadian business needs for receipt management.
           </motion.p>
         </StaggeredReveal>
 
-        {/* Featured card — full width */}
+        {/* Featured card - full width */}
         {featuredFeature && (
           <StaggeredReveal className="mb-6">
             <Link
@@ -692,8 +636,8 @@ function FeaturesSection() {
                   className="group block h-full"
                 >
                   <DoubleBezelCard padding="p-6" hover outerRadius="rounded-2xl" innerRadius="rounded-[calc(2rem-0.375rem)]" className="h-full">
-                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-champagne/10 text-champagne transition-all duration-500 group-hover:bg-champagne/20 group-hover:scale-110">
-                      {React.createElement(IconComp, { className: 'h-6 w-6' })}
+                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-champagne/10 text-champagne transition-all duration-500 group-hover:bg-champagne/20 group-hover:scale-110">
+                      <IconComp className="h-6 w-6" />
                     </div>
                     <h3 className="text-lg font-bold text-text-primary mb-2 transition-colors group-hover:text-champagne">{f.title}</h3>
                     <p className="text-sm text-text-muted/80 leading-relaxed line-clamp-3">{f.shortDescription}</p>
@@ -735,7 +679,7 @@ function TestimonialsSection() {
     {
       name: 'Jennifer Park',
       role: 'Small Business Owner',
-      quote: 'The AI scanning is scarily accurate. I barely need to edit anything — just snap and go.',
+      quote: 'The AI scanning is scarily accurate. I barely need to edit anything - just snap and go.',
       rating: 5,
     },
   ];
@@ -749,7 +693,7 @@ function TestimonialsSection() {
           <h2 className="text-4xl sm:text-5xl font-bold tracking-tight">Trusted by Canadian Businesses</h2>
         </StaggeredReveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {testimonials.map((t, i) => (
             <StaggeredReveal key={t.name} delay={i * 0.1}>
               <DoubleBezelCard padding="p-6" hover outerRadius="rounded-2xl" innerRadius="rounded-[calc(2rem-0.375rem)]" className="h-full">
@@ -886,7 +830,7 @@ function FAQSection() {
   const faqs = [
     { question: 'Is my data stored in Canada?', answer: 'Yes. All data is stored on Canadian servers (Supabase hosted in us-west-1 with Canadian data residency compliance). We follow PIPEDA guidelines and Quebec Law 25 requirements.' },
     { question: 'Can I use this for CRA audits?', answer: 'Absolutely. Every receipt is stored with original image, extracted data, and a full audit trail. You can generate CRA-ready reports including T2125 statements.' },
-    { question: 'How does the AI scanning work?', answer: 'Take a photo or forward a receipt email. Our AI extracts vendor name, date, total, tax, and category with high accuracy. You can review and correct before saving.' },
+    { question: 'How does the AI scanning work?', answer: 'Take a photo or forward a receipt email. Our AI extracts vendor name, date, amount, tax, and category with high accuracy. You can review and correct before saving.' },
     { question: 'What happens after the free trial?', answer: 'Your 14-day Pro trial gives full access to all features. After it ends, you revert to the free Starter plan unless you subscribe. No data is lost.' },
     { question: 'Can my employees use it too?', answer: 'Yes. Pro plans include up to 5 users with role-based access. Employees can submit receipts; owners approve and export.' },
     { question: 'How secure is my data?', answer: 'End-to-end encryption for tokens. AES-256-GCM for sensitive data. We implement SOC 2-style controls including access logging, data retention policies, and regular internal security reviews.' },
@@ -903,56 +847,39 @@ function FAQSection() {
 
         <div className="space-y-0">
           {faqs.map((faq, i) => (
-            <FAQItem
-              key={faq.question}
-              question={faq.question}
-              answer={faq.answer}
-              isOpen={openIndex === i}
-              onToggle={() => setOpenIndex(openIndex === i ? null : i)}
-            />
+            <DoubleBezelCard key={faq.question} padding="py-4" className="group">
+              <button
+                type="button"
+                onClick={() => setOpenIndex(openIndex === i ? null : i)}
+                className="flex w-full items-center justify-between list-none cursor-pointer text-left"
+              >
+                <span className="text-base font-semibold text-text-primary group-hover:text-champagne transition-colors pr-4">{faq.question}</span>
+                <motion.span
+                  animate={{ rotate: openIndex === i ? 180 : 0 }}
+                  transition={{ duration: 0.2, ease: FLUID_EASE_OUT }}
+                >
+                  <ChevronDown className="h-5 w-5 shrink-0 text-text-muted" />
+                </motion.span>
+              </button>
+              <AnimatePresence initial={false}>
+                {openIndex === i && (
+                  <motion.div
+                    key="content"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: FLUID_EASE_OUT }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-2 text-sm text-text-muted/80 leading-relaxed pb-2">{faq.answer}</div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </DoubleBezelCard>
           ))}
         </div>
       </div>
     </section>
-  );
-}
-
-function FAQItem({ question, answer, isOpen, onToggle }: {
-  question: string;
-  answer: string;
-  isOpen: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <DoubleBezelCard padding="py-4" className="group">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-center justify-between list-none cursor-pointer text-left"
-      >
-        <span className="text-base font-semibold text-text-primary group-hover:text-champagne transition-colors pr-4">{question}</span>
-        <motion.div
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.2, ease: FLUID_EASE_OUT }}
-        >
-          <ChevronDown className="h-5 w-5 shrink-0 text-text-muted" />
-        </motion.div>
-      </button>
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            key="content"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: FLUID_EASE_OUT }}
-            className="overflow-hidden"
-          >
-            <div className="mt-2 text-sm text-text-muted/80 leading-relaxed pb-2">{answer}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </DoubleBezelCard>
   );
 }
 
@@ -979,7 +906,7 @@ function CtaBanner({ onGetStarted }: { onGetStarted: () => void }) {
               </h2>
               <p className="text-base text-text-muted/80 max-w-lg mx-auto mb-8">
                 Join hundreds of Canadian businesses that trust {APP_NAME} for their receipt management.
-                Start your free trial — no credit card required.
+                Start your free trial - no credit card required.
               </p>
               <MagneticCTA variant="primary" icon={ShieldCheck} onClick={onGetStarted}>
                 Start Free Trial
@@ -1023,9 +950,12 @@ interface LandingPageProps {
   onGetStarted: () => void;
 }
 
+// Import Scene3D dynamically
+const Scene3D = dynamic(() => import('@/components/landing/Scene3D'), { ssr: false });
+
 export default function LandingPage({ onGetStarted }: LandingPageProps) {
   return (
-    <div className="min-h-screen bg-champagne text-text-primary selection:bg-champagne/30 overflow-x-hidden">
+    <div className="min-h-screen bg-obsidian text-text-primary selection:bg-champagne/30 overflow-x-hidden">
       {/* Fixed Navigation */}
       <NavBar onGetStarted={onGetStarted} />
 
@@ -1035,7 +965,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       {/* Logo Wall — under hero */}
       <LogoWall />
 
-      {/* Feature Highlights — moved out of hero */}
+      {/* Feature Highlights */}
       <FeatureHighlights />
 
       {/* Stats Section */}
@@ -1061,3 +991,35 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
     </div>
   );
 }
+
+// ===== STATS SECTION =====
+function StatsSection() {
+  const stats = [
+    { value: 50000, suffix: '+', label: 'Receipts Processed' },
+    { value: 500, suffix: '+', label: 'Canadian Businesses' },
+    { value: 3, suffix: '', label: 'Tax Seasons Supported' },
+    { value: 8, suffix: 'h/mo', label: 'Avg. Time Saved' },
+  ];
+
+  return (
+    <section className="relative py-20 border-t border-glass-border">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 max-w-4xl mx-auto">
+          {stats.map((stat) => (
+            <StaggeredReveal key={stat.label} delay={0.1} className="text-center">
+              <DoubleBezelCard padding="p-4" className="text-center">
+                <div className="text-3xl sm:text-4xl font-bold tracking-tight text-champagne tabular-nums mb-2">
+                  <span className="animate-count">{stat.value}</span>{stat.suffix}
+                </div>
+                <p className="text-xs text-text-muted/70 uppercase tracking-wider font-medium">
+                  {stat.label}
+                </p>
+              </DoubleBezelCard>
+            </StaggeredReveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+

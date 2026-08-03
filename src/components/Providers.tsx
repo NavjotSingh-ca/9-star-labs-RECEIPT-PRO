@@ -6,7 +6,6 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { useState, useEffect } from 'react';
 import { MotionConfig } from 'framer-motion';
 import { ThemeProvider } from './ThemeProvider';
-import { RealtimeProvider } from '@/providers/RealtimeProvider';
 import { logWarn, logError } from '@/lib/logger';
 
 /**
@@ -60,9 +59,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
         <ThemeProvider>
           <MotionConfig reducedMotion="user">
-            <RealtimeProvider>
-              {children}
-            </RealtimeProvider>
+            {children}
           </MotionConfig>
         </ThemeProvider>
       </NuqsAdapter>

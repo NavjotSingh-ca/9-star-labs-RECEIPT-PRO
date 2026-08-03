@@ -12,8 +12,6 @@ export interface Subscription {
   user_limit: number;
   trial_ends_at: string | null;
   current_period_end: string | null;
-  stripe_customer_id: string | null;
-  stripe_subscription_id: string | null;
 }
 
 export interface PlanGates {

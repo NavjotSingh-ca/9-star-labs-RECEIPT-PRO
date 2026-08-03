@@ -359,11 +359,29 @@ export const getDashboardSummary = async (role: UserRole, userId: string): Promi
   // Fallback to RPC if materialized view is stale/empty
   const mainStats = mvStats || (await fallbackDashboardStats(orgId, userId, role));
 
-  // 2. Fetch remaining dashboard data in parallel (fallback when MV doesn't have the field)
+  // 2. Fetch remaining dashboard data in parallel — but ONLY for fields the
+  //    materialized view (or RPC fallback) did not return. Gating on missing
+  //    fields eliminates ~9 redundant round trips and full-table scans per
+  //    dashboard load when the MV is fresh.
+  const statsRecord = (mainStats || {}) as Record<string, unknown>;
+  const needsField = (key: string): boolean => {
+    const value = statsRecord[key];
+    return value === undefined || value === null;
+  };
+  const needsCategory = needsField('spending_by_category');
+  const needsMissingBN = needsField('missing_bn_count');
+  const needsPendingReview = needsField('pending_review_count');
+  const needsFlaggedAudit = needsField('flagged_audit_count');
+  const needsReimbursements = needsField('reimbursement_queue');
+  const needsTrend = needsField('monthly_trend');
+  const needsConfidence = needsField('high_confidence_count') || needsField('duplicates_blocked_count');
+  const needsBank = needsField('unmatched_bank_count');
+  // Mileage totals are not part of the materialized view — always computed below.
+
   const [categoryResult, missingBNResult, pendingReviewResult, flaggedAuditResult,
     reimbursementsResult, trendResult, confidenceResult, bankResult, mileageResult] = await Promise.all([
     // 2. Category Breakdown
-    (async () => {
+    needsCategory ? (async () => {
       let q = supabase.from('receipts').select('category, total_amount').eq('org_id', orgId).eq('is_deleted', false);
       if (role === 'Employee') q = q.eq('user_id', userId);
       const { data } = await q;
@@ -373,40 +391,40 @@ export const getDashboardSummary = async (role: UserRole, userId: string): Promi
         map.set(cat, (map.get(cat) ?? 0) + Number(r.total_amount || 0));
       });
       return Array.from(map.entries()).map(([name, amount]) => ({ name, amount })).sort((a, b) => b.amount - a.amount);
-    })(),
+    })() : Promise.resolve(undefined),
 
     // 3. Missing BN count
-    (async () => {
+    needsMissingBN ? (async () => {
       try {
         const { count } = await supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).or('vendor_tax_number.is.null,vendor_tax_number.eq.');
         return count || 0;
       } catch (e) { logError(e, { action: 'dashboard_missing_bn_count' }); return 0; }
-    })(),
+    })() : Promise.resolve(undefined),
 
     // 4. Pending review count
-    (async () => {
+    needsPendingReview ? (async () => {
       try {
         const { count } = await supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).eq('approval_status', 'submitted');
         return count || 0;
       } catch (e) { logError(e, { action: 'dashboard_pending_review_count' }); return 0; }
-    })(),
+    })() : Promise.resolve(undefined),
 
     // 5. Flagged audit count
-    (async () => {
+    needsFlaggedAudit ? (async () => {
       try {
         const { count } = await supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).eq('flagged_for_audit', true);
         return count || 0;
       } catch (e) { logError(e, { action: 'dashboard_flagged_audit_count' }); return 0; }
-    })(),
+    })() : Promise.resolve(undefined),
 
     // 6. Reimbursement Queue
-    (async () => {
+    needsReimbursements ? (async () => {
       const { data } = await supabase.from('receipts').select('*').eq('org_id', orgId).eq('is_deleted', false).eq('paid_by', 'employee_cash').eq('reimbursement_status', 'pending').limit(5);
       return data || [];
-    })(),
+    })() : Promise.resolve(undefined),
 
     // 7. Monthly Trend (last 6 months)
-    (async () => {
+    needsTrend ? (async () => {
       try {
         const sixMonthsAgo = new Date(); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
         let q = supabase.from('receipts').select('transaction_date, total_amount').eq('org_id', orgId).eq('is_deleted', false).gte('created_at', sixMonthsAgo.toISOString());
@@ -419,10 +437,10 @@ export const getDashboardSummary = async (role: UserRole, userId: string): Promi
         });
         return Array.from(map.entries()).map(([month, amount]) => ({ month, amount: Math.round(amount * 100) / 100 })).sort((a, b) => a.month.localeCompare(b.month)).slice(-6);
       } catch (e) { logError(e, { action: 'dashboard_monthly_trend' }); return []; }
-    })(),
+    })() : Promise.resolve(undefined),
 
     // 8. High confidence + duplicate counts
-    (async () => {
+    needsConfidence ? (async () => {
       try {
         const [hc, db] = await Promise.all([
           supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_deleted', false).gte('confidence_score', 80),
@@ -430,15 +448,15 @@ export const getDashboardSummary = async (role: UserRole, userId: string): Promi
         ]);
         return { highConfidenceCount: hc.count || 0, duplicatesBlockedCount: db.count || 0 };
       } catch (e) { logError(e, { action: 'dashboard_confidence_counts' }); return { highConfidenceCount: 0, duplicatesBlockedCount: 0 }; }
-    })(),
+    })() : Promise.resolve(undefined),
 
     // 9. Unmatched bank count
-    (async () => {
+    needsBank ? (async () => {
       try {
         const { count } = await supabase.from('bank_transactions').select('*', { count: 'exact', head: true }).eq('org_id', orgId).is('matched_receipt_id', null).eq('is_reconciled', false);
         return count || 0;
       } catch (e) { logError(e, { action: 'dashboard_unmatched_bank' }); return 0; }
-    })(),
+    })() : Promise.resolve(undefined),
 
     // 10. Mileage totals
     (async () => {
@@ -452,6 +470,9 @@ export const getDashboardSummary = async (role: UserRole, userId: string): Promi
     })(),
   ]);
 
+  const confidence =
+    confidenceResult ?? { highConfidenceCount: 0, duplicatesBlockedCount: 0 };
+
   return {
     totalSpent: Number(mainStats?.total_spent || 0) + (mileageResult?.mileageTotalAmount || 0),
     gstRecoverable: Number(mainStats?.gst_recoverable || 0),
@@ -461,11 +482,11 @@ export const getDashboardSummary = async (role: UserRole, userId: string): Promi
     missingBNCount: (mainStats as { missing_bn_count?: number })?.missing_bn_count ?? (missingBNResult || 0),
     pendingReviewCount: (mainStats as { pending_review_count?: number })?.pending_review_count ?? (pendingReviewResult || 0),
     flaggedAuditCount: (mainStats as { flagged_audit_count?: number })?.flagged_audit_count ?? (flaggedAuditResult || 0),
-    spendingByCategory: (mainStats as { spending_by_category?: { name: string; amount: number }[] })?.spending_by_category ?? categoryResult,
-    monthlyTrend: (mainStats as { monthly_trend?: { month: string; amount: number }[] })?.monthly_trend ?? trendResult,
+    spendingByCategory: (mainStats as { spending_by_category?: { name: string; amount: number }[] })?.spending_by_category ?? categoryResult ?? [],
+    monthlyTrend: (mainStats as { monthly_trend?: { month: string; amount: number }[] })?.monthly_trend ?? trendResult ?? [],
     reimbursementQueue: parseReceiptRows((mainStats as { reimbursement_queue?: ReceiptRow[] })?.reimbursement_queue || reimbursementsResult || []),
-    highConfidenceCount: (mainStats as { high_confidence_count?: number })?.high_confidence_count ?? confidenceResult.highConfidenceCount,
-    duplicatesBlockedCount: (mainStats as { duplicates_blocked_count?: number })?.duplicates_blocked_count ?? confidenceResult.duplicatesBlockedCount,
+    highConfidenceCount: (mainStats as { high_confidence_count?: number })?.high_confidence_count ?? confidence.highConfidenceCount,
+    duplicatesBlockedCount: (mainStats as { duplicates_blocked_count?: number })?.duplicates_blocked_count ?? confidence.duplicatesBlockedCount,
     unmatchedBankCount: (mainStats as { unmatched_bank_count?: number })?.unmatched_bank_count ?? (bankResult || 0),
     mileageTotalAmount: Math.round((mileageResult?.mileageTotalAmount || 0) * 100) / 100,
     mileageTotalKm: Math.round((mileageResult?.mileageTotalKm || 0) * 10) / 10,

@@ -6,7 +6,6 @@ import Link from 'next/link';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import RealtimeStatus from '@/components/layout/RealtimeStatus';
 import { useAppStore } from '@/lib/store';
-import { useRealtime } from '@/providers/RealtimeProvider';
 import { Button } from '@design/primitives';
 import { cn } from '@design/utils';
 
@@ -14,12 +13,13 @@ interface TopBarProps {
   planLabel: string;
   plan: string;
   planLoading: boolean;
+  /** Whether the org's realtime receipt channel is currently subscribed. */
+  isConnected: boolean;
   children?: React.ReactNode;
 }
 
-export default function TopBar({ planLabel, plan, planLoading, children }: TopBarProps) {
+export default function TopBar({ planLabel, plan, planLoading, isConnected, children }: TopBarProps) {
   const setCommandOpen = useAppStore((s) => s.setCommandOpen);
-  const { isConnected } = useRealtime();
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-sidebar-border bg-sidebar-bg lg:hidden relative" role="banner">
       <div className="absolute inset-x-0 top-0 h-0.5 bg-sidebar-accent" />

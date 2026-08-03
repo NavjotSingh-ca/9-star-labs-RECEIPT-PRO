@@ -28,6 +28,7 @@ export const Default: Story = {
         planLabel="Pro"
         plan="pro"
         handleSignOut={() => {}}
+        isConnected={true}
       />
     </div>
   ),
@@ -45,6 +46,7 @@ export const Collapsed: Story = {
           planLabel="Pro"
           plan="pro"
           handleSignOut={() => {}}
+          isConnected={true}
         />
       </div>
     );
@@ -61,6 +63,7 @@ export const EmployeeRole: Story = {
         planLabel="Free"
         plan="free"
         handleSignOut={() => {}}
+        isConnected={true}
       />
     </div>
   ),
@@ -76,6 +79,7 @@ export const AccountantRole: Story = {
         planLabel="Enterprise"
         plan="enterprise"
         handleSignOut={() => {}}
+        isConnected={true}
       />
     </div>
   ),

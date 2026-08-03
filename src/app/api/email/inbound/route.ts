@@ -134,33 +134,51 @@ async function handler(request: Request) {
       return NextResponse.json({ success: true, message: 'No valid attachments' });
     }
 
-    // Store attachments in storage and queue them for processing
-    for (const file of validAttachments) {
-      const buffer = Buffer.from(file.content, 'base64');
-      const filename = `${org.id}/${Date.now()}-${sanitizeFilename(file.filename)}`;
-      
-      const { error: uploadError } = await supabaseServiceRole.storage
-        .from('receipt-images')
-        .upload(filename, buffer, {
-          contentType: file.content_type,
-          upsert: false
-        });
-        
-      if (uploadError) {
-        logError(uploadError, { action: 'email_attachment_upload', filename });
-        continue;
-      }
+    // Store attachments in storage and register pending receipts. Uploads +
+    // inserts are I/O-bound, so process them with a small concurrency cap
+    // instead of one-at-a-time (bounded so a burst of attachments can't
+    // hammer the storage API either).
+    const UPLOAD_CONCURRENCY = 3;
+    let nextIndex = 0;
+    const processAttachment = async () => {
+      while (nextIndex < validAttachments.length) {
+        const file = validAttachments[nextIndex++];
+        if (!file) break;
+        const buffer = Buffer.from(file.content, 'base64');
+        // Include the attachment ordinal so concurrent identical filenames
+        // can't collide on the same storage path.
+        const filename = `${org.id}/${Date.now()}-${nextIndex}-${sanitizeFilename(file.filename)}`;
 
-      // Create a pending receipt record
-      await supabaseServiceRole.from('receipts').insert({
-        org_id: org.id,
-        user_id: userId,
-        image_url: filename,
-        vendor_name: email.subject || 'Email Receipt',
-        approval_status: 'submitted',
-        notes: `Received via email from ${email.from}`,
-      });
-    }
+        const { error: uploadError } = await supabaseServiceRole.storage
+          .from('receipt-images')
+          .upload(filename, buffer, {
+            contentType: file.content_type,
+            upsert: false,
+          });
+
+        if (uploadError) {
+          logError(uploadError, { action: 'email_attachment_upload', filename });
+          continue;
+        }
+
+        // Create a pending receipt record
+        await supabaseServiceRole.from('receipts').insert({
+          org_id: org.id,
+          user_id: userId,
+          image_url: filename,
+          vendor_name: email.subject || 'Email Receipt',
+          approval_status: 'submitted',
+          notes: `Received via email from ${email.from}`,
+        });
+      }
+    };
+
+    await Promise.all(
+      Array.from(
+        { length: Math.min(UPLOAD_CONCURRENCY, validAttachments.length) },
+        () => processAttachment(),
+      ),
+    );
 
     return NextResponse.json({ success: true });
   } catch (err) {

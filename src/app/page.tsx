@@ -3,12 +3,17 @@
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/hooks/useAuth';
-import LandingPage from '@/components/LandingPage';
 import AuthScreen from '@/components/AuthScreen';
 import { PremiumSpinner } from '@/components/ui/PremiumSpinner';
 
 const AppShell = dynamic(() => import('@/components/AppShell'), {
   ssr: false,
+  loading: () => <PremiumSpinner />,
+});
+
+// Lazy-loaded so the 1,000+ line landing page (Three.js hero, ~36 icons) never
+// ships to authenticated users who immediately get AppShell instead.
+const LandingPage = dynamic(() => import('@/components/LandingPage'), {
   loading: () => <PremiumSpinner />,
 });
 

@@ -2,8 +2,6 @@
 
 import { Shield, ExternalLink } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { SubscriptionStatus } from '@/components/billing/SubscriptionStatus';
-import { PricingTable } from '@/components/billing/PricingTable';
 
 /**
  * Billing settings page — displays current subscription status,
@@ -25,13 +23,15 @@ export default function BillingSettings() {
       <ErrorBoundary componentName="BillingSettings">
         <div className="space-y-8">
           {/* Current Subscription Status */}
-          <SubscriptionStatus />
-
-          {/* Pricing Grid */}
-          <section>
-            <h2 className="mb-4 text-base font-bold tracking-tight text-text-primary">Available Plans</h2>
-            <PricingTable />
-          </section>
+          <div className="rounded-2xl border border-glass-border bg-surface-raised p-5 animate-in fade-in slide-up-from-bottom-4">
+            <div className="flex items-center gap-3 mb-3">
+              <Shield className="h-5 w-5 text-champagne" />
+              <h3 className="font-bold text-text-primary">Subscription Status</h3>
+            </div>
+            <p className="text-sm text-text-secondary mb-3">
+              Billing is currently managed externally. Please contact support for plan changes or billing inquiries.
+            </p>
+          </div>
 
           {/* License Info */}
           <div className="rounded-2xl border border-glass-border bg-surface-raised p-5 animate-in fade-in slide-up-from-bottom-4 duration-700 delay-200">

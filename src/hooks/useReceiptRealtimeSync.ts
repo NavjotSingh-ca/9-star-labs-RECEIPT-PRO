@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { supabase, getOrgIdString } from '@/lib/supabase';
 import { logError } from '@/lib/logger';
@@ -20,12 +20,18 @@ interface RealtimePayload {
  * current user's org. Optimistically updates React Query caches to reflect
  * inserts, updates, and deletes without a manual refetch.
  *
+ * Also reports the live channel subscription status so the top bar / sidebar
+ * connection indicator can piggyback on this single channel instead of holding
+ * a second, otherwise-useless realtime connection.
+ *
  * @param role  - The current user's role (used as part of the cache key).
  * @param userId - The current user's ID; the subscription is skipped when falsy.
+ * @returns `{ isConnected }` — whether the realtime channel is currently subscribed.
  */
 export function useReceiptRealtimeSync(role: string, userId: string | undefined) {
   const queryClient = useQueryClient();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -131,7 +137,9 @@ export function useReceiptRealtimeSync(role: string, userId: string | undefined)
               }
             },
           )
-          .subscribe();
+          .subscribe((status) => {
+            if (active) setIsConnected(status === 'SUBSCRIBED');
+          });
       } catch (err) {
         logError(err, { action: 'realtime_sync_init' });
       }
@@ -139,10 +147,13 @@ export function useReceiptRealtimeSync(role: string, userId: string | undefined)
 
     return () => {
       active = false;
+      setIsConnected(false);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
   }, [queryClient, role, userId]);
+
+  return { isConnected };
 }

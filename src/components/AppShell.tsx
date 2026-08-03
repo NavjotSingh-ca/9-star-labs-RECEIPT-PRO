@@ -93,7 +93,7 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
         staleTime: 5 * 60 * 1000,
       });
       queryClient.prefetchQuery({
-        queryKey: ['daily_spend', userId],
+        queryKey: ['daily_spend', userId, 30],
         queryFn: () => getDailySpend(30),
         staleTime: 5 * 60 * 1000,
       });
@@ -106,11 +106,15 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
     }
   }, [activeTab]);
 
+  // Full flat receipt list — deliberately kept (not dropped) because the
+// Export and Bank Reconciliation tabs need complete row data, and the
+// AuditHUD/scan flow uses it as a lightweight existence check. Refetches are
+// throttled to 5 min to avoid a multi-MB payload every 30s.
   const { data: receipts = [], isLoading: receiptsLoading, refetch: fetchReceipts, isError: receiptsError } = useQuery({
     queryKey: ['receipts', role, userId],
     queryFn: async () => getReceipts(role, userId),
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: 5 * 60 * 1000,
     retry: 1,
   });
 
@@ -124,7 +128,7 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
   const planLabel = formatPlanLabel(plan);
   const planLoading = false;
 
-  useReceiptRealtimeSync(role, userId);
+  const { isConnected } = useReceiptRealtimeSync(role, userId);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -231,11 +235,12 @@ export default function AppShell({ user, role, orgId, handleSignOut }: AppShellP
           planLabel={planLabel}
           plan={plan}
           handleSignOut={handleSignOut}
+          isConnected={isConnected}
         />
       </ErrorBoundary>
 
       <div className="flex flex-1 flex-col min-w-0">
-        <TopBar planLabel={planLabel} plan={plan} planLoading={planLoading}>
+        <TopBar planLabel={planLabel} plan={plan} planLoading={planLoading} isConnected={isConnected}>
           <ThemeToggle />
         </TopBar>
 

@@ -235,7 +235,6 @@ export const STORAGE_KEYS = {
  */
 export const API_ROUTES = {
   BASE: '/api',
-  STRIPE: '/api/stripe',
   QBO: '/api/qbo',
   CRA: '/api/cra',
   TEAM: '/api/team',

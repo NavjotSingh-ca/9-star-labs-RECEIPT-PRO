@@ -39,46 +39,6 @@
         }
       }
     },
-    "/api/stripe/checkout": {
-      "post": {
-        "summary": "Create Stripe Checkout session",
-        "description": "Creates a Stripe Checkout session for plan upgrades. Validates org ownership and plan type server-side.",
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "properties": { "plan": { "type": "string", "enum": ["premium", "business", "enterprise"] } }, "required": ["plan"] } } }
-        },
-        "responses": {
-          "200": { "description": "Returns { url } for redirect to Stripe Checkout" },
-          "400": { "description": "Invalid plan" },
-          "401": { "description": "Unauthenticated" }
-        }
-      }
-    },
-    "/api/stripe/webhook": {
-      "post": {
-        "summary": "Stripe webhook handler",
-        "description": "Processes Stripe events: customer.subscription.updated, invoice.paid, invoice.payment_failed, checkout.session.completed. Idempotent via processed_webhook_events table.",
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "description": "Raw Stripe event object" } } }
-        },
-        "responses": {
-          "200": { "description": "Event processed" },
-          "400": { "description": "Invalid signature or payload" },
-          "500": { "description": "Processing error" }
-        }
-      }
-    },
-    "/api/stripe/portal": {
-      "post": {
-        "summary": "Create Stripe Customer Portal session",
-        "description": "Returns a URL to the Stripe billing portal for managing subscriptions and invoices.",
-        "responses": {
-          "200": { "description": "Returns { url } for redirect" },
-          "401": { "description": "Unauthenticated" }
-        }
-      }
-    },
     "/api/qbo/auth": {
       "get": {
         "summary": "Initiate QBO OAuth flow",

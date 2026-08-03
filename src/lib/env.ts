@@ -6,13 +6,6 @@ const envSchema = z.object({
   // Service role key for server-side admin operations (bypasses RLS)
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   GOOGLE_AI_KEY: z.string().min(1).optional(),
-  // Stripe (optional — app works without until account created)
-  STRIPE_SECRET_KEY: z.string().min(1).optional(),
-  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().min(1).optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
-  // Stripe price IDs (optional — for checkout links)
-  NEXT_PUBLIC_STRIPE_PRICE_PRO: z.string().min(1).optional(),
-  NEXT_PUBLIC_STRIPE_PRICE_BUSINESS: z.string().min(1).optional(),
   // Resend (optional — app works without until account created)
   RESEND_API_KEY: z.string().min(1).optional(),
   RESEND_WEBHOOK_SECRET: z.string().min(1).optional(),
@@ -61,18 +54,18 @@ const envSchema = z.object({
     }
   }
   // In production, NEXT_PUBLIC_SITE_URL must not be the localhost default.
-  // Stripe checkout redirects, QBO OAuth, and password reset links all use this URL.
+  // QBO OAuth callbacks and password reset links all use this URL.
   // This check uses process.env.NODE_ENV which is the only env var available at module eval time.
   if (data.NEXT_PUBLIC_SITE_URL === 'http://localhost:3000') {
     const nodeEnv = (typeof process !== 'undefined' && process.env?.NODE_ENV) || 'development';
     if (nodeEnv === 'production') {
       // Log as a clear warning rather than throwing — Next.js build runs with NODE_ENV=production
       // even in CI, and NEXT_PUBLIC_SITE_URL may be overridden at deploy time on Vercel.
-      // The app will function but Stripe/OAuth redirects will fail until the var is set.
+      // The app will function but QBO OAuth callbacks will fail until the var is set.
       if (typeof window === 'undefined') {
         console.warn(
           '[ENV] ⚠️  NEXT_PUBLIC_SITE_URL is set to http://localhost:3000 in a production build.\n' +
-          '        Stripe redirects, QBO OAuth callbacks, and email links will all point to localhost.\n' +
+          '        QBO OAuth callbacks and email links will all point to localhost.\n' +
           '        Set NEXT_PUBLIC_SITE_URL to your actual domain (e.g., https://yourapp.com) in Vercel env vars.'
         );
       }
@@ -95,11 +88,6 @@ function parseEnv(): EnvVar {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: supabaseAnonKey,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     GOOGLE_AI_KEY: process.env.GOOGLE_AI_KEY,
-    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
-    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
-    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
-    NEXT_PUBLIC_STRIPE_PRICE_PRO: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO,
-    NEXT_PUBLIC_STRIPE_PRICE_BUSINESS: process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     RESEND_WEBHOOK_SECRET: process.env.RESEND_WEBHOOK_SECRET,
     RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,

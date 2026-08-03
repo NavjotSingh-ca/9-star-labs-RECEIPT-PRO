@@ -1854,6 +1854,11 @@ END $$;
 -- ============================================================
 
 -- Receipts
+-- NOTE: legacy duplicate indexes dropped below were previously created with
+-- different names but identical definitions. Kept the first of each pair.
+DROP INDEX IF EXISTS idx_receipts_approval;
+DROP INDEX IF EXISTS idx_receipts_category_filtered;
+DROP INDEX IF EXISTS idx_receipts_missing_bn_filtered;
 CREATE INDEX IF NOT EXISTS idx_receipts_org_deleted ON receipts(org_id, is_deleted);
 CREATE INDEX IF NOT EXISTS idx_receipts_user_id ON receipts(user_id);
 CREATE INDEX IF NOT EXISTS idx_receipts_transaction_date ON receipts(transaction_date);
@@ -1869,7 +1874,6 @@ CREATE INDEX IF NOT EXISTS idx_receipts_org_approval_status ON receipts(org_id, 
 CREATE INDEX IF NOT EXISTS idx_receipts_org_user_approval ON receipts(org_id, user_id, approval_status) WHERE is_deleted = false;
 CREATE INDEX IF NOT EXISTS idx_receipts_vendor_fts ON receipts USING gin(to_tsvector('english', coalesce(vendor_name, '')));
 CREATE INDEX IF NOT EXISTS idx_receipts_fts ON receipts USING gin(search_vector);
-CREATE INDEX IF NOT EXISTS idx_receipts_approval ON receipts(org_id, approval_status) WHERE is_deleted = false;
 CREATE INDEX IF NOT EXISTS idx_receipts_approval_status ON receipts(approval_status);
 CREATE INDEX IF NOT EXISTS idx_receipts_category ON receipts(category);
 CREATE INDEX IF NOT EXISTS idx_receipts_deleted_org ON receipts(org_id, is_deleted, created_at DESC);
@@ -1879,14 +1883,12 @@ CREATE INDEX IF NOT EXISTS idx_receipts_org_user_date ON receipts(org_id, is_del
 CREATE INDEX IF NOT EXISTS idx_receipts_qbo_synced ON receipts(qbo_synced) WHERE qbo_synced = false;
 
 -- Partial filtered indexes
-CREATE INDEX IF NOT EXISTS idx_receipts_category_filtered ON receipts(org_id, category) WHERE is_deleted = false;
 CREATE INDEX IF NOT EXISTS idx_receipts_fraud ON receipts(org_id) WHERE fraud_suspicion = true AND is_deleted = false;
 CREATE INDEX IF NOT EXISTS idx_receipts_math_mismatch ON receipts(org_id) WHERE math_mismatch_warning = true AND is_deleted = false;
 CREATE INDEX IF NOT EXISTS idx_receipts_duplicate_warning ON receipts(org_id) WHERE duplicate_warning = true AND is_deleted = false;
 CREATE INDEX IF NOT EXISTS idx_receipts_high_confidence ON receipts(org_id) WHERE confidence_score >= 80 AND is_deleted = false;
 CREATE INDEX IF NOT EXISTS idx_receipts_missing_bn ON receipts(org_id) WHERE vendor_tax_number IS NULL AND is_deleted = false;
 CREATE INDEX IF NOT EXISTS idx_receipts_reimbursement ON receipts(org_id, reimbursement_status, needs_reimbursement) WHERE is_deleted = false;
-CREATE INDEX IF NOT EXISTS idx_receipts_missing_bn_filtered ON receipts(org_id) WHERE vendor_tax_number IS NULL AND is_deleted = false;
 
 -- User roles
 CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON user_roles(user_id);
@@ -1912,7 +1914,11 @@ CREATE INDEX IF NOT EXISTS idx_business_units_org_id ON business_units(org_id);
 CREATE INDEX IF NOT EXISTS idx_bank_tx_org ON bank_transactions(org_id, matched_receipt_id);
 CREATE INDEX IF NOT EXISTS idx_bank_tx_date ON bank_transactions(transaction_date);
 CREATE INDEX IF NOT EXISTS idx_bank_tx_org_unmatched ON bank_transactions(org_id, is_reconciled, matched_receipt_id) WHERE is_reconciled = false AND matched_receipt_id IS NULL;
-CREATE INDEX IF NOT EXISTS idx_bank_tx_unmatched ON bank_transactions(org_id) WHERE matched_receipt_id IS NULL;
+-- Serves the digest cron (unmatched + unreconciled rows filtered by created_at
+-- across ALL orgs). The old idx_bank_tx_unmatched (org_id only, no created_at)
+-- was a strict subset of idx_bank_tx_org_unmatched — dropped.
+DROP INDEX IF EXISTS idx_bank_tx_unmatched;
+CREATE INDEX IF NOT EXISTS idx_bank_tx_unmatched_created ON bank_transactions(created_at) WHERE matched_receipt_id IS NULL AND is_reconciled = false;
 
 -- Mileage
 CREATE INDEX IF NOT EXISTS idx_mileage_logs_org_id ON mileage_logs(org_id);
@@ -1920,6 +1926,10 @@ CREATE INDEX IF NOT EXISTS idx_mileage_logs_user_id ON mileage_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_mileage_logs_vehicle_id ON mileage_logs(vehicle_id);
 CREATE INDEX IF NOT EXISTS idx_mileage_logs_trip_date ON mileage_logs(trip_date);
 CREATE INDEX IF NOT EXISTS idx_mileage_logs_org_user_date ON mileage_logs(org_id, user_id, trip_date DESC);
+-- Composite for date-range queries that don't filter by user (e.g. CRA form
+-- data: org_id + trip_date BETWEEN) — bitmap-ANDing the two single-column
+-- indexes above is replaced by one seek.
+CREATE INDEX IF NOT EXISTS idx_mileage_logs_org_trip_date ON mileage_logs(org_id, trip_date);
 CREATE INDEX IF NOT EXISTS idx_mileage_date ON mileage_logs(trip_date DESC);
 
 -- Vehicles

@@ -59,29 +59,70 @@ async function handler(request: Request) {
     }
 
     let emailsSent = 0;
+    const orgIds = Array.from(byOrg.keys());
 
-    for (const [orgId, transactions] of byOrg.entries()) {
-      // Find all Owners for this org
-      const { data: owners } = await supabaseAdmin
-        .from('user_roles')
-        .select('user_id')
-        .eq('org_id', orgId)
-        .eq('role', 'Owner');
+    // Batch owner lookup across all affected orgs — replaces the per-org
+    // query that ran inside the loop (was 1 query per org).
+    const { data: ownerRows, error: ownersErr } = await supabaseAdmin
+      .from('user_roles')
+      .select('org_id, user_id')
+      .in('org_id', orgIds)
+      .eq('role', 'Owner');
 
-      if (!owners || owners.length === 0) continue;
+    if (ownersErr) {
+      logError(ownersErr, { action: 'missing_receipt_digest_owners' });
+      return NextResponse.json({ error: 'Owner lookup failed' }, { status: 500 });
+    }
 
-      // Get owner email addresses from auth.users (batched query)
-      const ownerIds = owners.map(o => o.user_id);
-      const emails: string[] = [];
-      const { data: authUsers } = await supabaseAdmin
+    const ownerIdsByOrg = new Map<string, string[]>();
+    const allOwnerIds = new Set<string>();
+    for (const row of ownerRows ?? []) {
+      const list = ownerIdsByOrg.get(row.org_id) ?? [];
+      list.push(row.user_id);
+      ownerIdsByOrg.set(row.org_id, list);
+      allOwnerIds.add(row.user_id);
+    }
+
+    // Batch email lookup for every owner across all orgs — replaces the
+    // per-org auth.users query (was 1 query per org).
+    let authUsers: { id: string; email: string | null }[] | null = null;
+    if (allOwnerIds.size > 0) {
+      const res = await supabaseAdmin
         .schema('auth')
         .from('users')
         .select('id, email')
-        .in('id', ownerIds);
-      if (authUsers) {
-        for (const u of authUsers) {
-          if (u.email) emails.push(u.email);
-        }
+        .in('id', Array.from(allOwnerIds));
+      if (res.error) {
+        logError(res.error, { action: 'missing_receipt_digest_auth_users' });
+      } else {
+        authUsers = res.data as { id: string; email: string | null }[] | null;
+      }
+    }
+    const emailById = new Map<string, string>();
+    for (const u of authUsers ?? []) {
+      if (u.email) emailById.set(u.id, u.email);
+    }
+
+    for (const [orgId, transactions] of byOrg.entries()) {
+      const ownerIds = ownerIdsByOrg.get(orgId) ?? [];
+
+      // Resolve owner emails for this org from the batched maps. If the
+      // batched auth.users lookup failed entirely, degrade to per-org
+      // lookups so a single failing batch can't silence every digest.
+      let emails: string[];
+      if (emailById.size > 0 || ownerIds.length === 0) {
+        emails = ownerIds
+          .map((id) => emailById.get(id))
+          .filter((email): email is string => Boolean(email));
+      } else {
+        const { data: perOrgUsers } = await supabaseAdmin
+          .schema('auth')
+          .from('users')
+          .select('id, email')
+          .in('id', ownerIds);
+        emails = (perOrgUsers ?? [])
+          .map((u) => u.email)
+          .filter((email): email is string => Boolean(email));
       }
 
       if (emails.length === 0) continue;

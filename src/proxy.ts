@@ -58,20 +58,18 @@ const publicPaths = ['/', '/privacy', '/terms', '/auth/callback'];
 const staticPaths = ['/sw.js', '/manifest.json', '/favicon.ico', '/favicon.svg', '/logo.svg', '/robots.txt', '/llms.txt', '/sitemap.xml'];
 
 // API routes that are intentionally public. Each self-authenticates:
-//   - /api/health, /api/docs   → informational only (docs is static spec)
-//   - /api/stripe/webhook      → verifies Stripe signature in-handler
-//   - /api/email/inbound       → verifies Resend HMAC in-handler
-//   - /api/digest/*            → verifies CRON_SECRET in-handler
-//   - /api/integrations/*      → stubs returning 503 'coming soon'
-// All other /api routes must enforce their own session/org check.
-const publicApiPrefixes = [
-  '/api/health',
-  '/api/docs',
-  '/api/stripe/webhook',
-  '/api/email/inbound',
-  '/api/digest/',
-  '/api/integrations/',
-];
+  //   - /api/health, /api/docs   → informational only (docs is static spec)
+  //   - /api/email/inbound       → verifies Resend HMAC in-handler
+  //   - /api/digest/*            → verifies CRON_SECRET in-handler
+  //   - /api/integrations/*      → stubs returning 503 'coming soon'
+  // All other /api routes must enforce their own session/org check.
+  const publicApiPrefixes = [
+    '/api/health',
+    '/api/docs',
+    '/api/email/inbound',
+    '/api/digest/',
+    '/api/integrations/',
+  ];
 
 function buildCSP(): string {
   // NOTE: Nonce-based CSP with strict-dynamic was attempted but is incompatible with
@@ -87,7 +85,6 @@ function buildCSP(): string {
     "'self'",
     "'unsafe-inline'",   // needed because nonce mechanism doesn't propagate to chunk files
     "'unsafe-eval'",     // needed for Recharts / Framer Motion
-    "https://js.stripe.com",
     "https://*.posthog.com",
   ].join(' ');
 
@@ -102,9 +99,8 @@ function buildCSP(): string {
     `style-src ${styleSrc}`,
     "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://cdn.simpleicons.org",
     "media-src 'self' blob:",
-    "connect-src 'self' https://*.supabase.co https://*.supabase.in https://generativelanguage.googleapis.com https://api.resend.com https://*.posthog.com https://js.stripe.com wss://*.supabase.co",
+    "connect-src 'self' https://*.supabase.co https://*.supabase.in https://generativelanguage.googleapis.com https://api.resend.com https://*.posthog.com wss://*.supabase.co",
     "font-src 'self' data:",
-    "frame-src https://js.stripe.com",
     "worker-src 'self'",
     "manifest-src 'self'",
     "object-src 'none'",
