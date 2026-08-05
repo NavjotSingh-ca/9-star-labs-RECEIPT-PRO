@@ -1,6 +1,6 @@
 # Leduc Receipt Pro
 
-Canadian business receipt management with CRA tax compliance, bank reconciliation, and AI receipt scanning.
+Canadian business receipt management with CRA tax compliance, bank reconciliation, and AI-powered receipt scanning.
 
 ## Status
 
@@ -84,7 +84,7 @@ MIT
 
 1. **Local Development**
    ```bash
-   git clone https://<repo>/leduc-receipt-pro && cd leduc-receipt-pro
+   git clone https://github.com/NavjotSingh-ca/9-star-labs-RECEIPT-PRO.git && cd 9-star-labs-RECEIPT-PRO
    cp .env.example .env.local
    # Fill .env.local with Supabase, Google AI, Stripe, Resend, QBO credentials
    docker-compose up -d
@@ -129,18 +129,16 @@ src/
   components/ui/     # shadcn/ui primitives
   types/             # Shared TypeScript types
   stories/           # Storybook component stories
-docs/                # OpenAPI spec, platform guides
+docs/                # Architecture, schema, and platform guides
 public/              # Static assets, manifest.json
 .github/             # CI/CD workflows, templates
-.agent-coordination/ # Agent task board and registry
 ```
 
 ## Getting Started
 
 1. Clone the repo and start developing locally
-2. Read `AGENTS.md` for AI agent collaboration patterns
-3. Run the quality gates to verify
-4. See `PROJECT_BRIEF.md` for the full roadmap and architecture docs
+2. Run the quality gates to verify
+3. See `PROJECT_BRIEF.md` for the full roadmap and architecture docs
 
 ## Interesting Notes
 
@@ -155,14 +153,14 @@ public/              # Static assets, manifest.json
 
 ## How This Project Was Built
 
-The project was built with multiple AI assistants in a coordinated autonomous mode system, using superpowers skills:
+Leduc Receipt Pro was built from scratch as a production-grade, CRA-compliant receipt management system. The codebase is organized around a few deliberate patterns:
 
-1. **Brainstorming** – Explored the codebase, identified critical issues, prioritized tasks
-2. **Execution Planning** – Created detailed roadmaps and task lists
-3. **Subagent Development** – Split work into parallel teams
-4. **Verification** – Continuous testing and quality gates
+1. **Hook-first architecture** – Business logic lives in `use*` hooks; UI components are thin, state-driven shells
+2. **Tenant-isolated data layer** – Every query is filtered by `org_id` with Postgres RLS as the last line of defense
+3. **Fail-closed security** – Auth checks, rate limiting, and input sanitization are defensive by default
+4. **Tested at every layer** – Unit tests (Vitest), e2e (Playwright), and CI quality gates
 
-**Key enablers**: Supabase, Context7 docs, sequential-thinking, MCP servers, GitHub Actions CI
+A full breakdown of the architecture, schema, and roadmap is in [`PROJECT_BRIEF.md`](PROJECT_BRIEF.md).
 
 ## Contributing
 

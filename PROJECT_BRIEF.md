@@ -157,10 +157,8 @@
 ├── postcss.config.mjs
 ├── tsconfig.json
 ├── .env.example                      # 16 documented env vars
-├── COMMS.md                          # Agent communications hub
 ├── supabase/
 │   └── setup.sql                     # Single source of truth for schema, RLS, triggers, functions, indexes
-└── AGENTS.md                         # This file — dev instructions
 ```
 
 ### Route Map (23 routes)

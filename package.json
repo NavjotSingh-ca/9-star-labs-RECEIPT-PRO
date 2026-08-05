@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": false,
   "description": "CRA-ready receipt processing and expense management for Canadian businesses",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/generate-sitemap.mjs && cross-env NODE_OPTIONS=\"--max-old-space-size=6144\" next build",
